@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Command Center</title>
+<link rel="stylesheet" href="./styles.css">
+<script>
+  // Apply persisted theme before paint to avoid flash.
+  (() => {
+    try {
+      const s = JSON.parse(localStorage.getItem("dcc-settings") || "{}");
+      const sysDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const theme = s.theme || (sysDark ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+    } catch {}
+  })();
+</script>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="header-title">
+      <h1 id="brand-name">DAILY COMMAND CENTER</h1>
+      <div class="subtitle">
+        <span class="greeting" id="greeting"><span class="pulse"></span>Good morning</span>
+        <span class="subtitle-sep" id="brand-subtitle-sep" hidden>·</span>
+        <span id="brand-subtitle" hidden></span>
+      </div>
+    </div>
+    <div class="header-actions" role="toolbar" aria-label="Dashboard actions">
+      <div class="workspace-switcher" id="workspace-switcher"></div>
+      <button class="header-btn header-kbd" data-action="palette" data-tooltip="Command palette · ⌘K" aria-label="Open command palette (Cmd K)">
+        <kbd>⌘</kbd><kbd>K</kbd><span class="header-btn-label">Search</span>
+      </button>
+      <button class="header-btn icon-only" data-action="refresh-all" id="refresh-btn" data-tooltip="Refresh all sources · R" aria-label="Refresh all data (R)"></button>
+      <span class="last-refresh" id="last-refresh" aria-live="polite" title="Last background refresh"></span>
+      <span class="header-divider" aria-hidden="true"></span>
+      <button class="header-btn" data-action="toggle-edit-mode" id="customize-btn" data-tooltip="Customize layout · E" aria-label="Customize dashboard layout (E)">
+        <span class="header-btn-label" id="customize-btn-label">Customize</span>
+      </button>
+      <button class="header-btn icon-only" data-action="toggle-theme" id="theme-btn"  data-tooltip="Toggle theme · T"   aria-label="Toggle light or dark theme (T)"></button>
+      <button class="header-btn icon-only" data-action="toggle-settings" id="settings-btn" data-tooltip="Settings · ,"     aria-label="Open settings (,)"></button>
+      <button class="header-btn icon-only" data-action="toggle-help" id="help-btn"        data-tooltip="Keyboard shortcuts · ?" aria-label="Show keyboard shortcuts (?)"></button>
+    </div>
+    <div class="header-clock" aria-label="Current time and date">
+      <div class="clock-text">
+        <div class="clock-line">
+          <span class="clock" id="clock">--:--</span>
+          <span class="clock-ampm" id="clock-ampm">--</span>
+        </div>
+        <div class="clock-meta">
+          <span class="date" id="header-date">—</span>
+          <span class="clock-tz-pill"><span class="clock-tz-dot" aria-hidden="true"></span><span id="primary-tz-label">—</span></span>
+        </div>
+        <div class="world-clocks" id="world-clocks" aria-label="Other time zones"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="context-banner" class="context-banner"></div>
+
+  <div id="workspace-empty" class="workspace-empty" hidden>
+    <div class="workspace-empty-card">
+      <span class="workspace-empty-icon" data-icon="plug"></span>
+      <h2 class="workspace-empty-title">No tools connected yet</h2>
+      <p class="workspace-empty-desc">
+        This workspace is a clean slate — connect a calendar, Slack, GitHub, Jira, or ClickUp
+        to start populating your dashboard. Each card only appears once its tool is connected.
+      </p>
+      <button class="btn-primary" data-action="toggle-settings">Open Settings → Workspaces</button>
+      <p class="workspace-empty-hint muted">Press <kbd>,</kbd> to open settings any time.</p>
+    </div>
+  </div>
+
+  <div class="kpi-strip">
+    <div class="kpi info" data-kpi-jump="schedule" data-requires-connector="calendar" tabindex="0" role="button" aria-label="Jump to schedule">
+      <div class="kpi-label"><span class="kpi-source">Calendar</span><span class="kpi-text">Today's meetings</span><span class="kpi-icon" data-icon="calendar"></span></div>
+      <div class="kpi-value" id="kpi-meetings" data-target="0">—</div>
+      <div class="kpi-detail" id="kpi-meetings-detail">Loading…</div>
+    </div>
+    <div class="kpi urgent" data-kpi-jump="mentions" data-requires-connector="slack" tabindex="0" role="button" aria-label="Jump to mentions">
+      <div class="kpi-label"><span class="kpi-source">Slack</span><span class="kpi-text">Mentions &amp; DMs</span><span class="kpi-icon" data-icon="bell"></span></div>
+      <div class="kpi-value" id="kpi-mentions" data-target="0">—</div>
+      <div class="kpi-detail" id="kpi-mentions-detail">Past 7 days</div>
+    </div>
+    <div class="kpi muted" data-kpi-jump="tickets" data-requires-connector="jira" tabindex="0" role="button" aria-label="Jump to tickets">
+      <div class="kpi-label"><span class="kpi-source">Jira</span><span class="kpi-text">My tickets</span><span class="kpi-icon" data-icon="ticket"></span></div>
+      <div class="kpi-value" id="kpi-tickets" data-target="0">—</div>
+      <div class="kpi-detail" id="kpi-tickets-detail">Jira</div>
+    </div>
+    <div class="kpi muted" data-kpi-jump="prs" data-requires-connector="github" tabindex="0" role="button" aria-label="Jump to PRs">
+      <div class="kpi-label"><span class="kpi-source">GitHub</span><span class="kpi-text">PRs to review</span><span class="kpi-icon" data-icon="gitPr"></span></div>
+      <div class="kpi-value" id="kpi-prs" data-target="0">—</div>
+      <div class="kpi-detail" id="kpi-prs-detail">GitHub</div>
+    </div>
+  </div>
+
+  <div class="dashboard-edit-toolbar" id="dashboard-edit-toolbar" hidden>
+    <span class="det-title">Edit mode</span>
+    <span class="det-hint muted">Drag headers to move · drag the corners/edges to resize · drag tabs to reorder</span>
+    <div class="det-actions">
+      <button class="btn-ghost" data-action="reset-layout">Reset layout</button>
+      <button class="btn-primary" data-action="toggle-edit-mode">Done</button>
+    </div>
+  </div>
+
+  <div class="dashboard-grid" id="dashboard-grid">
+    <div class="card dashboard-item" id="section-schedule" data-dashboard-item="schedule" data-requires-connector="calendar">
+      <div class="card-header">
+        <div class="title-row">
+          <span class="title-source">Calendar</span>
+          <span class="title-text"><span class="title-icon" data-icon="calendar"></span>Schedule</span>
+          <span class="header-meta" id="schedule-summary">—</span>
+        </div>
+        <div class="tabs">
+          <button class="tab tab-icon" data-action="schedule-prev"  data-icon="chevronLeft"  aria-label="Previous day"></button>
+          <button class="tab active" id="schedule-day-label" data-action="schedule-today">Today</button>
+          <button class="tab tab-icon" data-action="schedule-next"  data-icon="chevronRight" aria-label="Next day"></button>
+          <button class="icon-btn" data-action="reload-schedule"   data-icon="refresh"      aria-label="Refresh schedule"></button>
+        </div>
+      </div>
+      <div class="chips" id="schedule-chips">
+        <div class="chip active" data-filter="all" tabindex="0" role="button">All</div>
+        <div class="chip" data-filter="mine" tabindex="0" role="button">Mine</div>
+        <div class="chip" data-filter="needs-response" tabindex="0" role="button">Needs response</div>
+        <div class="chip" data-filter="hide-focus" tabindex="0" role="button">Hide focus</div>
+      </div>
+      <div class="card-body main-tall" id="schedule-body"></div>
+    </div>
+
+    <div class="card dashboard-item" id="section-mentions" data-dashboard-item="mentions" data-requires-connector="slack">
+      <div class="card-header">
+        <div class="title-row">
+          <span class="title-source">Slack</span>
+          <span class="title-text"><span class="title-icon" data-icon="bell"></span>Mentions &amp; DMs</span>
+          <span class="header-meta" id="mentions-day-label">Today</span>
+        </div>
+        <div class="tabs">
+          <button class="tab tab-icon" data-action="mentions-prev"  data-icon="chevronLeft"  aria-label="Previous day"></button>
+          <button class="tab active" id="mentions-today-btn" data-action="mentions-today">Today</button>
+          <button class="tab tab-icon" data-action="mentions-next"  data-icon="chevronRight" aria-label="Next day"></button>
+          <button class="icon-btn" data-action="reload-mentions"   data-icon="refresh"      aria-label="Refresh mentions"></button>
+        </div>
+      </div>
+      <div class="card-body main-tall" id="mentions-body"></div>
+    </div>
+
+    <div class="card dashboard-item" id="section-prs" data-dashboard-item="prs" data-requires-connector="github">
+      <div class="card-header">
+        <div class="title-row">
+          <span class="title-source">GitHub</span>
+          <span class="title-text"><span class="title-icon" data-icon="gitPr"></span>Pull Requests</span>
+        </div>
+        <div class="tabs" id="pr-tabs" data-tab-reorder="prs">
+          <button class="tab active" data-pr-tab="review" data-tab-id="review">Needs Review <span class="tab-count" data-pr-count="review">—</span></button>
+          <button class="tab" data-pr-tab="mine" data-tab-id="mine">My PRs <span class="tab-count" data-pr-count="mine">—</span></button>
+          <button class="tab" data-pr-tab="all" data-tab-id="all">All Open <span class="tab-count" data-pr-count="all">—</span></button>
+          <button class="tab" data-pr-tab="closed" data-tab-id="closed">Closed <span class="tab-count" data-pr-count="closed">—</span></button>
+        </div>
+      </div>
+      <div class="card-body" id="pr-queue-body"></div>
+    </div>
+    <div class="card dashboard-item" id="section-tickets" data-dashboard-item="tickets" data-requires-connector="jira">
+      <div class="card-header">
+        <div class="title-row">
+          <span class="title-source">Jira</span>
+          <span class="title-text"><span class="title-icon" data-icon="ticket"></span><span id="tickets-title">Tickets</span></span>
+        </div>
+        <div class="tabs" id="jira-tabs" data-tab-reorder="jira"></div>
+      </div>
+      <div class="card-body" id="my-tickets-body"></div>
+    </div>
+    <div class="card dashboard-item" id="section-clickup" data-dashboard-item="clickup" data-requires-connector="clickup">
+      <div class="card-header">
+        <div class="title-row">
+          <span class="title-source">ClickUp</span>
+          <span class="title-text"><span class="title-icon" data-icon="check"></span>Tasks</span>
+        </div>
+        <div class="tabs" id="clickup-tabs" data-tab-reorder="clickup">
+          <button class="icon-btn" data-action="reload-clickup" data-icon="refresh" aria-label="Refresh ClickUp"></button>
+        </div>
+      </div>
+      <div class="card-body" id="clickup-body"></div>
+    </div>
+    <div class="card dashboard-item" id="section-channels" data-dashboard-item="channels" data-requires-connector="slack">
+      <div class="card-header">
+        <div class="title-row">
+          <span class="title-source">Slack</span>
+          <span class="title-text"><span class="title-icon" data-icon="slack"></span>Channel Digest</span>
+          <span class="header-meta" id="channels-header-meta">Loading…</span>
+        </div>
+        <div style="display:flex;gap:4px;">
+          <button class="icon-btn" data-action="configure-channels" id="channels-config-btn" data-icon="settings" aria-label="Configure channels"></button>
+          <button class="icon-btn" data-action="reload-channels" data-icon="refresh" aria-label="Refresh channels"></button>
+        </div>
+      </div>
+      <div id="channels-config-panel"></div>
+      <div class="card-body short" id="channels-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- UNIVERSAL SIDEBAR (right rail) -->
+<aside id="universal-sidebar" class="universal-sidebar" aria-label="Quick reference rail">
+  <div class="sidebar-head">
+    <span class="sidebar-title">Quick rail</span>
+    <button class="link-btn" data-action="sidebar-close" title="Close sidebar (])">close ✕</button>
+  </div>
+  <section class="sidebar-section" data-requires-connector="calendar">
+    <h4>Next up</h4>
+    <div id="sidebar-events"><div class="muted">—</div></div>
+  </section>
+  <section class="sidebar-section" data-requires-connector="slack">
+    <h4>Recent mentions</h4>
+    <div id="sidebar-mentions"><div class="muted">—</div></div>
+  </section>
+  <section class="sidebar-section sidebar-empty" id="sidebar-empty" hidden>
+    <div class="muted">No tools connected — open Settings (<kbd>,</kbd>) to add one.</div>
+  </section>
+</aside>
+
+<div class="toast-stack" id="toast-stack"></div>
+
+<!-- HELP MODAL -->
+<div class="modal-backdrop" id="help-modal">
+  <div class="modal" role="dialog" aria-labelledby="help-title">
+    <h2 id="help-title">Keyboard shortcuts</h2>
+    <div class="shortcut-row"><span>Open command palette</span><div class="keys"><kbd>⌘</kbd><kbd>K</kbd></div></div>
+    <div class="shortcut-row"><span>Refresh all modules</span><div class="keys"><kbd>R</kbd></div></div>
+    <div class="shortcut-row"><span>Toggle theme</span><div class="keys"><kbd>T</kbd></div></div>
+    <div class="shortcut-row"><span>Jump to schedule</span><div class="keys"><kbd>G</kbd><kbd>S</kbd></div></div>
+    <div class="shortcut-row"><span>Jump to channels</span><div class="keys"><kbd>G</kbd><kbd>C</kbd></div></div>
+    <div class="shortcut-row"><span>Jump to mentions</span><div class="keys"><kbd>G</kbd><kbd>M</kbd></div></div>
+    <div class="shortcut-row"><span>Open settings</span><div class="keys"><kbd>,</kbd></div></div>
+    <div class="shortcut-row"><span>Toggle quick rail</span><div class="keys"><kbd>]</kbd></div></div>
+    <div class="shortcut-row"><span>Show this help</span><div class="keys"><kbd>?</kbd></div></div>
+    <div class="shortcut-row"><span>Close modals</span><div class="keys"><kbd>Esc</kbd></div></div>
+  </div>
+</div>
+
+<!-- SETTINGS PANEL -->
+<div class="modal-backdrop" id="settings-modal">
+  <div class="modal modal-lg" role="dialog" aria-labelledby="settings-title">
+    <div class="settings-header">
+      <h2 id="settings-title">Settings</h2>
+      <div class="settings-tabs" role="tablist">
+        <button class="settings-tab active" data-settings-tab="workspaces">Workspaces</button>
+        <button class="settings-tab" data-settings-tab="preferences">Preferences</button>
+      </div>
+    </div>
+    <div class="settings-body" id="settings-body">
+      <div class="muted">Loading…</div>
+    </div>
+    <div class="settings-footer muted">
+      All tokens are stored locally in SQLite — nothing leaves your machine. Add or remove
+      connectors per workspace in the Workspaces tab above.
+    </div>
+  </div>
+</div>
+
+<!-- COMMAND PALETTE -->
+<div class="palette-backdrop" id="palette" aria-hidden="true">
+  <div class="palette" role="dialog" aria-label="Command palette">
+    <div class="palette-input-row">
+      <span class="pi-icon">⌘</span>
+      <input class="palette-input" id="palette-input" placeholder="Search channels, tickets, PRs, mentions… or type a command" autocomplete="off" spellcheck="false">
+      <span class="palette-hint"><kbd>esc</kbd></span>
+    </div>
+    <div class="palette-results" id="palette-results"></div>
+    <div class="palette-footer">
+      <div class="pf-row"><kbd>↑</kbd><kbd>↓</kbd> navigate</div>
+      <div class="pf-row"><kbd>↵</kbd> open</div>
+      <div class="pf-row"><kbd>esc</kbd> close</div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="./main.ts"></script>
+</body>
+</html>

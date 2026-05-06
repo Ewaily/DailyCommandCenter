@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ewaily's Daily Command Center</title>
+<!--
+  STARTER FRONTEND for Daily Command Center.
+  See PROJECT_BRIEF.md §6 for the UI/UX issues this file is designed to fix.
+  Claude Code: refactor this into Vite + TypeScript modules per the brief.
+  Each section below maps to a component in src/frontend/components/.
+-->
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #F4F6F9;
+    --card: #FFFFFF;
+    --card-alt: #FAFBFC;
+    --border: #E5E7EB;
+    --border-strong: #D1D5DB;
+    --text: #111827;
+    --text-muted: #4B5563;       /* WCAG AA on #FAFBFC */
+    --text-soft: #6B7280;        /* WCAG AA on #FFFFFF */
+    --primary: #0E4C5B;
+    --primary-light: #14657A;
+    --accent: #2A9D8F;
+    --accent-hover: #248276;
+    --urgent: #DC2626;
+    --urgent-bg: #FEE2E2;
+    --warning: #B45309;
+    --warning-bg: #FEF3C7;
+    --success: #059669;
+    --success-bg: #D1FAE5;
+    --info: #2563EB;
+    --info-bg: #DBEAFE;
+    --new: #6D28D9;
+    --new-bg: #EDE9FE;
+    --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.04);
+    --shadow: 0 1px 3px 0 rgba(0,0,0,0.06), 0 1px 2px -1px rgba(0,0,0,0.04);
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", system-ui, sans-serif;
+    font-size: 14px; line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container { max-width: 1480px; margin: 0 auto; padding: 18px; }
+
+  /* ========== HEADER ========== */
+  .header {
+    background: linear-gradient(135deg, #0E4C5B 0%, #14657A 100%);
+    color: #fff; border-radius: var(--radius);
+    padding: 22px 28px;
+    display: grid; grid-template-columns: 1fr auto auto; gap: 20px;
+    align-items: center; box-shadow: var(--shadow);
+    margin-bottom: 16px;
+  }
+  .header h1 { margin: 0 0 4px 0; font-size: 22px; font-weight: 700; letter-spacing: 0.5px; }
+  .header .subtitle { font-size: 13px; opacity: 0.85; color: #B6E2DA; }
+  .header-actions { display: flex; gap: 8px; }
+  .header-btn {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.18);
+    color: #fff; padding: 7px 12px; border-radius: var(--radius-sm);
+    font-size: 12px; font-weight: 500; cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+  }
+  .header-btn:hover { background: rgba(255,255,255,0.22); }
+  .header-clock { text-align: right; }
+  .header-clock .clock { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+  .header-clock .date { font-size: 12px; opacity: 0.85; margin-top: 4px; }
+
+  /* ========== KPI STRIP ========== */
+  .kpi-strip {
+    display: grid; gap: 12px; margin-bottom: 16px;
+    grid-template-columns: repeat(5, 1fr);
+  }
+  @media (max-width: 1280px) { .kpi-strip { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 768px)  { .kpi-strip { grid-template-columns: repeat(2, 1fr); } }
+  .kpi {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow-sm);
+    position: relative; overflow: hidden;
+  }
+  .kpi::before {
+    content: ""; position: absolute; top: 0; left: 0; width: 4px; height: 100%;
+    background: var(--accent);
+  }
+  .kpi.urgent::before  { background: var(--urgent); }
+  .kpi.warning::before { background: var(--warning); }
+  .kpi.info::before    { background: var(--info); }
+  .kpi.muted::before   { background: var(--border-strong); }
+  .kpi-label { font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.6px; color: var(--text-muted); margin-bottom: 6px; }
+  .kpi-value { font-size: 28px; font-weight: 700; line-height: 1.1;
+    color: var(--text); font-variant-numeric: tabular-nums; }
+  .kpi-detail { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  /* ========== GRID LAYOUT ========== */
+  .grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  @media (max-width: 1100px) {
+    .grid, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+  }
+
+  /* ========== CARDS ========== */
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow-sm);
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  .card-header {
+    background: var(--primary); color: #fff;
+    padding: 10px 14px; font-size: 13px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 8px;
+  }
+  .card-header .title-row { display: flex; align-items: center; gap: 8px; }
+  .card-header .header-meta { font-size: 11px; font-weight: 500; opacity: 0.85;
+    text-transform: none; letter-spacing: 0; }
+  .card-header .icon-btn {
+    background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18);
+    color: #fff; width: 26px; height: 26px; border-radius: 5px;
+    cursor: pointer; font-size: 13px; padding: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .card-header .icon-btn:hover { background: rgba(255,255,255,0.22); }
+  .card-header .tabs { display: flex; gap: 4px; }
+  .card-header .tab {
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.85); padding: 3px 10px; border-radius: 4px;
+    font-size: 11px; cursor: pointer; text-transform: none; letter-spacing: 0;
+    font-family: inherit;
+  }
+  .card-header .tab.active { background: #fff; color: var(--primary);
+    border-color: #fff; font-weight: 600; }
+  .card-body { padding: 12px 14px; flex: 1; overflow-y: auto; max-height: 480px; }
+  .card-body.short { max-height: 320px; }
+  .card-body.tall { max-height: 560px; }
+
+  /* Filter chips row */
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 14px 10px; }
+  .chip {
+    font-size: 11px; padding: 4px 10px; border-radius: 999px;
+    background: var(--card-alt); border: 1px solid var(--border);
+    color: var(--text-muted); cursor: pointer; font-family: inherit;
+    transition: all 0.15s;
+  }
+  .chip:hover { background: var(--border); color: var(--text); }
+  .chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+  /* ========== SCHEDULE ========== */
+  .day-divider {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--text-soft); font-weight: 600;
+    margin: 14px 0 6px 0; padding-bottom: 4px; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .day-divider:first-child { margin-top: 0; }
+  .schedule-item {
+    display: grid; grid-template-columns: 70px 1fr;
+    gap: 12px; padding: 10px 0;
+    border-bottom: 1px dashed var(--border); align-items: flex-start;
+  }
+  .schedule-item:last-child { border-bottom: none; }
+  .schedule-time {
+    font-size: 13px; font-weight: 600; color: var(--primary);
+    font-variant-numeric: tabular-nums;
+  }
+  .schedule-time small { display: block; font-weight: 400; color: var(--text-muted); font-size: 10px; margin-top: 2px; }
+  .schedule-content { min-width: 0; }
+  .schedule-title-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+  .schedule-title {
+    font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+  .schedule-title.dim { color: var(--text-soft); text-decoration: line-through; text-decoration-color: var(--border-strong); }
+  .schedule-meta {
+    font-size: 11px; color: var(--text-muted); margin-top: 4px;
+    display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+  }
+  .schedule-meta a { color: var(--info); text-decoration: none; }
+  .schedule-meta a:hover { text-decoration: underline; }
+  .meta-sep { color: var(--text-soft); }
+
+  /* ========== BADGES ========== */
+  .badge {
+    display: inline-block; font-size: 10px; font-weight: 600;
+    padding: 2px 7px; border-radius: 4px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    line-height: 1.5;
+  }
+  .badge-new      { background: var(--new-bg);      color: var(--new); }
+  .badge-urgent   { background: var(--urgent-bg);   color: var(--urgent); }
+  .badge-warning  { background: var(--warning-bg);  color: var(--warning); }
+  .badge-success  { background: var(--success-bg);  color: var(--success); }
+  .badge-info     { background: var(--info-bg);     color: var(--info); }
+  .badge-focus    { background: #F3F4F6;            color: var(--text-muted); }
+
+  /* ========== TODO ========== */
+  .todo-input-row { display: flex; gap: 6px; margin-bottom: 10px; }
+  .todo-input-row input {
+    flex: 1; border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm); padding: 7px 10px;
+    font-size: 13px; font-family: inherit; background: #fff; color: var(--text);
+  }
+  .todo-input-row input:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(42,157,143,0.15);
+  }
+  .btn {
+    background: var(--accent); color: #fff; border: none;
+    border-radius: var(--radius-sm); padding: 7px 14px;
+    font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit;
+  }
+  .btn:hover { background: var(--accent-hover); }
+  .btn-secondary {
+    background: #fff; color: var(--text); border: 1px solid var(--border-strong);
+  }
+  .btn-secondary:hover { background: #F9FAFB; }
+  .todo-list { list-style: none; margin: 0; padding: 0; }
+  .todo-item {
+    display: grid; grid-template-columns: auto 1fr auto;
+    gap: 10px; align-items: center; padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .todo-item:last-child { border-bottom: none; }
+  .todo-item input[type="checkbox"] {
+    width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;
+  }
+  .todo-text { font-size: 13px; color: var(--text); word-break: break-word; }
+  .todo-item.done .todo-text { text-decoration: line-through; color: var(--text-soft); }
+  .todo-meta {
+    font-size: 10px; color: var(--text-soft); text-align: left; margin-top: 2px;
+  }
+  .todo-actions {
+    display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s;
+  }
+  .todo-item:hover .todo-actions { opacity: 1; }
+  .todo-actions button {
+    background: none; border: none; color: var(--text-soft);
+    cursor: pointer; font-size: 13px; padding: 2px 4px;
+  }
+  .todo-actions button:hover { color: var(--urgent); }
+
+  /* ========== SLACK ========== */
+  .slack-channel {
+    margin-bottom: 14px; padding: 10px 12px;
+    background: var(--card-alt); border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .slack-channel:last-child { margin-bottom: 0; }
+  .slack-channel-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border);
+  }
+  .slack-channel-name {
+    font-weight: 600; color: var(--primary); font-size: 13px;
+  }
+  .slack-channel-meta { font-size: 10px; color: var(--text-soft); }
+  .slack-channel-link {
+    font-size: 11px; color: var(--info); text-decoration: none;
+  }
+  .slack-channel-link:hover { text-decoration: underline; }
+  .slack-msg {
+    font-size: 12px; color: var(--text);
+    padding: 6px 0; border-bottom: 1px dotted var(--border);
+    line-height: 1.45;
+  }
+  .slack-msg:last-child { border-bottom: none; }
+  .slack-msg .msg-head {
+    display: flex; gap: 8px; align-items: baseline;
+    margin-bottom: 2px;
+  }
+  .slack-msg .author { font-weight: 600; color: var(--primary-light); }
+  .slack-msg .ts { color: var(--text-soft); font-size: 10px; font-variant-numeric: tabular-nums; }
+  .slack-msg .text { color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .slack-msg .text a { color: var(--info); }
+  .slack-msg .text code {
+    background: #F3F4F6; padding: 1px 4px; border-radius: 3px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px;
+  }
+  .slack-msg .text strong { font-weight: 600; }
+  .slack-msg .text em { font-style: italic; }
+  .slack-msg .mention {
+    background: var(--info-bg); color: var(--info);
+    padding: 0 4px; border-radius: 3px; font-weight: 500;
+  }
+  .slack-msg .mention.self { background: var(--warning-bg); color: var(--warning); }
+  .slack-msg .channel-ref {
+    background: var(--card-alt); padding: 0 4px; border-radius: 3px;
+    color: var(--primary); font-weight: 500;
+  }
+
+  /* ========== MENTIONS ========== */
+  .mention-item {
+    padding: 8px 10px; border-left: 3px solid var(--accent);
+    background: var(--card-alt); margin-bottom: 8px;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    font-size: 12px;
+  }
+  .mention-item:last-child { margin-bottom: 0; }
+  .mention-item.urgent { border-left-color: var(--urgent); }
+  .mention-meta {
+    display: flex; justify-content: space-between; gap: 6px; flex-wrap: wrap;
+    margin-bottom: 4px; font-size: 11px; color: var(--text-muted);
+  }
+  .mention-meta .author { font-weight: 600; color: var(--primary); }
+  .mention-text { color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
+
+  /* ========== NOT-CONNECTED CTA ========== */
+  .not-connected {
+    text-align: center; padding: 24px 14px; color: var(--text-muted);
+  }
+  .not-connected .icon { font-size: 28px; opacity: 0.5; margin-bottom: 8px; }
+  .not-connected .title { font-weight: 600; color: var(--text); margin-bottom: 4px; font-size: 13px; }
+  .not-connected .desc { font-size: 12px; margin-bottom: 12px; }
+  .not-connected a {
+    color: var(--info); text-decoration: none; font-weight: 500;
+  }
+  .not-connected a:hover { text-decoration: underline; }
+
+  /* ========== SCRATCHPAD ========== */
+  .scratchpad-toolbar {
+    display: flex; gap: 4px; margin-bottom: 6px;
+  }
+  .scratchpad-toolbar button {
+    background: var(--card-alt); border: 1px solid var(--border);
+    width: 26px; height: 26px; border-radius: 4px;
+    cursor: pointer; font-size: 12px; color: var(--text-muted);
+    font-family: inherit;
+  }
+  .scratchpad-toolbar button:hover { background: var(--border); color: var(--text); }
+  .scratchpad {
+    width: 100%; min-height: 180px;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 10px 12px; font-size: 13px; font-family: inherit;
+    resize: vertical; background: #FFFEF8; color: var(--text); line-height: 1.5;
+  }
+  .scratchpad:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(42,157,143,0.15);
+  }
+  .scratchpad-meta {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 6px; font-size: 11px; color: var(--text-soft);
+  }
+
+  /* ========== STATES ========== */
+  .empty {
+    text-align: center; padding: 24px 12px;
+    color: var(--text-muted); font-size: 12px;
+  }
+  .empty .emoji { font-size: 24px; display: block; margin-bottom: 6px; }
+  .loading {
+    text-align: center; padding: 24px 12px;
+    color: var(--text-soft); font-size: 12px;
+  }
+  .loading::after {
+    content: ""; display: inline-block; width: 12px; height: 12px;
+    margin-left: 6px; border: 2px solid var(--border-strong);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 0.8s linear infinite; vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error {
+    color: var(--urgent); background: var(--urgent-bg);
+    padding: 10px; border-radius: var(--radius-sm); font-size: 12px;
+  }
+
+  /* ========== TOAST ========== */
+  .toast-stack {
+    position: fixed; bottom: 20px; right: 20px;
+    display: flex; flex-direction: column; gap: 8px;
+    z-index: 1000; pointer-events: none;
+  }
+  .toast {
+    background: var(--text); color: #fff;
+    padding: 10px 16px; border-radius: var(--radius-sm);
+    font-size: 13px; box-shadow: var(--shadow);
+    pointer-events: auto;
+    animation: slide-in 0.2s ease-out;
+  }
+  .toast.success { background: var(--success); }
+  .toast.error { background: var(--urgent); }
+  @keyframes slide-in {
+    from { transform: translateY(8px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  /* ========== KEYBOARD HELP MODAL ========== */
+  .modal-backdrop {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4); z-index: 999;
+    align-items: center; justify-content: center;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--card); border-radius: var(--radius);
+    padding: 24px; max-width: 480px; width: 100%;
+    box-shadow: var(--shadow);
+  }
+  .modal h2 { margin: 0 0 12px 0; font-size: 16px; }
+  .shortcut-row {
+    display: flex; justify-content: space-between; padding: 8px 0;
+    border-bottom: 1px solid var(--border); font-size: 13px;
+  }
+  .shortcut-row:last-child { border-bottom: none; }
+  kbd {
+    background: var(--card-alt); border: 1px solid var(--border-strong);
+    border-bottom-width: 2px; padding: 2px 6px; border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px; color: var(--text);
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div>
+      <h1>EWAILY'S DAILY COMMAND CENTER</h1>
+      <div class="subtitle">Muhammad Ewaily — Lead SWE, TrianglZ</div>
+    </div>
+    <div class="header-actions">
+      <button class="header-btn" onclick="DCC.refreshAll()" title="Refresh all (R)">↻ Refresh</button>
+      <button class="header-btn" onclick="DCC.toggleHelp()" title="Show shortcuts (?)">?</button>
+    </div>
+    <div class="header-clock">
+      <div class="clock" id="clock">--:--</div>
+      <div class="date" id="header-date">—</div>
+    </div>
+  </div>
+
+  <!-- KPI STRIP -->
+  <div class="kpi-strip">
+    <div class="kpi info">
+      <div class="kpi-label">Today's Meetings</div>
+      <div class="kpi-value" id="kpi-meetings">—</div>
+      <div class="kpi-detail" id="kpi-meetings-detail">Loading…</div>
+    </div>
+    <div class="kpi urgent">
+      <div class="kpi-label">Slack: Mentions & DMs</div>
+      <div class="kpi-value" id="kpi-mentions">—</div>
+      <div class="kpi-detail" id="kpi-mentions-detail">Past 7 days</div>
+    </div>
+    <div class="kpi warning">
+      <div class="kpi-label">TODOs Open</div>
+      <div class="kpi-value" id="kpi-todos">0</div>
+      <div class="kpi-detail" id="kpi-todos-detail">—</div>
+    </div>
+    <div class="kpi muted">
+      <div class="kpi-label">My Tickets</div>
+      <div class="kpi-value" id="kpi-tickets">—</div>
+      <div class="kpi-detail" id="kpi-tickets-detail">Linear / Jira</div>
+    </div>
+    <div class="kpi muted">
+      <div class="kpi-label">PRs to Review</div>
+      <div class="kpi-value" id="kpi-prs">—</div>
+      <div class="kpi-detail" id="kpi-prs-detail">GitHub</div>
+    </div>
+  </div>
+
+  <!-- ROW 1: SCHEDULE + TODO -->
+  <div class="grid">
+    <div class="card">
+      <div class="card-header">
+        <div class="title-row">
+          <span>📅 Schedule</span>
+          <span class="header-meta" id="schedule-summary">—</span>
+        </div>
+        <div class="tabs">
+          <button class="tab" onclick="DCC.scheduleNav(-1)" title="Previous day">←</button>
+          <button class="tab active" id="schedule-day-label" onclick="DCC.scheduleNav(0)">Today</button>
+          <button class="tab" onclick="DCC.scheduleNav(1)" title="Next day">→</button>
+          <button class="icon-btn" onclick="DCC.loadSchedule()" title="Refresh">↻</button>
+        </div>
+      </div>
+      <div class="chips" id="schedule-chips">
+        <div class="chip active" data-filter="all">All</div>
+        <div class="chip" data-filter="mine">Mine (accepted)</div>
+        <div class="chip" data-filter="needs-response">Needs response</div>
+        <div class="chip" data-filter="hide-focus">Hide focus</div>
+      </div>
+      <div class="card-body tall" id="schedule-body">
+        <div class="loading">Loading calendar</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="title-row">
+          <span>✅ TODO List</span>
+        </div>
+        <div class="tabs">
+          <button class="tab active" data-tab="today" onclick="DCC.switchTodoTab('today')">Today</button>
+          <button class="tab" data-tab="backlog" onclick="DCC.switchTodoTab('backlog')">Backlog</button>
+          <button class="tab" data-tab="done" onclick="DCC.switchTodoTab('done')">Done</button>
+        </div>
+      </div>
+      <div class="card-body tall">
+        <div class="todo-input-row">
+          <input type="text" id="todo-input" placeholder="Add a task… (Enter to save, N to focus)"
+                 onkeydown="if(event.key==='Enter') DCC.addTodo()">
+          <button class="btn" onclick="DCC.addTodo()">Add</button>
+        </div>
+        <ul class="todo-list" id="todo-list"></ul>
+        <div class="empty" id="todo-empty" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 2: CHANNELS + MENTIONS -->
+  <div class="grid">
+    <div class="card">
+      <div class="card-header">
+        <div class="title-row">
+          <span>💬 Channel Digest</span>
+          <span class="header-meta">Last 5 messages · 5 channels</span>
+        </div>
+        <button class="icon-btn" onclick="DCC.loadChannels()" title="Refresh">↻</button>
+      </div>
+      <div class="card-body tall" id="channels-body">
+        <div class="loading">Loading channels</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="title-row">
+          <span>🔔 Mentions & DMs</span>
+          <span class="header-meta">Past 7 days</span>
+        </div>
+        <button class="icon-btn" onclick="DCC.loadMentions()" title="Refresh">↻</button>
+      </div>
+      <div class="card-body tall" id="mentions-body">
+        <div class="loading">Loading mentions</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 3: TICKETS + TEAM BOARD + PRs -->
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-header">
+        <span>🎫 My Tickets</span>
+        <span class="header-meta">Linear / Jira</span>
+      </div>
+      <div class="card-body short" id="my-tickets-body">
+        <div class="loading">Loading tickets</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span>🧭 Team Board</span>
+        <span class="header-meta">Active project</span>
+      </div>
+      <div class="card-body short" id="team-board-body">
+        <div class="loading">Loading team board</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span>👀 PR Review Queue</span>
+        <span class="header-meta">GitHub</span>
+      </div>
+      <div class="card-body short" id="pr-queue-body">
+        <div class="loading">Loading PRs</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 4: DEADLINES + SCRATCHPAD -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <span>⏳ Deadlines This Week</span>
+        <span class="header-meta">All trackers</span>
+      </div>
+      <div class="card-body short" id="deadlines-body">
+        <div class="loading">Loading deadlines</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span>📝 Quick Capture</span>
+        <span class="header-meta">Local scratchpad</span>
+      </div>
+      <div class="card-body short">
+        <div class="scratchpad-toolbar">
+          <button title="Bold (Cmd+B)" onclick="DCC.scratchWrap('**','**')"><b>B</b></button>
+          <button title="Italic (Cmd+I)" onclick="DCC.scratchWrap('_','_')"><i>I</i></button>
+          <button title="Bullet" onclick="DCC.scratchPrefix('- ')">•</button>
+          <button title="Checklist" onclick="DCC.scratchPrefix('- [ ] ')">☐</button>
+          <button title="Send all to TODO" onclick="DCC.scratchToTodo()">→✅</button>
+          <button title="Copy" onclick="DCC.copyScratchpad()">⧉</button>
+        </div>
+        <textarea class="scratchpad" id="scratchpad"
+                  placeholder="Drop quick thoughts here… auto-saves locally."></textarea>
+        <div class="scratchpad-meta">
+          <span id="scratchpad-meta">Auto-saved</span>
+          <span id="scratchpad-count">0 chars</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- TOAST STACK -->
+<div class="toast-stack" id="toast-stack"></div>
+
+<!-- HELP MODAL -->
+<div class="modal-backdrop" id="help-modal" onclick="if(event.target===this)DCC.toggleHelp()">
+  <div class="modal">
+    <h2>Keyboard shortcuts</h2>
+    <div class="shortcut-row"><span>Focus TODO input</span><kbd>N</kbd></div>
+    <div class="shortcut-row"><span>Refresh all modules</span><kbd>R</kbd></div>
+    <div class="shortcut-row"><span>Jump to schedule</span><kbd>G</kbd> <kbd>S</kbd></div>
+    <div class="shortcut-row"><span>Jump to channels</span><kbd>G</kbd> <kbd>C</kbd></div>
+    <div class="shortcut-row"><span>Show this help</span><kbd>?</kbd></div>
+    <div class="shortcut-row"><span>Close modals</span><kbd>Esc</kbd></div>
+  </div>
+</div>
+
+<script>
+/**
+ * Daily Command Center — starter frontend.
+ * Single-file vanilla JS for now. Claude Code: refactor into Vite + TS modules
+ * per PROJECT_BRIEF.md §4.2. Keep the HTML structure intact.
+ *
+ * Backend contract: all data comes from /api/* endpoints (no Cowork bridge).
+ * The backend MUST return Slack messages with a pre-rendered `html` field
+ * (see PROJECT_BRIEF.md §6.1) — this frontend trusts that html and inserts it
+ * via innerHTML. The server should sanitize.
+ */
+const DCC = (() => {
+  const API = "/api";
+  const SLACK_USER_ID = "U04T2EKA2BF";
+
+  // ============================================================
+  // STATE
+  // ============================================================
+  const state = {
+    scheduleDayOffset: 0,        // 0 = today, 1 = tomorrow, -1 = yesterday
+    scheduleFilter: "all",       // all | mine | needs-response | hide-focus
+    todoTab: "today",
+    todos: loadLocal("dcc-todos", []),
+    settings: loadLocal("dcc-settings", { autoRefreshMs: 5 * 60 * 1000 }),
+  };
+
+  function loadLocal(k, fb) { try { return JSON.parse(localStorage.getItem(k) || "null") ?? fb; } catch { return fb; } }
+  function saveLocal(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+
+  // ============================================================
+  // API CLIENT
+  // ============================================================
+  async function api(path, opts = {}) {
+    const res = await fetch(API + path, { credentials: "same-origin", ...opts });
+    if (!res.ok) {
+      let msg = `${res.status}`;
+      try { const j = await res.json(); msg = j.error || msg; } catch {}
+      throw new Error(msg);
+    }
+    return res.json();
+  }
+
+  // ============================================================
+  // UTILITIES
+  // ============================================================
+  const escapeHtml = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const fmtTime = iso => {
+    const d = new Date(iso);
+    return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  };
+  const fmtDuration = mins => mins < 60 ? `${mins}m` : (mins % 60 === 0 ? `${mins/60}h` : `${Math.floor(mins/60)}h ${mins%60}m`);
+  const todayKey = () => new Date().toISOString().slice(0, 10);
+  const offsetDate = (offset) => {
+    const d = new Date(); d.setDate(d.getDate() + offset);
+    return { iso: d.toISOString().slice(0, 10), label: d.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }) };
+  };
+  const timeAgo = ts => {
+    if (!ts) return "";
+    const sec = Math.round((Date.now() - ts) / 1000);
+    if (sec < 60) return `${sec}s ago`;
+    if (sec < 3600) return `${Math.round(sec / 60)}m ago`;
+    if (sec < 86400) return `${Math.round(sec / 3600)}h ago`;
+    return `${Math.round(sec / 86400)}d ago`;
+  };
+
+  // ============================================================
+  // CLOCK
+  // ============================================================
+  function tickClock() {
+    const now = new Date();
+    document.getElementById("clock").textContent =
+      `${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+    document.getElementById("header-date").textContent =
+      now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  }
+
+  // ============================================================
+  // TOASTS
+  // ============================================================
+  function toast(msg, type = "info") {
+    const el = document.createElement("div");
+    el.className = `toast ${type}`;
+    el.textContent = msg;
+    document.getElementById("toast-stack").appendChild(el);
+    setTimeout(() => { el.style.opacity = "0"; setTimeout(() => el.remove(), 200); }, 2200);
+  }
+
+  // ============================================================
+  // SCHEDULE
+  // ============================================================
+  async function loadSchedule() {
+    const body = document.getElementById("schedule-body");
+    const summary = document.getElementById("schedule-summary");
+    const dayLabel = document.getElementById("schedule-day-label");
+    const { iso, label } = offsetDate(state.scheduleDayOffset);
+    dayLabel.textContent = state.scheduleDayOffset === 0 ? "Today" : label;
+
+    body.innerHTML = `<div class="loading">Loading calendar</div>`;
+    try {
+      const start = new Date(`${iso}T00:00:00`).toISOString();
+      const end = new Date(`${iso}T23:59:59`).toISOString();
+      const { data } = await api(`/calendar/events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
+      const events = applyScheduleFilter(data || []);
+
+      // KPI uses today specifically
+      if (state.scheduleDayOffset === 0) {
+        const accepted = (data || []).filter(e => !e.isFocus && e.responseStatus !== "declined");
+        document.getElementById("kpi-meetings").textContent = accepted.length;
+        const newCount = (data || []).filter(e => e.isCreatedToday).length;
+        document.getElementById("kpi-meetings-detail").textContent =
+          newCount > 0 ? `${newCount} added today` : `${(data||[]).length} on calendar`;
+      }
+
+      summary.textContent = `${events.length} shown`;
+      if (!events.length) {
+        body.innerHTML = `<div class="empty"><span class="emoji">🌤️</span>Nothing on the calendar.<br>Enjoy the breathing room.</div>`;
+        return;
+      }
+      body.innerHTML = events.map(renderEvent).join("");
+    } catch (err) {
+      if (err.message.includes("not_connected") || err.message.includes("401") || err.message.includes("Authentication")) {
+        body.innerHTML = renderNotConnected("Google Calendar", "google");
+      } else {
+        body.innerHTML = `<div class="error">Calendar error: ${escapeHtml(err.message)}</div>`;
+      }
+    }
+  }
+
+  function applyScheduleFilter(events) {
+    return events.filter(e => {
+      if (state.scheduleFilter === "hide-focus" && e.isFocus) return false;
+      if (state.scheduleFilter === "mine" && (e.responseStatus !== "accepted" || e.isFocus)) return false;
+      if (state.scheduleFilter === "needs-response" && e.responseStatus !== "needsAction") return false;
+      return true;
+    });
+  }
+
+  function renderEvent(e) {
+    const time = e.isAllDay ? "All day" : fmtTime(e.start);
+    const dur = e.isAllDay ? "" : fmtDuration(e.durationMinutes);
+    const dimClass = e.responseStatus === "declined" ? "dim" : "";
+
+    // Pick top 2 badges by priority
+    const badgeMap = {
+      new:      `<span class="badge badge-new">NEW today</span>`,
+      respond:  `<span class="badge badge-urgent">Respond</span>`,
+      tentative:`<span class="badge badge-info">Tentative</span>`,
+      declined: `<span class="badge badge-warning">Declined</span>`,
+      focus:    `<span class="badge badge-focus">Focus</span>`,
+    };
+    const order = ["new","respond","tentative","declined","focus"];
+    const badges = order.filter(b => (e.badges || []).includes(b)).slice(0, 2).map(b => badgeMap[b]).join("");
+
+    // Build meta cleanly: filter empties, join with separators
+    const metaParts = [];
+    if (e.attendeeCount) metaParts.push(`${e.attendeeCount} attendee${e.attendeeCount === 1 ? "" : "s"}`);
+    if (e.meetUrl) metaParts.push(`<a href="${escapeHtml(e.meetUrl)}" target="_blank">📹 Meet</a>`);
+    if (e.htmlLink) metaParts.push(`<a href="${escapeHtml(e.htmlLink)}" target="_blank">↗ Calendar</a>`);
+    const meta = metaParts.length ? metaParts.join('<span class="meta-sep">·</span>') : "";
+
+    return `
+      <div class="schedule-item">
+        <div class="schedule-time">${time}<small>${dur}</small></div>
+        <div class="schedule-content">
+          <div class="schedule-title-row">
+            <span class="schedule-title ${dimClass}">${escapeHtml(stripPrefix(e.title))}</span>
+            ${badges}
+          </div>
+          ${meta ? `<div class="schedule-meta">${meta}</div>` : ""}
+        </div>
+      </div>
+    `;
+  }
+
+  function stripPrefix(title) {
+    if (!title) return "(untitled)";
+    return title.replace(/^(FW|FWD|Fwd|RE|Re):\s*/i, "");
+  }
+
+  function scheduleNav(delta) {
+    if (delta === 0) state.scheduleDayOffset = 0;
+    else state.scheduleDayOffset += delta;
+    loadSchedule();
+  }
+
+  // Hook chips
+  function initScheduleChips() {
+    document.querySelectorAll("#schedule-chips .chip").forEach(c => {
+      c.addEventListener("click", () => {
+        document.querySelectorAll("#schedule-chips .chip").forEach(x => x.classList.remove("active"));
+        c.classList.add("active");
+        state.scheduleFilter = c.dataset.filter;
+        loadSchedule();
+      });
+    });
+  }
+
+  // ============================================================
+  // SLACK CHANNELS
+  // ============================================================
+  // Server returns: { data: [{ channelId, channelName, messages: [{authorName, ts, html, permalink}] }] }
+  async function loadChannels() {
+    const body = document.getElementById("channels-body");
+    body.innerHTML = `<div class="loading">Loading channels</div>`;
+    try {
+      const { data } = await api(`/slack/digest`);
+      if (!data || !data.length) {
+        body.innerHTML = `<div class="empty"><span class="emoji">💤</span>No channel activity.</div>`;
+        return;
+      }
+      body.innerHTML = data.map(ch => `
+        <div class="slack-channel">
+          <div class="slack-channel-header">
+            <div>
+              <div class="slack-channel-name">#${escapeHtml(ch.channelName)}</div>
+              <div class="slack-channel-meta">${(ch.messages || []).length} recent</div>
+            </div>
+            <a class="slack-channel-link" href="${escapeHtml(ch.permalink || `https://app.slack.com/client/-/${ch.channelId}`)}" target="_blank">Open in Slack ↗</a>
+          </div>
+          ${(ch.messages || []).map(renderSlackMessage).join("") || '<div class="empty">No recent messages</div>'}
+        </div>
+      `).join("");
+    } catch (err) {
+      if (isAuthError(err)) body.innerHTML = renderNotConnected("Slack", "slack");
+      else body.innerHTML = `<div class="error">Slack error: ${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  function renderSlackMessage(m) {
+    // Trust server-provided html; it's been sanitized + Slack-formatted already.
+    // Frontend never sees raw <@U...> or <!subteam> — that's a SERVER bug if it does.
+    return `
+      <div class="slack-msg">
+        <div class="msg-head">
+          <span class="author">${escapeHtml(m.authorName || "Unknown")}</span>
+          <span class="ts">${escapeHtml(m.tsHuman || "")}</span>
+        </div>
+        <div class="text">${m.html || escapeHtml(m.text || "")}</div>
+      </div>
+    `;
+  }
+
+  // ============================================================
+  // SLACK MENTIONS
+  // ============================================================
+  async function loadMentions() {
+    const body = document.getElementById("mentions-body");
+    body.innerHTML = `<div class="loading">Loading mentions</div>`;
+    try {
+      const { data } = await api(`/slack/mentions?days=7`);
+      const items = data || [];
+      document.getElementById("kpi-mentions").textContent = items.length;
+      document.getElementById("kpi-mentions-detail").textContent =
+        items.length > 0 ? "Past 7 days · review" : "Caught up · past 7d";
+
+      if (!items.length) {
+        body.innerHTML = `<div class="empty"><span class="emoji">✨</span>Inbox zero on Slack.<br>Nice.</div>`;
+        return;
+      }
+      body.innerHTML = items.map(m => `
+        <div class="mention-item ${m.urgent ? "urgent" : ""}">
+          <div class="mention-meta">
+            <span class="author">${escapeHtml(m.authorName || "Unknown")}</span>
+            <span>${escapeHtml(m.channelName ? "#" + m.channelName : "DM")} · ${escapeHtml(m.tsHuman || "")}</span>
+          </div>
+          <div class="mention-text">${m.html || escapeHtml(m.text || "")}</div>
+          ${m.permalink ? `<a class="slack-channel-link" href="${escapeHtml(m.permalink)}" target="_blank" style="font-size:11px;">Reply in Slack ↗</a>` : ""}
+        </div>
+      `).join("");
+    } catch (err) {
+      if (isAuthError(err)) body.innerHTML = renderNotConnected("Slack", "slack");
+      else body.innerHTML = `<div class="error">Mentions error: ${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  // ============================================================
+  // TICKETS / TEAM BOARD / PRs / DEADLINES
+  // ============================================================
+  async function loadTickets() {
+    await renderListCard({
+      bodyId: "my-tickets-body",
+      kpiId: "kpi-tickets", kpiDetailId: "kpi-tickets-detail",
+      endpoint: "/tickets/mine",
+      providerName: "Linear / Jira", providerKey: "linear-jira",
+      emptyMsg: "No open tickets assigned to you. 🎉",
+      itemRenderer: renderTicket,
+      kpiDetailFn: data => `${data.filter(t => t.statusBucket === 'blocked').length} blocked`,
+    });
+  }
+  async function loadTeamBoard() {
+    await renderListCard({
+      bodyId: "team-board-body",
+      endpoint: "/tickets/team",
+      providerName: "Linear / Jira", providerKey: "linear-jira",
+      emptyMsg: "Team board is empty for the active project.",
+      itemRenderer: renderTicket,
+    });
+  }
+  async function loadPRs() {
+    await renderListCard({
+      bodyId: "pr-queue-body",
+      kpiId: "kpi-prs", kpiDetailId: "kpi-prs-detail",
+      endpoint: "/prs/queue",
+      providerName: "GitHub", providerKey: "github",
+      emptyMsg: "No PRs in your queue.",
+      itemRenderer: renderPR,
+      kpiDetailFn: data => `${data.filter(p => p.waitingOnYou).length} waiting on you`,
+    });
+  }
+  async function loadDeadlines() {
+    await renderListCard({
+      bodyId: "deadlines-body",
+      endpoint: "/deadlines?days=7",
+      providerName: "Linear / Jira / Notion", providerKey: "deadlines",
+      emptyMsg: "No deadlines this week.",
+      itemRenderer: renderDeadline,
+    });
+  }
+
+  async function renderListCard({ bodyId, kpiId, kpiDetailId, endpoint, providerName, providerKey, emptyMsg, itemRenderer, kpiDetailFn }) {
+    const body = document.getElementById(bodyId);
+    body.innerHTML = `<div class="loading">Loading</div>`;
+    try {
+      const resp = await api(endpoint);
+      if (resp.notConfigured) {
+        body.innerHTML = renderNotConnected(providerName, providerKey);
+        if (kpiId) document.getElementById(kpiId).textContent = "—";
+        return;
+      }
+      const data = resp.data || [];
+      if (kpiId) document.getElementById(kpiId).textContent = data.length;
+      if (kpiDetailId && kpiDetailFn) document.getElementById(kpiDetailId).textContent = kpiDetailFn(data);
+      if (!data.length) {
+        body.innerHTML = `<div class="empty">${emptyMsg}</div>`;
+        return;
+      }
+      body.innerHTML = data.map(itemRenderer).join("");
+    } catch (err) {
+      if (isAuthError(err)) body.innerHTML = renderNotConnected(providerName, providerKey);
+      else body.innerHTML = `<div class="error">${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  function renderTicket(t) {
+    const prio = t.priority ? `<span class="badge badge-${prioColor(t.priority)}">${escapeHtml(t.priority)}</span>` : "";
+    const status = `<span class="badge badge-${statusColor(t.statusBucket)}">${escapeHtml(t.status)}</span>`;
+    return `
+      <div class="schedule-item">
+        <div class="schedule-time" style="font-size:11px;">${escapeHtml(t.key || "")}</div>
+        <div class="schedule-content">
+          <div class="schedule-title-row">
+            <a href="${escapeHtml(t.url)}" target="_blank" class="schedule-title">${escapeHtml(t.title)}</a>
+            ${status}${prio}
+          </div>
+          <div class="schedule-meta">
+            ${t.assignee ? escapeHtml(t.assignee) : ""}
+            ${t.dueDate ? `<span class="meta-sep">·</span>due ${escapeHtml(t.dueDate)}` : ""}
+            ${t.project ? `<span class="meta-sep">·</span>${escapeHtml(t.project)}` : ""}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  function renderPR(p) {
+    const tag = p.waitingOnYou ? `<span class="badge badge-urgent">Review</span>` : `<span class="badge badge-info">Waiting</span>`;
+    return `
+      <div class="schedule-item">
+        <div class="schedule-time" style="font-size:11px;">${escapeHtml(p.repo || "")}</div>
+        <div class="schedule-content">
+          <div class="schedule-title-row">
+            <a href="${escapeHtml(p.url)}" target="_blank" class="schedule-title">${escapeHtml(p.title)}</a>
+            ${tag}
+          </div>
+          <div class="schedule-meta">
+            #${escapeHtml(p.number || "")}<span class="meta-sep">·</span>opened ${escapeHtml(p.ageHuman || "")}
+            ${p.author ? `<span class="meta-sep">·</span>by ${escapeHtml(p.author)}` : ""}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  function renderDeadline(d) {
+    const due = d.dueRelative || d.dueDate;
+    const urgent = d.daysUntilDue !== undefined && d.daysUntilDue <= 1;
+    return `
+      <div class="schedule-item">
+        <div class="schedule-time" style="font-size:11px;">${escapeHtml(d.dueDate || "")}</div>
+        <div class="schedule-content">
+          <div class="schedule-title-row">
+            <a href="${escapeHtml(d.url)}" target="_blank" class="schedule-title">${escapeHtml(d.title)}</a>
+            <span class="badge badge-${urgent ? "urgent" : "info"}">${escapeHtml(due || "")}</span>
+            <span class="badge badge-focus">${escapeHtml(d.source || "")}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  function prioColor(p) { return p === "urgent" ? "urgent" : p === "high" ? "warning" : p === "medium" ? "info" : "focus"; }
+  function statusColor(b) { return b === "blocked" ? "urgent" : b === "in_progress" ? "info" : b === "in_review" ? "warning" : b === "done" ? "success" : "focus"; }
+
+  function renderNotConnected(provider, key) {
+    return `
+      <div class="not-connected">
+        <div class="icon">🔌</div>
+        <div class="title">${escapeHtml(provider)} not connected</div>
+        <div class="desc">Add credentials to your <code>.env</code> per <a href="/SETUP.md" target="_blank">SETUP.md</a> and restart the server.</div>
+        <a href="/api/auth/${escapeHtml(key)}/start">Connect now ↗</a>
+      </div>
+    `;
+  }
+
+  function isAuthError(err) {
+    return /401|403|not_connected|Authentication|not_authed/i.test(err.message || "");
+  }
+
+  // ============================================================
+  // TODO LIST
+  // ============================================================
+  async function loadTodos() {
+    // Server is source of truth (SQLite). Fall back to local cache while loading.
+    try {
+      const { data } = await api("/todos");
+      state.todos = data || [];
+      saveLocal("dcc-todos", state.todos);
+    } catch {
+      // Server not up yet or endpoint not implemented; use local cache
+    }
+    renderTodos();
+    updateTodoKpi();
+  }
+
+  async function addTodo() {
+    const input = document.getElementById("todo-input");
+    const text = input.value.trim();
+    if (!text) return;
+    const todo = {
+      id: "t-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7),
+      text, done: false, createdDate: todayKey(), createdAt: Date.now()
+    };
+    state.todos.unshift(todo);
+    input.value = "";
+    saveLocal("dcc-todos", state.todos);
+    renderTodos();
+    updateTodoKpi();
+    try { await api("/todos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(todo) }); }
+    catch { /* server might not be up; localStorage covers it */ }
+    toast("Added", "success");
+  }
+
+  async function toggleTodo(id) {
+    const t = state.todos.find(x => x.id === id);
+    if (!t) return;
+    t.done = !t.done;
+    t.completedAt = t.done ? Date.now() : null;
+    saveLocal("dcc-todos", state.todos);
+    renderTodos();
+    updateTodoKpi();
+    try { await api(`/todos/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ done: t.done }) }); } catch {}
+  }
+  async function deleteTodo(id) {
+    state.todos = state.todos.filter(t => t.id !== id);
+    saveLocal("dcc-todos", state.todos);
+    renderTodos();
+    updateTodoKpi();
+    try { await api(`/todos/${id}`, { method: "DELETE" }); } catch {}
+  }
+  async function moveToToday(id) {
+    const t = state.todos.find(x => x.id === id);
+    if (!t) return;
+    t.createdDate = todayKey();
+    saveLocal("dcc-todos", state.todos);
+    renderTodos();
+    try { await api(`/todos/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ createdDate: t.createdDate }) }); } catch {}
+  }
+
+  function switchTodoTab(tab) {
+    state.todoTab = tab;
+    document.querySelectorAll('.tabs .tab[data-tab]').forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+    renderTodos();
+  }
+
+  function renderTodos() {
+    const list = document.getElementById("todo-list");
+    const empty = document.getElementById("todo-empty");
+    const today = todayKey();
+    let visible;
+    if (state.todoTab === "today") visible = state.todos.filter(t => !t.done && t.createdDate === today);
+    else if (state.todoTab === "backlog") visible = state.todos.filter(t => !t.done && t.createdDate !== today);
+    else visible = state.todos.filter(t => t.done).sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
+
+    if (!visible.length) {
+      list.innerHTML = "";
+      empty.style.display = "block";
+      empty.innerHTML = state.todoTab === "today"
+        ? `<span class="emoji">📥</span>Empty for today.<br>Add a task above.`
+        : state.todoTab === "backlog"
+          ? `<span class="emoji">🎯</span>Backlog clear.<br>Items not finished today carry over here.`
+          : `<span class="emoji">🌱</span>Nothing completed yet.`;
+      return;
+    }
+    empty.style.display = "none";
+    list.innerHTML = visible.map(t => {
+      const meta = state.todoTab === "done"
+        ? `done ${timeAgo(t.completedAt)}`
+        : t.createdDate === today ? "today" : `from ${t.createdDate}`;
+      const moveBtn = state.todoTab === "backlog"
+        ? `<button title="Move to today" onclick="DCC.moveToToday('${t.id}')">↑</button>`
+        : "";
+      return `
+        <li class="todo-item ${t.done ? "done" : ""}">
+          <input type="checkbox" ${t.done ? "checked" : ""} onclick="DCC.toggleTodo('${t.id}')">
+          <div>
+            <div class="todo-text">${escapeHtml(t.text)}</div>
+            <div class="todo-meta">${escapeHtml(meta)}</div>
+          </div>
+          <div class="todo-actions">
+            ${moveBtn}
+            <button title="Delete" onclick="DCC.deleteTodo('${t.id}')">✕</button>
+          </div>
+        </li>
+      `;
+    }).join("");
+  }
+
+  function updateTodoKpi() {
+    const open = state.todos.filter(t => !t.done).length;
+    const today = state.todos.filter(t => !t.done && t.createdDate === todayKey()).length;
+    document.getElementById("kpi-todos").textContent = open;
+    document.getElementById("kpi-todos-detail").textContent = `${today} for today · ${open - today} in backlog`;
+  }
+
+  // ============================================================
+  // SCRATCHPAD
+  // ============================================================
+  let scratchTimer;
+  function initScratchpad() {
+    const pad = document.getElementById("scratchpad");
+    pad.value = localStorage.getItem("dcc-scratchpad") || "";
+    updateScratchCount();
+    pad.addEventListener("input", () => {
+      clearTimeout(scratchTimer);
+      document.getElementById("scratchpad-meta").textContent = "Saving…";
+      updateScratchCount();
+      scratchTimer = setTimeout(() => {
+        localStorage.setItem("dcc-scratchpad", pad.value);
+        const stamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        document.getElementById("scratchpad-meta").textContent = `Saved at ${stamp}`;
+        // Best-effort sync to server
+        api("/scratchpad", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: pad.value }) }).catch(() => {});
+      }, 400);
+    });
+  }
+  function updateScratchCount() {
+    const v = document.getElementById("scratchpad").value;
+    document.getElementById("scratchpad-count").textContent = `${v.length} char${v.length === 1 ? "" : "s"}`;
+  }
+  function scratchWrap(before, after) {
+    const pad = document.getElementById("scratchpad");
+    const { selectionStart: s, selectionEnd: e, value: v } = pad;
+    pad.value = v.slice(0, s) + before + v.slice(s, e) + after + v.slice(e);
+    pad.focus();
+    pad.selectionStart = s + before.length;
+    pad.selectionEnd = e + before.length;
+    pad.dispatchEvent(new Event("input"));
+  }
+  function scratchPrefix(prefix) {
+    const pad = document.getElementById("scratchpad");
+    const { selectionStart: s, value: v } = pad;
+    const lineStart = v.lastIndexOf("\n", s - 1) + 1;
+    pad.value = v.slice(0, lineStart) + prefix + v.slice(lineStart);
+    pad.focus();
+    pad.selectionStart = pad.selectionEnd = s + prefix.length;
+    pad.dispatchEvent(new Event("input"));
+  }
+  function copyScratchpad() {
+    const pad = document.getElementById("scratchpad");
+    pad.select();
+    document.execCommand("copy");
+    toast("Copied to clipboard", "success");
+  }
+  async function scratchToTodo() {
+    const pad = document.getElementById("scratchpad");
+    const lines = pad.value.split("\n").map(l => l.replace(/^[-*]\s*\[ ?\]?\s*/, "").trim()).filter(Boolean);
+    if (!lines.length) { toast("Nothing to add", "error"); return; }
+    for (const text of lines) {
+      const todo = { id: "t-" + Date.now() + "-" + Math.random().toString(36).slice(2,7),
+                     text, done: false, createdDate: todayKey(), createdAt: Date.now() };
+      state.todos.unshift(todo);
+      try { await api("/todos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(todo) }); } catch {}
+    }
+    saveLocal("dcc-todos", state.todos);
+    renderTodos(); updateTodoKpi();
+    toast(`Added ${lines.length} todo${lines.length === 1 ? "" : "s"}`, "success");
+  }
+
+  // ============================================================
+  // GLOBAL
+  // ============================================================
+  function refreshAll() {
+    loadSchedule();
+    loadChannels();
+    loadMentions();
+    loadTickets();
+    loadTeamBoard();
+    loadPRs();
+    loadDeadlines();
+    loadTodos();
+    toast("Refreshing…");
+  }
+  function toggleHelp() {
+    document.getElementById("help-modal").classList.toggle("open");
+  }
+
+  // Keyboard shortcuts (n, r, ?, g s, g c)
+  let gKey = false;
+  document.addEventListener("keydown", e => {
+    const inField = ["INPUT","TEXTAREA"].includes(document.activeElement.tagName);
+    if (e.key === "Escape") { document.getElementById("help-modal").classList.remove("open"); return; }
+    if (inField) return;
+    if (e.key === "?" || (e.shiftKey && e.key === "/")) { e.preventDefault(); toggleHelp(); return; }
+    if (e.key === "n") { e.preventDefault(); document.getElementById("todo-input").focus(); return; }
+    if (e.key === "r") { e.preventDefault(); refreshAll(); return; }
+    if (e.key === "g") { gKey = true; setTimeout(() => gKey = false, 800); return; }
+    if (gKey && e.key === "s") { document.querySelector(".grid").scrollIntoView({ behavior: "smooth" }); gKey = false; return; }
+    if (gKey && e.key === "c") { document.getElementById("channels-body").scrollIntoView({ behavior: "smooth" }); gKey = false; return; }
+  });
+
+  // Auto-refresh
+  setInterval(() => { if (!document.hidden) refreshAll(); }, state.settings.autoRefreshMs);
+
+  // Init
+  function init() {
+    tickClock(); setInterval(tickClock, 30000);
+    initScheduleChips();
+    initScratchpad();
+    renderTodos();
+    updateTodoKpi();
+    loadSchedule();
+    loadChannels();
+    loadMentions();
+    loadTickets();
+    loadTeamBoard();
+    loadPRs();
+    loadDeadlines();
+    loadTodos();
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
+
+  // Public API for HTML onclick handlers
+  return {
+    refreshAll, toggleHelp,
+    scheduleNav, loadSchedule, loadChannels, loadMentions,
+    addTodo, toggleTodo, deleteTodo, moveToToday, switchTodoTab,
+    scratchWrap, scratchPrefix, copyScratchpad, scratchToTodo,
+  };
+})();
+</script>
+</body>
+</html>
