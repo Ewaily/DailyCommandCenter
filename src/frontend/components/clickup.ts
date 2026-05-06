@@ -1,5 +1,5 @@
 import { api, isAuthError, type ClickUpTask, type WatchedUser } from "../api.js";
-import { $, escapeHtml, renderWorkspaceNotConfigured, skeletonCompact, toast, confirmModal, errorModal } from "./util.js";
+import { $, escapeHtml, renderWorkspaceNotConfigured, skeletonCompact, toast, confirmModal, errorModal, cloneSuccessModal } from "./util.js";
 import { saveSetting, getSetting } from "../state.js";
 import { renderTaskRow } from "./task-row.js";
 
@@ -13,36 +13,56 @@ let watchedUsers: WatchedUser[] = [];
 let active: string = getSetting<string>("clickupTab") || MINE;
 
 async function handleClone(btn: HTMLElement): Promise<void> {
-  const connectorId = btn.dataset.connectorId || "";
-  const project     = btn.dataset.targetProject || "";
-  if (!connectorId || !project) {
-    toast("Configure 1-Click Cloning on this connector (Workspaces tab) — set Target Base URL, Email, API Token, and Project.", "error");
-    return;
-  }
-  const title = btn.dataset.cloneTitle || "";
-  const url   = btn.dataset.cloneUrl   || "";
-
-  const truncated = title.length > 60 ? title.slice(0, 57) + "…" : title;
-  const confirmed = await confirmModal({
-    title: "Clone to Jira?",
-    body: `<strong>${escapeHtml(truncated)}</strong><br><span style="font-size:var(--fs-sm);color:var(--text-muted)">will be cloned as a new Task in project <code>${escapeHtml(project)}</code></span>`,
-    confirmLabel: "Clone",
-  });
-  if (!confirmed) return;
-
-  const dismiss = toast("Cloning…", { type: "info", duration: 20_000 });
   try {
-    const resp = await api.cloneTicket({ sourceProvider: "clickup", title, originalLink: url, connectorId });
-    dismiss?.();
-    toast(`Cloned as ${resp.data.key}`, {
-      type: "success",
-      duration: 0,
-      action: { label: `Open ${resp.data.key} in Jira ↗`, onClick: () => window.open(resp.data.url, "_blank") },
+    const connectorId = btn.dataset.connectorId || "";
+    const project     = btn.dataset.targetProject || "";
+    if (!connectorId || !project) {
+      errorModal({
+        title: "Cloning not configured",
+        detail: "Go to Settings → Workspaces → expand this ClickUp connector card → '1-Click Cloning to Jira' and fill in Target Base URL, Email, API Token, and Project.",
+      });
+      return;
+    }
+    const title = btn.dataset.cloneTitle || "(untitled)";
+    const url   = btn.dataset.cloneUrl   || "";
+
+    const truncated = title.length > 60 ? title.slice(0, 57) + "…" : title;
+    const confirmed = await confirmModal({
+      title: "Clone to Jira?",
+      body: `<strong>${escapeHtml(truncated)}</strong><br><span style="font-size:var(--fs-sm);color:var(--text-muted)">will be created as a new Task in project <code>${escapeHtml(project)}</code></span>`,
+      confirmLabel: "Clone",
     });
-  } catch (err: any) {
-    dismiss?.();
-    errorModal({ title: "Clone failed", detail: err.message ?? String(err) });
+    if (!confirmed) return;
+
+    const dismiss = toast("Cloning…", { type: "info", duration: 20_000 });
+    try {
+      const resp = await api.cloneTicket({ sourceProvider: "clickup", title, originalLink: url, connectorId });
+      dismiss?.();
+      cloneSuccessModal({ key: resp.data.key, url: resp.data.url });
+      markClonedRow(url, resp.data.key, resp.data.url);
+    } catch (apiErr: any) {
+      dismiss?.();
+      errorModal({ title: "Clone failed", detail: apiErr.message ?? String(apiErr) });
+    }
+  } catch (unexpected: any) {
+    errorModal({ title: "Unexpected error", detail: unexpected?.message ?? String(unexpected) });
   }
+}
+
+function markClonedRow(sourceUrl: string, clonedKey: string, clonedUrl: string) {
+  document.querySelectorAll<HTMLElement>(`[data-clone-url="${CSS.escape(sourceUrl)}"]`).forEach(btn => {
+    const row = btn.closest<HTMLElement>(".schedule-item");
+    if (!row) return;
+    btn.remove();
+    const badge = document.createElement("a");
+    badge.className = "cloned-badge";
+    badge.href = clonedUrl;
+    badge.target = "_blank";
+    badge.rel = "noopener";
+    badge.textContent = clonedKey;
+    row.appendChild(badge);
+    row.classList.add("is-cloned");
+  });
 }
 
 function renderTask(t: ClickUpTask, cloningEnabled = false, targetProject = "", connectorId = ""): string {
@@ -103,7 +123,7 @@ export function bindClickUpClone() {
   const body = $("#clickup-body");
   body?.addEventListener("click", (e) => {
     const btn = (e.target as HTMLElement).closest<HTMLElement>(".clone-to-jira-btn");
-    if (btn) { e.preventDefault(); void handleClone(btn); }
+    if (btn) { e.preventDefault(); handleClone(btn).catch(err => errorModal({ title: "Unexpected error", detail: String(err) })); }
   });
 }
 
@@ -141,6 +161,7 @@ export async function loadClickUp(silent = false) {
     }
     const cc = resp.connectorCloningConfig ?? { cloningEnabled: false, cloneTargetProject: "", connectorId: undefined };
     body.innerHTML = data.map(t => renderTask(t, cc.cloningEnabled, cc.cloneTargetProject, cc.connectorId)).join("");
+    applyCloneHistory(body);
   } catch (err) {
     if (isAuthError(err)) {
       body.innerHTML = renderWorkspaceNotConfigured("ClickUp");
@@ -148,6 +169,29 @@ export async function loadClickUp(silent = false) {
       body.innerHTML = `<div class="error">${escapeHtml((err as Error).message)}</div>`;
     }
   }
+}
+
+async function applyCloneHistory(container: HTMLElement) {
+  try {
+    const resp = await api.cloneHistory();
+    const history = resp.data ?? {};
+    for (const [sourceUrl, info] of Object.entries(history)) {
+      container.querySelectorAll<HTMLElement>(`[data-clone-url="${CSS.escape(sourceUrl)}"]`).forEach(btn => {
+        const row = btn.closest<HTMLElement>(".schedule-item");
+        if (!row || row.classList.contains("is-cloned")) return;
+        btn.remove();
+        const badge = document.createElement("a");
+        badge.className = "cloned-badge";
+        badge.href = info.url;
+        badge.target = "_blank";
+        badge.rel = "noopener";
+        badge.textContent = info.key;
+        badge.title = `Previously cloned as ${info.key}`;
+        row.appendChild(badge);
+        row.classList.add("is-cloned");
+      });
+    }
+  } catch { /* best-effort */ }
 }
 
 export function instantiateClickUp(
@@ -178,7 +222,7 @@ export function instantiateClickUp(
 
   body.addEventListener("click", (e) => {
     const btn = (e.target as HTMLElement).closest<HTMLElement>(".clone-to-jira-btn");
-    if (btn) { e.preventDefault(); void handleClone(btn); }
+    if (btn) { e.preventDefault(); handleClone(btn).catch(err => errorModal({ title: "Unexpected error", detail: String(err) })); }
   });
 
   function bucketIdsLocal() { return [MINE, ...localWatched.map(w => w.id)]; }

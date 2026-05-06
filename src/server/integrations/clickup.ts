@@ -41,6 +41,17 @@ async function clickUpGet<T = any>(creds: ClickUpCreds, path: string): Promise<T
   return res.json() as Promise<T>;
 }
 
+/** Fetches a single task's description by task ID using the connector for the given workspace. */
+export async function getTaskDescription(taskId: string, workspaceId?: string): Promise<string | null> {
+  try {
+    const creds = effective(workspaceId);
+    const data: any = await clickUpGet<any>(creds, `/task/${encodeURIComponent(taskId)}`);
+    return typeof data?.description === "string" ? data.description : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Returns the authenticated user — used to verify the token works. */
 export async function whoAmI(workspaceId?: string) {
   const creds = effective(workspaceId);

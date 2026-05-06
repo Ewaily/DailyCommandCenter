@@ -155,7 +155,7 @@ describe("ClickUp clone button", () => {
     expect(btn?.dataset.connectorId).toBe("conn-cu-77");
   });
 
-  it("shows error toast when no target project is on the button", async () => {
+  it("shows error modal when no target project is on the button", async () => {
     // cloningEnabled true but targetProject empty — simulates misconfigured state
     mockApi.clickupTasks.mockResolvedValue(
       Promise.resolve({ data: [clickupTask()], buckets: [], counts: {}, notConfigured: false, bucket: "mine",
@@ -169,7 +169,7 @@ describe("ClickUp clone button", () => {
     btn?.click();
     await new Promise(r => setTimeout(r, 0));
 
-    expect(mockToast).toHaveBeenCalledWith(expect.stringContaining("Configure 1-Click Cloning"), "error");
+    expect(mockErrorModal).toHaveBeenCalledWith(expect.objectContaining({ title: "Cloning not configured" }));
     expect(mockApi.cloneTicket).not.toHaveBeenCalled();
   });
 
@@ -301,7 +301,7 @@ describe("Jira tickets clone button (instantiateTickets)", () => {
     expect(btn?.dataset.connectorId).toBe("conn-jira-99");
   });
 
-  it("shows error toast when data-target-project is empty", async () => {
+  it("shows error modal when data-target-project is empty", async () => {
     mockApi.ticketsMine.mockResolvedValue(
       Promise.resolve({ data: [jiraTicket()], buckets: [], counts: {}, notConfigured: false, bucket: "mine",
         connectorCloningConfig: { cloningEnabled: true, cloneTargetProject: "", connectorId: "conn-2" } }),
@@ -314,7 +314,7 @@ describe("Jira tickets clone button (instantiateTickets)", () => {
     btn?.click();
     await new Promise(r => setTimeout(r, 0));
 
-    expect(mockToast).toHaveBeenCalledWith(expect.stringContaining("Configure 1-Click Cloning"), "error");
+    expect(mockErrorModal).toHaveBeenCalledWith(expect.objectContaining({ title: "Cloning not configured" }));
     expect(mockApi.cloneTicket).not.toHaveBeenCalled();
   });
 

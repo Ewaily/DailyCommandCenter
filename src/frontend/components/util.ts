@@ -199,8 +199,8 @@ export function confirmModal(opts: {
       resolve(result);
     };
 
-    backdrop.querySelector(".clone-confirm-cancel")!.addEventListener("click", () => close(false));
-    backdrop.querySelector(".clone-confirm-ok")!.addEventListener("click",    () => close(true));
+    backdrop.querySelector<HTMLElement>(".clone-confirm-cancel")?.addEventListener("click", () => close(false));
+    backdrop.querySelector<HTMLElement>(".clone-confirm-ok")?.addEventListener("click",    () => close(true));
     backdrop.addEventListener("click", e => { if (e.target === backdrop) close(false); });
 
     document.body.appendChild(backdrop);
@@ -240,6 +240,46 @@ export function errorModal(opts: { title: string; detail: string }): void {
     const btn = backdrop.querySelector(".clone-error-copy") as HTMLButtonElement;
     btn.textContent = "Copied!";
     setTimeout(() => { btn.textContent = "Copy error"; }, 1500);
+  });
+
+  document.body.appendChild(backdrop);
+}
+
+/**
+ * Shows a success modal after a clone operation.
+ * Displays the new ticket key, a clickable URL, and a "Copy link" button.
+ */
+export function cloneSuccessModal(opts: { key: string; url: string }): void {
+  const backdrop = document.createElement("div");
+  backdrop.className = "modal-backdrop open";
+  backdrop.innerHTML = `
+    <div class="modal clone-success-modal" style="max-width:420px;text-align:center">
+      <div class="clone-success-icon">✓</div>
+      <h2 style="margin:8px 0 4px;font-size:var(--fs-xl)">Cloned successfully</h2>
+      <p style="font-size:var(--fs-sm);color:var(--text-muted);margin:0 0 16px">New ticket created in Jira</p>
+      <div class="clone-success-key">${escapeHtml(opts.key)}</div>
+      <a class="clone-success-url" href="${escapeHtml(opts.url)}" target="_blank" rel="noopener">
+        ${escapeHtml(opts.url)}
+      </a>
+      <div style="display:flex;justify-content:center;gap:8px;margin-top:20px">
+        <button class="btn btn-ghost clone-success-copy">Copy link</button>
+        <a class="btn btn-primary" href="${escapeHtml(opts.url)}" target="_blank" rel="noopener">Open in Jira ↗</a>
+      </div>
+      <button class="clone-success-close" aria-label="Close">✕</button>
+    </div>`;
+
+  const close = () => {
+    backdrop.classList.remove("open");
+    setTimeout(() => backdrop.remove(), 220);
+  };
+
+  backdrop.querySelector(".clone-success-close")!.addEventListener("click", close);
+  backdrop.addEventListener("click", e => { if (e.target === backdrop) close(); });
+  backdrop.querySelector(".clone-success-copy")!.addEventListener("click", () => {
+    navigator.clipboard.writeText(opts.url).catch(() => {});
+    const btn = backdrop.querySelector(".clone-success-copy") as HTMLButtonElement;
+    btn.textContent = "Copied!";
+    setTimeout(() => { btn.textContent = "Copy link"; }, 2000);
   });
 
   document.body.appendChild(backdrop);

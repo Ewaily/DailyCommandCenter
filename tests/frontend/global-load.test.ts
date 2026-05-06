@@ -416,7 +416,7 @@ describe("bindTicketTabs — clone button click delegation", () => {
     expect(mockApi.cloneTicket).not.toHaveBeenCalled();
   });
 
-  it("shows error toast when the clone button is missing connectorId", async () => {
+  it("shows error modal when the clone button is missing connectorId", async () => {
     document.body.innerHTML = `
       <div id="jira-tabs"></div>
       <div id="my-tickets-body">
@@ -430,7 +430,7 @@ describe("bindTicketTabs — clone button click delegation", () => {
     bindTicketTabs();
     document.querySelector<HTMLButtonElement>(".clone-to-jira-btn")!.click();
     await new Promise(r => setTimeout(r, 0));
-    expect(mockToast).toHaveBeenCalledWith(expect.stringContaining("Configure 1-Click Cloning"), "error");
+    expect(mockErrorModal).toHaveBeenCalledWith(expect.objectContaining({ title: "Cloning not configured" }));
     expect(mockApi.cloneTicket).not.toHaveBeenCalled();
   });
 });

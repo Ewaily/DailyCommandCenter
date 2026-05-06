@@ -11,12 +11,19 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import express from "express";
 import request from "supertest";
 
-const { mockJira, mockListConnectorsForWorkspace, mockListConnectorsForOverview, mockGetIdentity, mockGetActiveWorkspaceId } =
+const mockStmt = { run: vi.fn() };
+const mockDb   = { prepare: vi.fn().mockReturnValue(mockStmt) };
+
+const { mockJira, mockClickup, mockListConnectorsForWorkspace, mockListConnectorsForOverview, mockGetIdentity, mockGetActiveWorkspaceId } =
   vi.hoisted(() => ({
     mockJira: {
-      listProjectsWith: vi.fn(),
-      createIssue:      vi.fn(),
-      buildCloneAdf:    vi.fn().mockReturnValue({ type: "doc", version: 1, content: [] }),
+      listProjectsWith:     vi.fn(),
+      createIssue:          vi.fn(),
+      buildCloneAdf:        vi.fn().mockReturnValue({ type: "doc", version: 1, content: [] }),
+      getIssueDescription:  vi.fn().mockResolvedValue(null),
+    },
+    mockClickup: {
+      getTaskDescription: vi.fn().mockResolvedValue(null),
     },
     mockListConnectorsForWorkspace: vi.fn(),
     mockListConnectorsForOverview:  vi.fn(),
@@ -24,7 +31,9 @@ const { mockJira, mockListConnectorsForWorkspace, mockListConnectorsForOverview,
     mockGetActiveWorkspaceId:       vi.fn(),
   }));
 
-vi.mock("../src/server/integrations/jira.js", () => mockJira);
+vi.mock("../src/server/integrations/jira.js",    () => mockJira);
+vi.mock("../src/server/integrations/clickup.js", () => mockClickup);
+vi.mock("../src/server/db.js", () => ({ getDb: () => mockDb }));
 vi.mock("../src/server/lib/request-context.js", () => ({
   getActiveWorkspaceId: mockGetActiveWorkspaceId,
 }));
@@ -203,7 +212,7 @@ describe("POST /clone-ticket", () => {
       originalLink:   "https://x",
       connectorId:    "ci-source-1",
     });
-    expect(mockJira.buildCloneAdf).toHaveBeenCalledWith("ClickUp", "https://x", "");
+    expect(mockJira.buildCloneAdf).toHaveBeenCalledWith("ClickUp", "https://x", null);
   });
 
   it("uses the 'Jira' provider label for jira source", async () => {
@@ -217,22 +226,47 @@ describe("POST /clone-ticket", () => {
       originalLink:   "https://x",
       connectorId:    "ci-jira-source",
     });
-    expect(mockJira.buildCloneAdf).toHaveBeenCalledWith("Jira", "https://x", "");
+    expect(mockJira.buildCloneAdf).toHaveBeenCalledWith("Jira", "https://x", null);
   });
 
-  it("forwards a non-empty description to the ADF builder", async () => {
+  it("fetches ClickUp task description when URL contains a valid task ID", async () => {
+    mockClickup.getTaskDescription.mockResolvedValue("Full task details here");
     mockJira.createIssue.mockResolvedValue({ key: "P-1", id: "1" });
     await request(app).post("/clone-ticket").send({
       sourceProvider: "clickup",
       title:          "X",
-      description:    "more detail",
-      originalLink:   "https://x",
+      originalLink:   "https://app.clickup.com/t/abc123",
       connectorId:    "ci-source-1",
     });
-    expect(mockJira.buildCloneAdf).toHaveBeenCalledWith("ClickUp", "https://x", "more detail");
+    expect(mockClickup.getTaskDescription).toHaveBeenCalledWith("abc123", expect.anything());
+    expect(mockJira.buildCloneAdf).toHaveBeenCalledWith("ClickUp", "https://app.clickup.com/t/abc123", "Full task details here");
   });
 
-  it("forwards an empty description as empty string", async () => {
+  it("fetches Jira issue description when URL contains a valid issue key", async () => {
+    mockListConnectorsForWorkspace.mockReturnValue([
+      jiraConnector({ id: "ci-jira-src", config: { baseUrl: "https://src.atlassian.net", ...fullCloneCfg }, identityId: "id-j" }),
+    ]);
+    mockGetIdentity.mockReturnValue({ accessToken: "tok", account: "u@j.com" });
+    mockJira.getIssueDescription.mockResolvedValue({ type: "doc", version: 1, content: [] });
+    mockJira.createIssue.mockResolvedValue({ key: "P-1", id: "1" });
+    await request(app).post("/clone-ticket").send({
+      sourceProvider: "jira",
+      title:          "Fix bug",
+      originalLink:   "https://src.atlassian.net/browse/PROJ-42",
+      connectorId:    "ci-jira-src",
+    });
+    expect(mockJira.getIssueDescription).toHaveBeenCalledWith(
+      expect.objectContaining({ baseUrl: expect.any(String) }),
+      "PROJ-42",
+    );
+    expect(mockJira.buildCloneAdf).toHaveBeenCalledWith(
+      "Jira",
+      "https://src.atlassian.net/browse/PROJ-42",
+      { type: "doc", version: 1, content: [] },
+    );
+  });
+
+  it("passes null description when URL does not contain a parseable ID", async () => {
     mockJira.createIssue.mockResolvedValue({ key: "P-1", id: "1" });
     await request(app).post("/clone-ticket").send({
       sourceProvider: "clickup",
@@ -240,7 +274,7 @@ describe("POST /clone-ticket", () => {
       originalLink:   "https://x",
       connectorId:    "ci-source-1",
     });
-    expect(mockJira.buildCloneAdf).toHaveBeenCalledWith("ClickUp", "https://x", "");
+    expect(mockJira.buildCloneAdf).toHaveBeenCalledWith("ClickUp", "https://x", null);
   });
 
   it("returns 400 when title is missing", async () => {

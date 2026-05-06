@@ -223,23 +223,44 @@ export async function listTeamIssuesWith(creds: JiraCreds, project?: string) {
 
 export type JiraProject = { id: string; key: string; name: string };
 
-export function buildCloneAdf(providerLabel: string, originalLink: string, body: string) {
-  const content: unknown[] = [
-    {
-      type: "blockquote",
+/**
+ * Builds the ADF description for a cloned issue.
+ * - header: blockquote "🔄 Cloned from <Provider>" linked to the original
+ * - body: appended as-is when it is already an ADF doc; converted to ADF
+ *   paragraphs when it is a plain string (ClickUp / fallback text).
+ */
+export function buildCloneAdf(
+  providerLabel: string,
+  originalLink: string,
+  body: unknown,   // ADF doc object | plain string | "" | null
+) {
+  const header = {
+    type: "blockquote",
+    content: [{
+      type: "paragraph",
       content: [{
-        type: "paragraph",
-        content: [{
-          type: "text",
-          text: `🔄 Cloned from ${providerLabel}`,
-          marks: [{ type: "link", attrs: { href: originalLink } }],
-        }],
+        type: "text",
+        text: `🔄 Cloned from ${providerLabel}`,
+        marks: [{ type: "link", attrs: { href: originalLink } }],
       }],
-    },
-  ];
-  if (body.trim()) {
-    content.push({ type: "paragraph", content: [{ type: "text", text: body }] });
+    }],
+  };
+
+  const content: unknown[] = [header];
+
+  if (body && typeof body === "object" && (body as any).type === "doc") {
+    // Jira ADF doc — splice its top-level content nodes directly
+    const nodes: unknown[] = (body as any).content ?? [];
+    content.push(...nodes);
+  } else if (typeof body === "string" && body.trim()) {
+    // Plain text (ClickUp) — one paragraph per non-empty line
+    for (const line of body.split("\n")) {
+      if (line.trim()) {
+        content.push({ type: "paragraph", content: [{ type: "text", text: line }] });
+      }
+    }
   }
+
   return { type: "doc", version: 1, content };
 }
 
@@ -257,6 +278,16 @@ export async function createIssue(creds: JiraCreds, opts: {
     },
   });
   return { key: data.key as string, id: data.id as string };
+}
+
+/** Fetches a single issue's ADF description by key. Returns null if not found or no description. */
+export async function getIssueDescription(creds: JiraCreds, issueKey: string): Promise<unknown | null> {
+  try {
+    const data: any = await jiraGet(creds, `/rest/api/3/issue/${encodeURIComponent(issueKey)}?fields=description`);
+    return data?.fields?.description ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export async function listProjectsWith(creds: JiraCreds): Promise<JiraProject[]> {

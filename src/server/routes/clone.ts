@@ -1,5 +1,7 @@
 import { Router } from "express";
 import * as jira from "../integrations/jira.js";
+import * as clickup from "../integrations/clickup.js";
+import { getDb } from "../db.js";
 import { getActiveWorkspaceId } from "../lib/request-context.js";
 import { listConnectorsForWorkspace, listConnectorsForOverview, getIdentity } from "../lib/workspace-config.js";
 import { extractCloneCredentials } from "./tickets.js";
@@ -24,6 +26,18 @@ function resolveFirstJira(scopeId?: string): { creds: jira.JiraCreds } | null {
   return null;
 }
 
+/** Extracts a Jira issue key from a browse URL, e.g. https://x.atlassian.net/browse/PROJ-42 → "PROJ-42" */
+function jiraKeyFromUrl(url: string): string | null {
+  const m = url.match(/\/browse\/([A-Z][A-Z0-9_]+-\d+)/i);
+  return m ? m[1].toUpperCase() : null;
+}
+
+/** Extracts a ClickUp task ID from a task URL, e.g. https://app.clickup.com/t/abc123 → "abc123" */
+function clickupIdFromUrl(url: string): string | null {
+  const m = url.match(/\/t\/([a-z0-9]+)/i);
+  return m ? m[1] : null;
+}
+
 cloneRouter.get("/projects", async (req, res) => {
   const scopeId  = typeof req.query.connectorId === "string" ? req.query.connectorId : undefined;
   const resolved = resolveFirstJira(scopeId);
@@ -36,16 +50,28 @@ cloneRouter.get("/projects", async (req, res) => {
   }
 });
 
+// GET /clone-history: returns all clone history records keyed by source URL.
+cloneRouter.get("/clone-history", (_req, res) => {
+  const rows = getDb()
+    .prepare("SELECT source_url, source_title, cloned_key, cloned_url, cloned_at FROM clone_history ORDER BY cloned_at DESC")
+    .all() as { source_url: string; source_title: string; cloned_key: string; cloned_url: string; cloned_at: number }[];
+  // Group by source_url — most recent clone per ticket URL
+  const bySource: Record<string, { key: string; url: string; title: string; clonedAt: number }> = {};
+  for (const r of rows) {
+    if (!bySource[r.source_url]) {
+      bySource[r.source_url] = { key: r.cloned_key, url: r.cloned_url, title: r.source_title, clonedAt: r.cloned_at };
+    }
+  }
+  res.json({ data: bySource });
+});
+
 // POST /clone-ticket: creates a Jira issue in the TARGET instance configured on
-// the source connector's cloning settings. The target Jira creds are stored on
-// each connector independently (cloneTargetUrl/Email/Token/Project) so a clone
-// from Workspace A's ClickUp can land in Workspace B's Jira without that B
-// instance being a connected source-connector here.
+// the source connector's cloning settings. Fetches the full description from the
+// source provider at clone time — no need to encode it in the frontend.
 cloneRouter.post("/clone-ticket", async (req, res) => {
-  const { sourceProvider, title, description, originalLink, connectorId } = req.body as {
+  const { sourceProvider, title, originalLink, connectorId } = req.body as {
     sourceProvider: string;
     title: string;
-    description?: string;
     originalLink: string;
     connectorId?: string;
   };
@@ -66,16 +92,39 @@ cloneRouter.post("/clone-ticket", async (req, res) => {
     });
   }
 
+  // Fetch the full description from the source provider.
+  let sourceDescription: unknown = null;
+  if (sourceProvider === "jira") {
+    const issueKey = jiraKeyFromUrl(originalLink);
+    if (issueKey) {
+      const sourceCreds = resolveFirstJira(connectorId) ?? resolveFirstJira();
+      if (sourceCreds) {
+        sourceDescription = await jira.getIssueDescription(sourceCreds.creds, issueKey);
+      }
+    }
+  } else if (sourceProvider === "clickup") {
+    const taskId = clickupIdFromUrl(originalLink);
+    if (taskId) {
+      sourceDescription = await clickup.getTaskDescription(taskId, wsId ?? undefined);
+    }
+  }
+
   const providerLabel  = sourceProvider === "clickup" ? "ClickUp" : "Jira";
-  const descriptionAdf = jira.buildCloneAdf(providerLabel, originalLink, description || "");
+  const descriptionAdf = jira.buildCloneAdf(providerLabel, originalLink, sourceDescription);
 
   try {
     const result = await jira.createIssue(
       { baseUrl: creds.baseUrl, email: creds.email, apiToken: creds.apiToken },
       { projectKey: creds.projectKey, summary: title, descriptionAdf },
     );
-    const url = `${creds.baseUrl}/browse/${result.key}`;
-    res.json({ data: { key: result.key, id: result.id, url } });
+    const clonedUrl = `${creds.baseUrl}/browse/${result.key}`;
+
+    // Persist to clone_history — never deleted.
+    getDb().prepare(
+      "INSERT INTO clone_history (source_url, source_title, cloned_key, cloned_url, cloned_at) VALUES (?, ?, ?, ?, ?)",
+    ).run(originalLink, title, result.key, clonedUrl, Date.now());
+
+    res.json({ data: { key: result.key, id: result.id, url: clonedUrl } });
   } catch (err: any) {
     res.status(502).json({ error: err.message });
   }

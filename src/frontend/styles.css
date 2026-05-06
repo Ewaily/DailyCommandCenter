@@ -3130,6 +3130,53 @@ body.has-dynamic-overview [data-ov-hidden="1"] {
   color: var(--error);
 }
 
+/* ── Clone success modal ─────────────────────────────────────────────────── */
+.clone-success-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 48px; height: 48px; border-radius: 50%;
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  color: var(--success); font-size: 22px; font-weight: 700;
+  margin: 0 auto 2px;
+}
+.clone-success-key {
+  display: inline-block;
+  padding: 4px 14px; border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary); font-weight: 700; font-size: var(--fs-lg);
+  letter-spacing: 0.03em; margin-bottom: 8px;
+}
+.clone-success-url {
+  display: block; font-size: var(--fs-sm); color: var(--text-muted);
+  word-break: break-all; text-decoration: none;
+  padding: 6px 10px; border-radius: var(--r-sm);
+  border: 1px solid var(--border); background: var(--surface-2);
+}
+.clone-success-url:hover { color: var(--primary); border-color: var(--primary); }
+.clone-success-close {
+  position: absolute; top: 12px; right: 14px;
+  background: none; border: none; cursor: pointer;
+  font-size: 16px; color: var(--text-muted); padding: 4px;
+  line-height: 1;
+}
+.clone-success-close:hover { color: var(--text); }
+.clone-success-modal { position: relative; }
+
+/* ── Already-cloned badge & row state ────────────────────────────────────── */
+.cloned-badge {
+  display: inline-flex; align-items: center; height: 26px; padding: 0 10px;
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  color: var(--success);
+  border: 1px solid color-mix(in srgb, var(--success) 30%, transparent);
+  border-radius: 999px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+  text-decoration: none; white-space: nowrap; flex-shrink: 0;
+}
+.cloned-badge:hover {
+  background: var(--success); color: #fff; border-color: var(--success);
+}
+.schedule-item.is-cloned { opacity: 0.7; }
+.schedule-item.is-cloned:hover { opacity: 1; }
+
 /* ── 1-Click Clone to Jira ───────────────────────────────────────────────── */
 .clone-to-jira-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 5px;

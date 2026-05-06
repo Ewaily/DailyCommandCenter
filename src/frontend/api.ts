@@ -210,10 +210,11 @@ export const api = {
   cloneTicket: (payload: {
     sourceProvider: "jira" | "clickup";
     title: string;
-    description?: string;
     originalLink: string;
     connectorId: string;
   }) => req<{ key: string; id: string; url: string }>(withWs("/jira/clone-ticket"), { method: "POST", body: JSON.stringify(payload) }),
+  cloneHistory: () =>
+    req<Record<string, { key: string; url: string; title: string; clonedAt: number }>>(withWs("/jira/clone-history")),
 
   workspaceConnect: (wsId: string, body: { type: string; token: string; account?: string; label?: string; config?: Record<string, unknown>; connectorId?: string; addAnother?: boolean }) =>
     req<{ ok: boolean }>(`/workspaces/${wsId}/connect`, { method: "POST", body: JSON.stringify(body) }),
