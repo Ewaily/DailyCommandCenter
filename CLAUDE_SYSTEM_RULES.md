@@ -65,6 +65,22 @@ The current coverage floor lives in `vitest.config.ts` under
 build pass. If coverage rises permanently, the floor should be ratcheted **up**
 in the same PR that raised it, never down.
 
+**COVERAGE RATCHETING:** Whenever Claude writes new tests that increase the
+overall project coverage, Claude **MUST** explicitly update the minimum
+thresholds in `vitest.config.ts` to match the new higher baseline. The procedure
+is:
+
+1. Run `npm run test:coverage` and note the new coverage numbers.
+2. Open `vitest.config.ts` and update **every** threshold that increased.
+3. Re-run `npm run test:coverage` to confirm the updated thresholds still pass.
+4. Include the threshold bump in the **same commit** as the new tests — never
+   as a follow-up. The commit message must state the old → new numbers, e.g.
+   `test(cache): add TTL expiry tests; ratchet statements 1.4% → 4.2%`.
+
+The floor must always move **up**. It must never move down. It must never stay
+flat when coverage actually increased. A task that adds tests without ratcheting
+the thresholds is **incomplete**.
+
 When refactoring, existing tests must still pass without modification — if a
 test breaks, either the refactor is wrong or the test was protecting behavior
 that is changing intentionally. State which it is in the PR description.
