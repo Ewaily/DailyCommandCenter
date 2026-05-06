@@ -5,7 +5,10 @@
 //
 // The engine delegates from the document, so dynamically-rendered tabs (Jira,
 // ClickUp) automatically inherit reordering without any per-widget wiring.
-// Tab clicks work normally — drag only activates after a 5 px pointer movement.
+// Reordering is only active in dashboard edit mode — outside edit mode tabs
+// behave as plain buttons and clicks switch the active bucket.
+
+import { isEditing } from "./dashboard.js";
 
 export const TAB_ORDER_KEY = "dcc-tab-order-v1";
 
@@ -15,8 +18,18 @@ const SLIDE_MS       = 180; // sibling slide transition duration
 // ── Persistence ──────────────────────────────────────────────────────────────
 
 export function loadTabOrder(): Record<string, string[]> {
-  try { return JSON.parse(localStorage.getItem(TAB_ORDER_KEY) || "{}"); }
-  catch { return {}; }
+  try {
+    const raw = JSON.parse(localStorage.getItem(TAB_ORDER_KEY) || "{}");
+    // Normalise on every read: strip non-strings and deduplicate within each
+    // group so stale/corrupt saves can never break applyTabOrder.
+    const clean: Record<string, string[]> = {};
+    for (const [group, ids] of Object.entries(raw)) {
+      if (Array.isArray(ids)) {
+        clean[group] = [...new Set((ids as unknown[]).filter((id): id is string => typeof id === "string" && id.length > 0))];
+      }
+    }
+    return clean;
+  } catch { return {}; }
 }
 
 function saveTabOrder(map: Record<string, string[]>): void {
@@ -32,13 +45,28 @@ export function resetTabOrder(): void {
 export function applyTabOrder(group: string): void {
   const container = document.querySelector<HTMLElement>(`[data-tab-reorder="${group}"]`);
   if (!container) return;
-  const order = loadTabOrder()[group];
-  if (!order?.length) return;
+  const raw = loadTabOrder()[group];
+  if (!raw?.length) return;
   const tabs = Array.from(container.querySelectorAll<HTMLElement>("[data-tab-id]"));
+  if (!tabs.length) return;
   const byId = new Map(tabs.map(t => [t.dataset.tabId!, t]));
+
+  // Strip stale IDs (tabs that no longer exist) and duplicates from the saved
+  // order. A partial save that only covers some tabs would otherwise push the
+  // saved subset to the end, hiding the un-saved tabs off-screen.
+  const seen = new Set<string>();
+  const order = raw.filter(id => {
+    if (!byId.has(id) || seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+
+  // Only apply if the saved order accounts for EVERY current tab — a partial
+  // order means the saved data is stale and reordering would break the layout.
+  if (order.length !== tabs.length) return;
+
   for (const id of order) {
-    const node = byId.get(id);
-    if (node) container.appendChild(node);
+    container.appendChild(byId.get(id)!);
   }
 }
 
@@ -81,6 +109,9 @@ function clearStyles(tabs: HTMLElement[]): void {
 function onPointerDown(e: PointerEvent): void {
   // Only primary button; skip if inside a button's inner interactive element.
   if (e.button !== 0) return;
+  // Reordering is an edit-mode action — outside edit mode let the click reach
+  // the tab's switch handler instead of being swallowed as a 5px drag.
+  if (!isEditing()) return;
   const tab = (e.target as HTMLElement).closest<HTMLElement>("[data-tab-reorder] [data-tab-id]");
   if (!tab) return;
   const container = tab.closest<HTMLElement>("[data-tab-reorder]")!;
@@ -180,8 +211,8 @@ function onPointerUp(): void {
       tabs.splice(targetIndex, 0, tab);
       tabs.forEach(t => container.appendChild(t));
 
-      // Persist.
-      const ids = tabs.map(t => t.dataset.tabId!).filter(Boolean);
+      // Persist — deduplicate so a double-rendered tab can't corrupt the save.
+      const ids = [...new Set(tabs.map(t => t.dataset.tabId!).filter(Boolean))];
       const map = loadTabOrder();
       map[group] = ids;
       saveTabOrder(map);

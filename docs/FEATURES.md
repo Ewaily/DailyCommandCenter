@@ -210,7 +210,7 @@ Press **Customize** in the header (or `E`) to enter edit mode:
 
 - **Move**: drag a card by its header to a new grid cell.
 - **Resize**: drag the right/bottom/left edges or the bottom-right corner handle.
-- **Reorder tabs**: drag any tab pill horizontally (works outside edit mode too — clicks under 5 px still switch tabs). Applies to GitHub PRs, Jira/ClickUp teammate tabs, and Mentions filters.
+- **Reorder tabs**: in edit mode, drag any tab pill horizontally to reorder. Applies to GitHub PRs, Jira/ClickUp teammate tabs, and Mentions filters. Outside edit mode tabs are plain buttons — clicking always switches buckets.
 - **Collision-free drop**: dropping on top of another card pushes it to the next free slot via top-to-bottom, left-to-right packing — no widget ever sits hidden behind another.
 - **Smart auto-placement**: when a connector is activated mid-session, its widget appears in the next free slot; existing cards stay put.
 - **Per-workspace layout**: each workspace (and Overview) has its own independent layout.
