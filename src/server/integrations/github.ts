@@ -37,7 +37,7 @@ async function gh<T = any>(token: string, path: string): Promise<T> {
     const body = await res.text();
     throw new Error(`github ${path}: ${res.status} ${body.slice(0, 200)}`);
   }
-  return res.json();
+  return res.json() as Promise<T>;
 }
 
 function ageHuman(iso: string): string {
