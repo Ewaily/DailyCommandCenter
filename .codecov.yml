@@ -1,0 +1,25 @@
+coverage:
+  status:
+    project:
+      default:
+        # 'auto' targets the base branch's current coverage.
+        # PRs cannot decrease overall project coverage by any amount.
+        target: auto
+        threshold: 0%
+    patch:
+      default:
+        # Every line of new code introduced in a PR must be covered.
+        target: 100%
+
+comment:
+  layout: "reach,diff,flags,files"
+  behavior: default
+  require_changes: true
+
+ignore:
+  - "src/frontend/main.ts"
+  - "src/server/index.ts"
+  - "**/*.d.ts"
+  - "tests/**"
+  - "scripts/**"
+  - "dist/**"
