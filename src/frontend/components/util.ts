@@ -142,7 +142,8 @@ export function toast(msg: string, typeOrOpts: "info" | "success" | "error" | To
   if (!stack) return;
   const opts: ToastOpts = typeof typeOrOpts === "string" ? { type: typeOrOpts } : typeOrOpts;
   const type = opts.type ?? "info";
-  const duration = opts.duration ?? (opts.action ? 5000 : 2200);
+  const rawDuration = opts.duration ?? (opts.action ? 8000 : 2200);
+  const persistent  = rawDuration === 0;
 
   const el = document.createElement("div");
   el.className = `toast ${type}`;
@@ -165,8 +166,83 @@ export function toast(msg: string, typeOrOpts: "info" | "success" | "error" | To
   }
 
   stack.appendChild(el);
-  timer = window.setTimeout(dismiss, duration);
+  if (!persistent) timer = window.setTimeout(dismiss, rawDuration);
   return dismiss;
+}
+
+/**
+ * Shows a lightweight confirm dialog using the existing .modal-backdrop / .modal
+ * CSS classes. Resolves true if the user confirms, false if they cancel.
+ */
+export function confirmModal(opts: {
+  title: string;
+  body: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+}): Promise<boolean> {
+  return new Promise(resolve => {
+    const backdrop = document.createElement("div");
+    backdrop.className = "modal-backdrop open";
+    backdrop.innerHTML = `
+      <div class="modal clone-confirm-modal" style="max-width:420px">
+        <h2 style="margin:0 0 10px;font-size:var(--fs-lg)">${escapeHtml(opts.title)}</h2>
+        <p class="clone-confirm-body">${opts.body}</p>
+        <div class="modal-actions" style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+          <button class="btn btn-ghost clone-confirm-cancel">${escapeHtml(opts.cancelLabel ?? "Cancel")}</button>
+          <button class="btn btn-primary clone-confirm-ok">${escapeHtml(opts.confirmLabel ?? "Confirm")}</button>
+        </div>
+      </div>`;
+
+    const close = (result: boolean) => {
+      backdrop.classList.remove("open");
+      setTimeout(() => backdrop.remove(), 220);
+      resolve(result);
+    };
+
+    backdrop.querySelector(".clone-confirm-cancel")!.addEventListener("click", () => close(false));
+    backdrop.querySelector(".clone-confirm-ok")!.addEventListener("click",    () => close(true));
+    backdrop.addEventListener("click", e => { if (e.target === backdrop) close(false); });
+
+    document.body.appendChild(backdrop);
+    (backdrop.querySelector(".clone-confirm-ok") as HTMLElement)?.focus();
+  });
+}
+
+/**
+ * Shows a persistent error modal with the full error text in a copyable block.
+ * Use this for clone failures so the user can copy-paste the error for debugging.
+ */
+export function errorModal(opts: { title: string; detail: string }): void {
+  const backdrop = document.createElement("div");
+  backdrop.className = "modal-backdrop open";
+  backdrop.innerHTML = `
+    <div class="modal clone-error-modal" style="max-width:480px">
+      <h2 style="margin:0 0 10px;font-size:var(--fs-lg);color:var(--error)">${escapeHtml(opts.title)}</h2>
+      <p style="font-size:var(--fs-sm);color:var(--text-muted);margin:0 0 10px">
+        Copy this error and share it for debugging:
+      </p>
+      <pre class="clone-error-pre">${escapeHtml(opts.detail)}</pre>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+        <button class="btn btn-ghost clone-error-copy">Copy error</button>
+        <button class="btn btn-primary clone-error-close">Close</button>
+      </div>
+    </div>`;
+
+  const close = () => {
+    backdrop.classList.remove("open");
+    setTimeout(() => backdrop.remove(), 220);
+  };
+
+  backdrop.querySelector(".clone-error-close")!.addEventListener("click", close);
+  backdrop.addEventListener("click", e => { if (e.target === backdrop) close(); });
+  backdrop.querySelector(".clone-error-copy")!.addEventListener("click", () => {
+    navigator.clipboard.writeText(opts.detail).catch(() => {});
+    const btn = backdrop.querySelector(".clone-error-copy") as HTMLButtonElement;
+    btn.textContent = "Copied!";
+    setTimeout(() => { btn.textContent = "Copy error"; }, 1500);
+  });
+
+  document.body.appendChild(backdrop);
 }
 
 /** Animate a number from current to target value. */

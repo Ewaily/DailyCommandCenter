@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // ── Hoisted mocks ─────────────────────────────────────────────────────────────
-const { mockApi, mockIsAuthError, mockGetSetting, mockSaveSetting, mockAnimateNumber, mockToast } =
+const { mockApi, mockIsAuthError, mockGetSetting, mockSaveSetting, mockAnimateNumber, mockToast, mockConfirmModal, mockErrorModal } =
   vi.hoisted(() => ({
     mockApi: {
       clickupTasks: vi.fn(),
@@ -11,11 +11,13 @@ const { mockApi, mockIsAuthError, mockGetSetting, mockSaveSetting, mockAnimateNu
       slackDigest:  vi.fn(),
       cloneTicket:  vi.fn(),
     },
-    mockIsAuthError: vi.fn().mockReturnValue(false),
-    mockGetSetting:  vi.fn().mockReturnValue(undefined),
-    mockSaveSetting: vi.fn(),
+    mockIsAuthError:   vi.fn().mockReturnValue(false),
+    mockGetSetting:    vi.fn().mockReturnValue(undefined),
+    mockSaveSetting:   vi.fn(),
     mockAnimateNumber: vi.fn(),
-    mockToast:       vi.fn().mockReturnValue(() => {}),
+    mockToast:         vi.fn().mockReturnValue(() => {}),
+    mockConfirmModal:  vi.fn().mockResolvedValue(true),
+    mockErrorModal:    vi.fn(),
   }));
 
 vi.mock("../../src/frontend/api.js", () => ({ api: mockApi, isAuthError: mockIsAuthError }));
@@ -23,7 +25,7 @@ vi.mock("../../src/frontend/state.js", () => ({ getSetting: mockGetSetting, save
 vi.mock("../../src/frontend/components/tz.js", () => ({ getPrimaryTz: () => "UTC" }));
 vi.mock("../../src/frontend/components/util.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../src/frontend/components/util.js")>();
-  return { ...actual, animateNumber: mockAnimateNumber, toast: mockToast };
+  return { ...actual, animateNumber: mockAnimateNumber, toast: mockToast, confirmModal: mockConfirmModal, errorModal: mockErrorModal };
 });
 
 import { loadTickets, bindTicketTabs, instantiateTickets } from "../../src/frontend/components/tickets.js";
@@ -392,6 +394,8 @@ describe("bindTicketTabs — clone button click delegation", () => {
     mockApi.cloneTicket.mockResolvedValue({ data: { key: "PROJ-9", id: "9", url: "https://jira.example.com/browse/PROJ-9" } });
     bindTicketTabs();
     document.querySelector<HTMLButtonElement>(".clone-to-jira-btn")!.click();
+    // Two ticks: one for confirmModal to resolve, one for cloneTicket to be called
+    await new Promise(r => setTimeout(r, 0));
     await new Promise(r => setTimeout(r, 0));
     expect(mockApi.cloneTicket).toHaveBeenCalledWith(expect.objectContaining({
       sourceProvider: "jira",
@@ -552,11 +556,11 @@ describe("Jira clone error path", () => {
   });
   afterEach(() => { document.body.innerHTML = ""; });
 
-  it("shows 'Clone failed' toast when api.cloneTicket rejects (Jira side)", async () => {
+  it("shows error modal when api.cloneTicket rejects (Jira side)", async () => {
     mockApi.cloneTicket.mockRejectedValue(new Error("403 Forbidden"));
     bindTicketTabs();
     document.querySelector<HTMLButtonElement>(".clone-to-jira-btn")!.click();
     await new Promise(r => setTimeout(r, 10));
-    expect(mockToast).toHaveBeenCalledWith(expect.stringContaining("403 Forbidden"), "error");
+    expect(mockErrorModal).toHaveBeenCalledWith(expect.objectContaining({ detail: expect.stringContaining("403 Forbidden") }));
   });
 });

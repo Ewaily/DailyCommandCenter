@@ -1,24 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ── Hoisted mocks ─────────────────────────────────────────────────────────────
-const { mockApi, mockIsAuthError, mockGetSetting, mockSaveSetting, mockToast } =
+const { mockApi, mockIsAuthError, mockGetSetting, mockSaveSetting, mockToast, mockConfirmModal, mockErrorModal } =
   vi.hoisted(() => ({
     mockApi: {
       clickupTasks: vi.fn(),
       ticketsMine:  vi.fn(),
       cloneTicket:  vi.fn(),
     },
-    mockIsAuthError: vi.fn().mockReturnValue(false),
-    mockGetSetting:  vi.fn().mockReturnValue(undefined),
-    mockSaveSetting: vi.fn(),
-    mockToast:       vi.fn().mockReturnValue(() => {}),
+    mockIsAuthError:   vi.fn().mockReturnValue(false),
+    mockGetSetting:    vi.fn().mockReturnValue(undefined),
+    mockSaveSetting:   vi.fn(),
+    mockToast:         vi.fn().mockReturnValue(() => {}),
+    mockConfirmModal:  vi.fn().mockResolvedValue(true),
+    mockErrorModal:    vi.fn(),
   }));
 
 vi.mock("../../src/frontend/api.js", () => ({ api: mockApi, isAuthError: mockIsAuthError }));
 vi.mock("../../src/frontend/state.js", () => ({ getSetting: mockGetSetting, saveSetting: mockSaveSetting }));
 vi.mock("../../src/frontend/components/util.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../src/frontend/components/util.js")>();
-  return { ...actual, animateNumber: vi.fn(), toast: mockToast };
+  return { ...actual, animateNumber: vi.fn(), toast: mockToast, confirmModal: mockConfirmModal, errorModal: mockErrorModal };
 });
 
 import { instantiateClickUp, bindClickUpClone } from "../../src/frontend/components/clickup.js";
@@ -91,6 +93,7 @@ beforeEach(() => {
   mockIsAuthError.mockReturnValue(false);
   mockGetSetting.mockReturnValue(undefined);
   mockToast.mockReturnValue(() => {});
+  mockConfirmModal.mockResolvedValue(true);
 });
 
 // ── ClickUp clone button ──────────────────────────────────────────────────────
@@ -131,6 +134,8 @@ describe("ClickUp clone button", () => {
     const btn = c.querySelector<HTMLElement>(".clone-to-jira-btn");
     expect(btn).toBeTruthy();
     btn!.click();
+    // Two ticks: confirmModal resolves, then cloneTicket is called
+    await new Promise(r => setTimeout(r, 0));
     await new Promise(r => setTimeout(r, 0));
 
     expect(mockApi.cloneTicket).toHaveBeenCalledWith(expect.objectContaining({
@@ -168,7 +173,7 @@ describe("ClickUp clone button", () => {
     expect(mockApi.cloneTicket).not.toHaveBeenCalled();
   });
 
-  it("shows error toast when api.cloneTicket rejects", async () => {
+  it("shows error modal when api.cloneTicket rejects", async () => {
     mockApi.clickupTasks.mockResolvedValue(okClickup([clickupTask()], "PROJ"));
     mockApi.cloneTicket.mockRejectedValue(new Error("Jira 403 Forbidden"));
     const c = makeContainer();
@@ -178,7 +183,7 @@ describe("ClickUp clone button", () => {
     c.querySelector<HTMLElement>(".clone-to-jira-btn")?.click();
     await new Promise(r => setTimeout(r, 10));
 
-    expect(mockToast).toHaveBeenCalledWith(expect.stringContaining("403 Forbidden"), "error");
+    expect(mockErrorModal).toHaveBeenCalledWith(expect.objectContaining({ detail: expect.stringContaining("403 Forbidden") }));
   });
 
   it("shows notConfigured state when ClickUp is not connected", async () => {
@@ -221,6 +226,7 @@ describe("bindClickUpClone", () => {
     bindClickUpClone();
     mockApi.cloneTicket.mockResolvedValue({ data: { key: "PROJ-1", id: "1", url: "https://j.example.com/browse/PROJ-1" } });
     body.querySelector<HTMLButtonElement>(".clone-to-jira-btn")!.click();
+    await new Promise(r => setTimeout(r, 0));
     await new Promise(r => setTimeout(r, 0));
     expect(mockApi.cloneTicket).toHaveBeenCalled();
     document.body.removeChild(body);
@@ -276,6 +282,7 @@ describe("Jira tickets clone button (instantiateTickets)", () => {
 
     const btn = c.querySelector<HTMLElement>(".clone-to-jira-btn");
     btn?.click();
+    await new Promise(r => setTimeout(r, 0));
     await new Promise(r => setTimeout(r, 0));
 
     expect(mockApi.cloneTicket).toHaveBeenCalledWith(expect.objectContaining({

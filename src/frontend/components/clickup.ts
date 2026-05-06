@@ -1,5 +1,5 @@
 import { api, isAuthError, type ClickUpTask, type WatchedUser } from "../api.js";
-import { $, escapeHtml, renderWorkspaceNotConfigured, skeletonCompact, toast } from "./util.js";
+import { $, escapeHtml, renderWorkspaceNotConfigured, skeletonCompact, toast, confirmModal, errorModal } from "./util.js";
 import { saveSetting, getSetting } from "../state.js";
 import { renderTaskRow } from "./task-row.js";
 
@@ -19,20 +19,29 @@ async function handleClone(btn: HTMLElement): Promise<void> {
     toast("Configure 1-Click Cloning on this connector (Workspaces tab) — set Target Base URL, Email, API Token, and Project.", "error");
     return;
   }
-  const title   = btn.dataset.cloneTitle || "";
-  const url     = btn.dataset.cloneUrl   || "";
-  const dismiss = toast("Cloning ticket…", { type: "info", duration: 15_000 });
+  const title = btn.dataset.cloneTitle || "";
+  const url   = btn.dataset.cloneUrl   || "";
+
+  const truncated = title.length > 60 ? title.slice(0, 57) + "…" : title;
+  const confirmed = await confirmModal({
+    title: "Clone to Jira?",
+    body: `<strong>${escapeHtml(truncated)}</strong><br><span style="font-size:var(--fs-sm);color:var(--text-muted)">will be cloned as a new Task in project <code>${escapeHtml(project)}</code></span>`,
+    confirmLabel: "Clone",
+  });
+  if (!confirmed) return;
+
+  const dismiss = toast("Cloning…", { type: "info", duration: 20_000 });
   try {
     const resp = await api.cloneTicket({ sourceProvider: "clickup", title, originalLink: url, connectorId });
     dismiss?.();
-    toast("Cloned!", {
+    toast(`Cloned as ${resp.data.key}`, {
       type: "success",
-      duration: 6000,
-      action: { label: `Open ${resp.data.key}`, onClick: () => window.open(resp.data.url, "_blank") },
+      duration: 0,
+      action: { label: `Open ${resp.data.key} in Jira ↗`, onClick: () => window.open(resp.data.url, "_blank") },
     });
   } catch (err: any) {
     dismiss?.();
-    toast(`Clone failed: ${err.message}`, "error");
+    errorModal({ title: "Clone failed", detail: err.message ?? String(err) });
   }
 }
 

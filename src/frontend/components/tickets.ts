@@ -1,5 +1,5 @@
 import { api, isAuthError, type Ticket, type WatchedUser } from "../api.js";
-import { $, escapeHtml, renderNotConnected, skeletonCompact, animateNumber, toast } from "./util.js";
+import { $, escapeHtml, renderNotConnected, skeletonCompact, animateNumber, toast, confirmModal, errorModal } from "./util.js";
 import { saveSetting, getSetting } from "../state.js";
 import { renderJiraTicket } from "./lists.js";
 
@@ -15,18 +15,27 @@ async function handleClone(btn: HTMLElement): Promise<void> {
   const title  = btn.dataset.cloneTitle || "";
   const url    = btn.dataset.cloneUrl   || "";
   const source = (btn.dataset.cloneSource || "jira") as "jira" | "clickup";
-  const dismiss = toast("Cloning ticket…", { type: "info", duration: 15_000 });
+
+  const truncated = title.length > 60 ? title.slice(0, 57) + "…" : title;
+  const confirmed = await confirmModal({
+    title: "Clone to Jira?",
+    body: `<strong>${escapeHtml(truncated)}</strong><br><span style="font-size:var(--fs-sm);color:var(--text-muted)">will be cloned as a new Task in project <code>${escapeHtml(project)}</code></span>`,
+    confirmLabel: "Clone",
+  });
+  if (!confirmed) return;
+
+  const dismiss = toast("Cloning…", { type: "info", duration: 20_000 });
   try {
     const resp = await api.cloneTicket({ sourceProvider: source, title, originalLink: url, connectorId });
     dismiss?.();
-    toast("Cloned!", {
+    toast(`Cloned as ${resp.data.key}`, {
       type: "success",
-      duration: 6000,
-      action: { label: `Open ${resp.data.key}`, onClick: () => window.open(resp.data.url, "_blank") },
+      duration: 0,
+      action: { label: `Open ${resp.data.key} in Jira ↗`, onClick: () => window.open(resp.data.url, "_blank") },
     });
   } catch (err: any) {
     dismiss?.();
-    toast(`Clone failed: ${err.message}`, "error");
+    errorModal({ title: "Clone failed", detail: err.message ?? String(err) });
   }
 }
 

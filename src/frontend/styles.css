@@ -3117,6 +3117,19 @@ body.has-dynamic-overview [data-ov-hidden="1"] {
   .swatch-grid { grid-template-columns: repeat(6, 1fr); max-width: 100%; }
 }
 
+/* ── Clone confirm / error modals ───────────────────────────────────────── */
+.clone-confirm-body { font-size: var(--fs-md); margin: 0 0 4px; line-height: 1.5; }
+.clone-confirm-body strong { font-weight: 600; display: block; margin-bottom: 4px; }
+.clone-confirm-body code { padding: 1px 5px; border-radius: 4px; background: rgba(0,0,0,.06); font-size: var(--fs-sm); }
+.clone-error-pre {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 10px 12px;
+  font-family: var(--font-mono); font-size: 11px; line-height: 1.55;
+  white-space: pre-wrap; word-break: break-all;
+  max-height: 220px; overflow-y: auto; margin: 0;
+  color: var(--error);
+}
+
 /* ── 1-Click Clone to Jira ───────────────────────────────────────────────── */
 .clone-to-jira-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 5px;
