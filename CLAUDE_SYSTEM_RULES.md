@@ -112,3 +112,15 @@ and confirm each is still accurate. Fix drift in the **same** response.
 
 If **no** → state explicitly that no doc update is required, so the user can
 verify the judgment call.
+
+---
+
+## TESTING & COVERAGE PROTOCOL
+
+1. **Source of Truth:** Any task involving code changes, refactoring, or new features MUST start by reading `TESTING_STATUS.md` in the root directory.
+2. **Coverage Ratcheting:** Whenever Claude writes new tests that increase the overall project coverage, Claude MUST explicitly update the minimum thresholds in `vitest.config.ts` to match the new higher baseline. The floor must always move up.
+3. **Completion Criteria:** Never consider a task finished until you have:
+   a. Written comprehensive unit tests for new/changed code.
+   b. Updated `TESTING_STATUS.md` to reflect the new test coverage status.
+   c. Verified that the overall coverage thresholds in `vitest.config.ts` are updated to reflect the higher baseline.
+4. **Enforcement:** If a file is marked as 'Pending' or 'High Priority' in `TESTING_STATUS.md`, you must prioritize writing tests for it before completing other features.
