@@ -61,9 +61,22 @@ export function applyTabOrder(group: string): void {
     return true;
   });
 
-  // Only apply if the saved order accounts for EVERY current tab — a partial
-  // order means the saved data is stale and reordering would break the layout.
-  if (order.length !== tabs.length) return;
+  // Partial/stale order — evict this group from localStorage so future page
+  // loads start clean rather than hitting the same bail-out forever.
+  if (order.length !== tabs.length) {
+    const map = loadTabOrder();
+    delete map[group];
+    saveTabOrder(map);
+    return;
+  }
+
+  // Short-circuit: if the DOM order already matches the saved order, do NOT
+  // touch the DOM. Without this guard every container.appendChild() triggers
+  // the MutationObserver, which schedules another rAF, which calls
+  // applyTabOrder again — an infinite loop that fires every frame and can
+  // prevent pointer events from being processed correctly in some browsers.
+  const currentIds = tabs.map(t => t.dataset.tabId!);
+  if (currentIds.join(",") === order.join(",")) return;
 
   for (const id of order) {
     container.appendChild(byId.get(id)!);
