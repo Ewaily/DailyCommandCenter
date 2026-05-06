@@ -9,6 +9,7 @@ const { mockApi, mockIsAuthError, mockGetSetting, mockSaveSetting, mockAnimateNu
       ticketsTeam:  vi.fn(),
       mentions:     vi.fn(),
       slackDigest:  vi.fn(),
+      cloneTicket:  vi.fn(),
     },
     mockIsAuthError: vi.fn().mockReturnValue(false),
     mockGetSetting:  vi.fn().mockReturnValue(undefined),
@@ -25,7 +26,7 @@ vi.mock("../../src/frontend/components/util.js", async (importOriginal) => {
   return { ...actual, animateNumber: mockAnimateNumber, toast: mockToast };
 });
 
-import { loadTickets } from "../../src/frontend/components/tickets.js";
+import { loadTickets, bindTicketTabs, instantiateTickets } from "../../src/frontend/components/tickets.js";
 import { loadClickUp } from "../../src/frontend/components/clickup.js";
 import { loadTeamBoard } from "../../src/frontend/components/lists.js";
 import { loadMentions, bindMentionsTabs, navMentions } from "../../src/frontend/components/mentions.js";
@@ -365,5 +366,177 @@ describe("loadMentions (global DOM)", () => {
     navMentions("today");
     const label = document.getElementById("mentions-day-label")!;
     expect(label.textContent).toBe("Today");
+  });
+});
+
+// ── bindTicketTabs — clone button click delegation ────────────────────────────
+
+describe("bindTicketTabs — clone button click delegation", () => {
+  beforeEach(() => {
+    document.body.innerHTML = `
+      <div id="jira-tabs"></div>
+      <div id="my-tickets-body">
+        <button class="clone-to-jira-btn"
+          data-clone-source="jira"
+          data-clone-title="Original"
+          data-clone-url="https://jira.example.com/browse/X-1"
+          data-target-project="PROJ">Clone</button>
+      </div>
+    `;
+  });
+
+  afterEach(() => { document.body.innerHTML = ""; });
+
+  it("calls api.cloneTicket when a .clone-to-jira-btn inside #my-tickets-body is clicked", async () => {
+    mockApi.cloneTicket.mockResolvedValue({ data: { key: "PROJ-9", id: "9", url: "https://jira.example.com/browse/PROJ-9" } });
+    bindTicketTabs();
+    document.querySelector<HTMLButtonElement>(".clone-to-jira-btn")!.click();
+    await new Promise(r => setTimeout(r, 0));
+    expect(mockApi.cloneTicket).toHaveBeenCalledWith(expect.objectContaining({
+      sourceProvider:      "jira",
+      title:               "Original",
+      originalLink:        "https://jira.example.com/browse/X-1",
+      targetJiraProjectId: "PROJ",
+    }));
+  });
+
+  it("ignores clicks on non-clone elements inside #my-tickets-body", async () => {
+    document.body.innerHTML = `
+      <div id="jira-tabs"></div>
+      <div id="my-tickets-body"><span class="not-a-clone-btn">x</span></div>
+    `;
+    bindTicketTabs();
+    document.querySelector<HTMLElement>(".not-a-clone-btn")!.click();
+    await new Promise(r => setTimeout(r, 0));
+    expect(mockApi.cloneTicket).not.toHaveBeenCalled();
+  });
+});
+
+// ── instantiateTickets — active bucket falls back to mine when watched user disappears ─
+
+describe("instantiateTickets — active bucket recovery", () => {
+  it("falls back to 'mine' when previous active bucket is no longer in the watched list", async () => {
+    mockApi.ticketsMine
+      .mockResolvedValueOnce({
+        data: [],
+        buckets: [{ id: "u1", label: "Alice" }],
+        counts: { mine: 0, u1: 0 },
+        notConfigured: false,
+        bucket: "u1",
+        connectorCloningConfig: { cloningEnabled: false, defaultTargetProject: "" },
+      })
+      .mockResolvedValueOnce({
+        data: [],
+        buckets: [],
+        counts: { mine: 0 },
+        notConfigured: false,
+        bucket: "mine",
+        connectorCloningConfig: { cloningEnabled: false, defaultTargetProject: "" },
+      });
+
+    mockGetSetting.mockReturnValue("u1");
+    const c = document.createElement("div");
+    const inst = instantiateTickets(c, "conn-1", { wsName: "WS", title: "Tickets" });
+    await inst.load();
+    await inst.load();
+    expect(mockSaveSetting).toHaveBeenCalledWith("jiraTab", "mine");
+  });
+});
+
+// ── module-level loadTickets — branches not covered by instance tests ─────────
+
+describe("loadTickets — bucket coercion + tab click handlers", () => {
+  beforeEach(() => {
+    document.body.innerHTML = `
+      <div id="jira-tabs"></div>
+      <div id="my-tickets-body"></div>
+      <span id="kpi-tickets"></span>
+      <span id="kpi-tickets-detail"></span>
+    `;
+  });
+  afterEach(() => { document.body.innerHTML = ""; });
+
+  it("re-saves active bucket when server coerces it via resp.bucket", async () => {
+    mockApi.ticketsMine.mockResolvedValue({
+      data: [],
+      buckets: [{ id: "u1", label: "Alice" }],
+      counts: { mine: 0, u1: 0 },
+      notConfigured: false,
+      bucket: "u1",
+      connectorCloningConfig: { cloningEnabled: false, defaultTargetProject: "" },
+    });
+    await loadTickets();
+    // The server returned bucket=u1 even though active was "mine" → triggers
+    // the "honor server-coerced bucket" path (lines 126–130).
+    expect(mockSaveSetting).toHaveBeenCalledWith("jiraTab", "u1");
+  });
+
+  it("falls back to mine when watched users change and old active disappears", async () => {
+    mockApi.ticketsMine
+      .mockResolvedValueOnce({
+        data: [],
+        buckets: [{ id: "u1", label: "Alice" }],
+        counts: { mine: 0, u1: 0 },
+        notConfigured: false,
+        bucket: "u1",
+        connectorCloningConfig: { cloningEnabled: false, defaultTargetProject: "" },
+      })
+      .mockResolvedValueOnce({
+        data: [],
+        buckets: [],
+        counts: { mine: 0 },
+        notConfigured: false,
+        bucket: "mine",
+        connectorCloningConfig: { cloningEnabled: false, defaultTargetProject: "" },
+      });
+
+    await loadTickets();      // sets active=u1
+    mockSaveSetting.mockClear();
+    await loadTickets();      // watched list empty → fall back to mine
+    expect(mockSaveSetting).toHaveBeenCalledWith("jiraTab", "mine");
+  });
+
+  it("clicking a watched-user tab updates active and reloads", async () => {
+    mockApi.ticketsMine.mockResolvedValue({
+      data: [],
+      buckets: [{ id: "u1", label: "Alice" }],
+      counts: { mine: 0, u1: 0 },
+      notConfigured: false,
+      bucket: "mine",
+      connectorCloningConfig: { cloningEnabled: false, defaultTargetProject: "" },
+    });
+    await loadTickets();
+    const tab = document.querySelector<HTMLElement>('[data-jira-tab="u1"]');
+    expect(tab).not.toBeNull();
+    mockSaveSetting.mockClear();
+    tab!.click();
+    await new Promise(r => setTimeout(r, 0));
+    expect(mockSaveSetting).toHaveBeenCalledWith("jiraTab", "u1");
+  });
+});
+
+// ── Jira-side handleClone error path (tickets.ts lines 26–29) ─────────────────
+
+describe("Jira clone error path", () => {
+  beforeEach(() => {
+    document.body.innerHTML = `
+      <div id="jira-tabs"></div>
+      <div id="my-tickets-body">
+        <button class="clone-to-jira-btn"
+          data-clone-source="jira"
+          data-clone-title="Bug"
+          data-clone-url="https://jira.example.com/browse/X-1"
+          data-target-project="PROJ">Clone</button>
+      </div>
+    `;
+  });
+  afterEach(() => { document.body.innerHTML = ""; });
+
+  it("shows 'Clone failed' toast when api.cloneTicket rejects (Jira side)", async () => {
+    mockApi.cloneTicket.mockRejectedValue(new Error("403 Forbidden"));
+    bindTicketTabs();
+    document.querySelector<HTMLButtonElement>(".clone-to-jira-btn")!.click();
+    await new Promise(r => setTimeout(r, 10));
+    expect(mockToast).toHaveBeenCalledWith(expect.stringContaining("403 Forbidden"), "error");
   });
 });

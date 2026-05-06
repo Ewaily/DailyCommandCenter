@@ -106,8 +106,9 @@ ticketsRouter.get("/mine", async (req, res) => {
   });
 
   // Use the scoped connector's config when connectorId is set; else the first resolved.
-  const primaryConfig = (scopeId ? resolved.find(r => r.id === scopeId) : resolved[0])?.cloningConfig
-    ?? { cloningEnabled: false, defaultTargetProject: "" };
+  // resolved is guaranteed non-empty here (early return above) and resolveJira already
+  // filtered by scopeId, so the lookup never misses.
+  const primaryConfig = (scopeId ? resolved.find(r => r.id === scopeId)! : resolved[0]).cloningConfig;
 
   res.json({
     data: merged[bucket] ?? [],
