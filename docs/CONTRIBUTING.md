@@ -56,7 +56,7 @@ See [SETUP.md](./SETUP.md) for per-provider OAuth / API-key walkthroughs.
 
 ### Branch & commit conventions
 
-### Branch names
+#### Branch names
 - `feat/<slug>` — new feature
 - `fix/<slug>` — bug fix
 - `docs/<slug>` — docs only
@@ -64,7 +64,7 @@ See [SETUP.md](./SETUP.md) for per-provider OAuth / API-key walkthroughs.
 - `refactor/<slug>` — internal change without behavior change
 - `test/<slug>` — tests only
 
-### Commit & PR-title format (Conventional Commits)
+#### Commit & PR-title format (Conventional Commits)
 ```
 feat(palette): add fuzzy-match for command names
 fix(slack): handle 429 backoff correctly

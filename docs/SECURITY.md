@@ -24,7 +24,7 @@ In scope:
 - The Vite frontend (`src/frontend/`)
 - OAuth flows (`src/server/auth/`)
 - SQLite storage layer (`src/server/db.ts`, cache, identities)
-- Documented integrations (Google, Slack, Microsoft, Linear, Jira, GitHub, Notion)
+- Documented integrations (Google Calendar, Microsoft Outlook, Slack, Jira, GitHub, Notion, ClickUp)
 
 Out of scope:
 - Vulnerabilities in third-party providers (report to the provider directly).
@@ -39,7 +39,7 @@ While the project is pre-1.0, only the latest commit on the `prod` branch is sup
 
 - Never share your `.env` file or screenshot it. It contains long-lived tokens.
 - Run the app on `localhost` only. Do not expose port 3000 to your network without an authenticating reverse proxy.
-- Rotate provider tokens periodically (Slack, GitHub, Linear, Jira, Notion).
+- Rotate provider tokens periodically (Slack, GitHub, Jira, Notion, ClickUp).
 - The SQLite DB at `~/.daily-command-center/db.sqlite` is encrypted only as much as your filesystem encrypts it. On macOS, FileVault should be on. On Linux, use full-disk encryption.
 
 ## Disclosure policy
