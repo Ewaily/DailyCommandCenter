@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     include: ["tests/**/*.test.ts"],
     environment: "node",
+    environmentMatchGlobs: [["tests/frontend/**", "happy-dom"]],
     coverage: {
       provider: "v8",
       reporter: ["text", "text-summary", "html", "lcov", "json-summary"],
@@ -19,10 +20,10 @@ export default defineConfig({
       all: true,
       clean: true,
       thresholds: {
-        statements: 5.98,
-        branches: 67.04,
-        functions: 44.89,
-        lines: 5.98,
+        statements: 13.13,
+        branches: 70.96,
+        functions: 52.6,
+        lines: 13.13,
         autoUpdate: false,
       },
     },
