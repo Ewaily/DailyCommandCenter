@@ -132,3 +132,11 @@ verify the judgment call.
 1. **Documentation:** All documentation files (*.md) except `README.md` must be placed in the `docs/` directory.
 2. **Examples:** All starter templates, examples, or demo files must be placed in the `examples/` directory.
 3. **Rule Enforcement:** Before creating any new markdown file or example file, ensure it is directed to the appropriate subdirectory (`docs/` or `examples/`).
+
+---
+
+### AUTOMATIC DOCUMENTATION PROTOCOL
+
+- **Autonomous Maintenance:** After EVERY task, fix, or feature change, you MUST check if README.md, SETUP.md, and FEATURES.md are accurate. If they drift, you MUST fix them in the SAME response without being asked.
+- **Definition of "Done":** A task is NOT complete until all 3 docs match the code. If the user has to remind you to update docs, you have failed the task.
+- **Visual-First:** When editing README.md or FEATURES.md, prioritize clarity, use visual placeholders (e.g., `![Preview](./docs/assets/dashboard.png)`), and use HTML `<details>` and `<summary>` tags for long lists to keep the docs readable.
