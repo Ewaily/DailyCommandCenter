@@ -41,7 +41,7 @@ const ticket = (overrides = {}) => ({
 
 const watched = [{ id: "u1", label: "Alice", query: "", status: "active" }];
 
-const okResp = (items = [ticket()], buckets = watched, counts = { mine: 1, u1: 0 }, bucket = "mine") =>
+const okResp = (items = [ticket()], buckets = watched, counts: Record<string, number> = { mine: 1, u1: 0 }, bucket = "mine") =>
   Promise.resolve({ data: items, buckets, counts, notConfigured: false, bucket });
 
 const notConfiguredResp = () =>
