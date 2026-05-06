@@ -103,6 +103,64 @@ describe("renderConnectorCloneEditor (Jira)", () => {
     const html = renderConnectorCloneEditor(makeConnector(), [], false);
     expect(html).toContain("Jira tickets");
   });
+
+  it("renders the password show/hide toggle wrapper around the API token field", () => {
+    const html = renderConnectorCloneEditor(makeConnector(), projects, false);
+    expect(html).toContain('class="pw-wrap"');
+    expect(html).toContain('data-action="pw-toggle"');
+    expect(html).toContain('name="cloneTargetToken"');
+  });
+
+  // ── status banner ────────────────────────────────────────────────────────────
+
+  it("shows the OFF banner when cloning is disabled and no creds saved", () => {
+    const html = renderConnectorCloneEditor(makeConnector(), projects, false);
+    expect(html).toContain("clone-status--off");
+    expect(html).toContain("Cloning is off");
+  });
+
+  it("shows the credentials-saved-but-OFF banner when fields are filled but toggle is off", () => {
+    const html = renderConnectorCloneEditor(
+      makeConnector({
+        cloningEnabled: false,
+        cloneTargetUrl: "https://x.atlassian.net",
+        cloneTargetEmail: "a@b.com",
+        cloneTargetToken: "tok",
+        cloneTargetProject: "FM",
+      }),
+      projects,
+      false,
+    );
+    expect(html).toContain("clone-status--off");
+    expect(html).toContain("Credentials saved");
+  });
+
+  it("shows the WARN banner when toggle is on but credentials are incomplete", () => {
+    const html = renderConnectorCloneEditor(
+      makeConnector({ cloningEnabled: true, cloneTargetUrl: "https://x.atlassian.net" }),
+      projects,
+      false,
+    );
+    expect(html).toContain("clone-status--warn");
+    expect(html).toContain("missing credentials");
+  });
+
+  it("shows the OK banner with target URL+project when fully configured and enabled", () => {
+    const html = renderConnectorCloneEditor(
+      makeConnector({
+        cloningEnabled: true,
+        cloneTargetUrl: "https://target.atlassian.net",
+        cloneTargetEmail: "u@t.com",
+        cloneTargetToken: "tok",
+        cloneTargetProject: "FM",
+      }),
+      projects,
+      false,
+    );
+    expect(html).toContain("clone-status--ok");
+    expect(html).toContain("https://target.atlassian.net");
+    expect(html).toContain("FM");
+  });
 });
 
 // ── renderConnectorCloneEditor — ClickUp ──────────────────────────────────────

@@ -3123,11 +3123,26 @@ body.has-dynamic-overview [data-ov-hidden="1"] {
   padding: 2px 0; width: 26px;
   background: none; border: none; cursor: pointer;
   color: var(--text-muted);
-  opacity: 0;
+  opacity: 0.45;
   transition: opacity var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
   flex-shrink: 0;
 }
 .schedule-item--cloneable:hover .clone-to-jira-btn { opacity: 1; }
+
+/* Cloning settings banner */
+.clone-status-banner {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  font-size: 13px; line-height: 1.45;
+  margin: 0 0 6px;
+}
+.clone-status-banner code { padding: 1px 6px; border-radius: 4px; background: rgba(0,0,0,0.06); font-size: 12px; }
+.clone-status-banner strong { font-weight: 600; }
+.clone-status--ok   { background: color-mix(in srgb, var(--success) 12%, transparent); color: var(--success); border: 1px solid color-mix(in srgb, var(--success) 30%, transparent); }
+.clone-status--warn { background: color-mix(in srgb, var(--warning) 14%, transparent); color: var(--warning); border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent); }
+.clone-status--off  { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
+.clone-status-icon { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; }
 .clone-to-jira-btn:hover { color: var(--primary); }
 .clone-to-jira-btn:focus-visible {
   opacity: 1;

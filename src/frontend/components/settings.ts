@@ -575,6 +575,32 @@ export function renderConnectorCloneEditor(c: ConnectorInstance, projects: impor
   const token    = cfg.cloneTargetToken || "";
   const current  = cfg.cloneTargetProject || "";
   const sourceLabel = isClickUp ? "ClickUp tasks" : "Jira tickets";
+  const credsComplete = !!(url && email && token && current);
+
+  // Status banner — tells the user exactly what state they're in. Solves the
+  // "I filled in the fields but the clone button isn't showing" footgun.
+  const banner = enabled && credsComplete
+    ? `<div class="clone-status-banner clone-status--ok">
+         <span data-icon="check" class="clone-status-icon"></span>
+         <div>
+           <strong>Active.</strong> Hover any row in the ${escapeHtml(sourceLabel)} card and a clone icon
+           appears on the right edge — click it to push that ${isClickUp ? "task" : "ticket"} into
+           ${escapeHtml(url || "the destination Jira")} → <code>${escapeHtml(current)}</code>.
+         </div>
+       </div>`
+    : enabled && !credsComplete
+    ? `<div class="clone-status-banner clone-status--warn">
+         <strong>Enabled but missing credentials.</strong> Fill in all four fields below — saving will refuse
+         until you do.
+       </div>`
+    : credsComplete
+    ? `<div class="clone-status-banner clone-status--off">
+         <strong>Credentials saved, but cloning is OFF.</strong> Flip the toggle below to <em>Enabled</em>
+         and save to start showing the clone icon on each row.
+       </div>`
+    : `<div class="clone-status-banner clone-status--off">
+         <strong>Cloning is off.</strong> Flip the toggle below, fill in the four target fields, and save.
+       </div>`;
 
   // Project control: a dropdown when the host workspace's Jira connectors return
   // a project list. Falls back to a free-text input if none — useful when the
@@ -597,10 +623,11 @@ export function renderConnectorCloneEditor(c: ConnectorInstance, projects: impor
         <span class="muted">Clone ${escapeHtml(sourceLabel)} into ANY Jira instance — even one in a different workspace — using its own credentials below.</span>
       </div>
       <form class="watched-users-list" data-form="connector-clone-save" data-ci="${escapeHtml(c.id)}">
-        <div class="settings-pref-row" style="padding:0 0 8px">
+        ${banner}
+        <div class="settings-pref-row" style="padding:8px 0 8px">
           <label class="settings-toggle-label">
             <input type="checkbox" name="cloningEnabled" ${enabled ? "checked" : ""} />
-            <span>${enabled ? "Enabled" : "Disabled"}</span>
+            <span>1-Click Cloning is <strong>${enabled ? "Enabled" : "Disabled"}</strong></span>
           </label>
         </div>
         <div class="settings-pref-row" style="padding:0 0 8px">
@@ -621,9 +648,12 @@ export function renderConnectorCloneEditor(c: ConnectorInstance, projects: impor
         </div>
         <div class="settings-pref-row" style="padding:0 0 8px">
           <label class="connector-field-label">Target API Token
-            <input name="cloneTargetToken" class="pref-input" type="password"
-              placeholder="ATATT3xFfGF0..."
-              value="${escapeHtml(token)}" autocomplete="off" spellcheck="false" />
+            <div class="pw-wrap">
+              <input name="cloneTargetToken" type="password"
+                placeholder="ATATT3xFfGF0..."
+                value="${escapeHtml(token)}" autocomplete="off" spellcheck="false" />
+              <button type="button" class="pw-toggle" data-action="pw-toggle" title="Show/hide">👁</button>
+            </div>
             <span class="form-help">Create at id.atlassian.com → Security → API tokens. Stored encrypted in this workspace's database.</span>
           </label>
         </div>
