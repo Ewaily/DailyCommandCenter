@@ -43,7 +43,7 @@ const jiraConnector = (overrides: Record<string, unknown> = {}) => ({
     baseUrl: "https://test.atlassian.net",
     email:   "user@test.com",
     cloningEnabled: true,
-    defaultTargetProject: "PROJ",
+    cloneTargetProject: "PROJ",
   },
   ...overrides,
 });
@@ -78,9 +78,10 @@ describe("GET /mine", () => {
 
   it("returns connectorCloningConfig from the primary resolved connector", async () => {
     const res = await request(app).get("/mine");
-    expect(res.body.connectorCloningConfig).toEqual({
-      cloningEnabled:       true,
-      defaultTargetProject: "PROJ",
+    expect(res.body.connectorCloningConfig).toMatchObject({
+      cloningEnabled:     true,
+      cloneTargetProject: "PROJ",
+      connectorId:        "ci-jira-1",
     });
   });
 
@@ -151,11 +152,11 @@ describe("GET /mine", () => {
 
   it("scopes to a specific connector via ?connectorId", async () => {
     mockListWs.mockReturnValue([
-      jiraConnector({ id: "c1", config: { baseUrl: "https://a", email: "a@a", cloningEnabled: false, defaultTargetProject: "A" } }),
-      jiraConnector({ id: "c2", config: { baseUrl: "https://b", email: "b@b", cloningEnabled: true, defaultTargetProject: "B" } }),
+      jiraConnector({ id: "c1", config: { baseUrl: "https://a", email: "a@a", cloningEnabled: false, cloneTargetProject: "A" } }),
+      jiraConnector({ id: "c2", config: { baseUrl: "https://b", email: "b@b", cloningEnabled: true, cloneTargetProject: "B" } }),
     ]);
     const res = await request(app).get("/mine?connectorId=c2");
-    expect(res.body.connectorCloningConfig.defaultTargetProject).toBe("B");
+    expect(res.body.connectorCloningConfig.cloneTargetProject).toBe("B");
   });
 
   it("uses overview connectors when no active workspace is set", async () => {

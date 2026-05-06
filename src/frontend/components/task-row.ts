@@ -21,6 +21,7 @@ export type TaskRow = {
   dueDate: string | null;
   cloneSource?: "jira" | "clickup";   // when set, renders a 1-click clone-to-Jira button
   cloneTargetProject?: string;        // target Jira project key, encoded into the button
+  cloneConnectorId?: string;          // source connector id; backend uses it to look up clone creds
 };
 
 const prioPalette = (p: string | null) =>
@@ -98,6 +99,7 @@ export function renderTaskRow(row: TaskRow): string {
          data-clone-url="${escapeHtml(row.url)}"
          data-clone-source="${escapeHtml(row.cloneSource)}"
          data-target-project="${escapeHtml(row.cloneTargetProject || "")}"
+         data-connector-id="${escapeHtml(row.cloneConnectorId || "")}"
          aria-label="Clone to Jira">
          <span data-icon="copy"></span>
        </button>`

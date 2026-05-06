@@ -62,7 +62,7 @@ const jiraTicket = (overrides = {}) => ({
 });
 
 // connectorCloningConfig is now part of the server response — no global state needed.
-const okClickup = (items = [clickupTask()], project?: string) =>
+const okClickup = (items = [clickupTask()], project?: string, connectorId = "conn-1") =>
   Promise.resolve({
     data: items,
     buckets: [],
@@ -70,11 +70,11 @@ const okClickup = (items = [clickupTask()], project?: string) =>
     notConfigured: false,
     bucket: "mine",
     connectorCloningConfig: project
-      ? { cloningEnabled: true,  defaultTargetProject: project }
-      : { cloningEnabled: false, defaultTargetProject: "" },
+      ? { cloningEnabled: true,  cloneTargetProject: project, connectorId }
+      : { cloningEnabled: false, cloneTargetProject: "", connectorId },
   });
 
-const okJira = (items = [jiraTicket()], project?: string) =>
+const okJira = (items = [jiraTicket()], project?: string, connectorId = "conn-2") =>
   Promise.resolve({
     data: items,
     buckets: [],
@@ -82,8 +82,8 @@ const okJira = (items = [jiraTicket()], project?: string) =>
     notConfigured: false,
     bucket: "mine",
     connectorCloningConfig: project
-      ? { cloningEnabled: true,  defaultTargetProject: project }
-      : { cloningEnabled: false, defaultTargetProject: "" },
+      ? { cloningEnabled: true,  cloneTargetProject: project, connectorId }
+      : { cloningEnabled: false, cloneTargetProject: "", connectorId },
   });
 
 beforeEach(() => {
@@ -122,7 +122,7 @@ describe("ClickUp clone button", () => {
   });
 
   it("calls api.cloneTicket with correct payload when clone button is clicked", async () => {
-    mockApi.clickupTasks.mockResolvedValue(okClickup([clickupTask()], "TARGET"));
+    mockApi.clickupTasks.mockResolvedValue(okClickup([clickupTask()], "TARGET", "conn-1"));
     mockApi.cloneTicket.mockResolvedValue({ data: { key: "TARGET-99", id: "99", url: "https://jira.example.com/browse/TARGET-99" } });
     const c = makeContainer();
     const inst = instantiateClickUp(c, "conn-1", { wsName: "WS", title: "Tasks" });
@@ -134,18 +134,27 @@ describe("ClickUp clone button", () => {
     await new Promise(r => setTimeout(r, 0));
 
     expect(mockApi.cloneTicket).toHaveBeenCalledWith(expect.objectContaining({
-      sourceProvider:       "clickup",
-      title:                "Build feature",
-      originalLink:         "https://app.clickup.com/t/task1",
-      targetJiraProjectId:  "TARGET",
+      sourceProvider: "clickup",
+      title:          "Build feature",
+      originalLink:   "https://app.clickup.com/t/task1",
+      connectorId:    "conn-1",
     }));
+  });
+
+  it("encodes the connectorId on the clone button so the click handler can send it", async () => {
+    mockApi.clickupTasks.mockResolvedValue(okClickup([clickupTask()], "TARGET", "conn-cu-77"));
+    const c = makeContainer();
+    const inst = instantiateClickUp(c, "conn-cu-77", { wsName: "WS", title: "Tasks" });
+    await inst.load();
+    const btn = c.querySelector<HTMLElement>(".clone-to-jira-btn");
+    expect(btn?.dataset.connectorId).toBe("conn-cu-77");
   });
 
   it("shows error toast when no target project is on the button", async () => {
     // cloningEnabled true but targetProject empty — simulates misconfigured state
     mockApi.clickupTasks.mockResolvedValue(
       Promise.resolve({ data: [clickupTask()], buckets: [], counts: {}, notConfigured: false, bucket: "mine",
-        connectorCloningConfig: { cloningEnabled: true, defaultTargetProject: "" } }),
+        connectorCloningConfig: { cloningEnabled: true, cloneTargetProject: "", connectorId: "conn-1" } }),
     );
     const c = makeContainer();
     const inst = instantiateClickUp(c, "conn-1", { wsName: "WS", title: "Tasks" });
@@ -155,7 +164,7 @@ describe("ClickUp clone button", () => {
     btn?.click();
     await new Promise(r => setTimeout(r, 0));
 
-    expect(mockToast).toHaveBeenCalledWith(expect.stringContaining("Workspaces tab"), "error");
+    expect(mockToast).toHaveBeenCalledWith(expect.stringContaining("Configure 1-Click Cloning"), "error");
     expect(mockApi.cloneTicket).not.toHaveBeenCalled();
   });
 
@@ -197,6 +206,37 @@ describe("bindClickUpClone", () => {
   it("does not throw when #clickup-body is absent", () => {
     expect(() => bindClickUpClone()).not.toThrow();
   });
+
+  it("delegates clicks on .clone-to-jira-btn inside #clickup-body to handleClone", async () => {
+    const body = document.createElement("div");
+    body.id = "clickup-body";
+    body.innerHTML = `
+      <button class="clone-to-jira-btn"
+        data-clone-source="clickup"
+        data-clone-title="Build feature"
+        data-clone-url="https://app.clickup.com/t/abc"
+        data-target-project="PROJ"
+        data-connector-id="ci-cu-1">Clone</button>`;
+    document.body.appendChild(body);
+    bindClickUpClone();
+    mockApi.cloneTicket.mockResolvedValue({ data: { key: "PROJ-1", id: "1", url: "https://j.example.com/browse/PROJ-1" } });
+    body.querySelector<HTMLButtonElement>(".clone-to-jira-btn")!.click();
+    await new Promise(r => setTimeout(r, 0));
+    expect(mockApi.cloneTicket).toHaveBeenCalled();
+    document.body.removeChild(body);
+  });
+
+  it("ignores clicks on non-clone elements inside #clickup-body", async () => {
+    const body = document.createElement("div");
+    body.id = "clickup-body";
+    body.innerHTML = `<span class="not-a-clone">x</span>`;
+    document.body.appendChild(body);
+    bindClickUpClone();
+    body.querySelector<HTMLElement>(".not-a-clone")!.click();
+    await new Promise(r => setTimeout(r, 0));
+    expect(mockApi.cloneTicket).not.toHaveBeenCalled();
+    document.body.removeChild(body);
+  });
 });
 
 // ── Jira tickets clone button ─────────────────────────────────────────────────
@@ -228,7 +268,7 @@ describe("Jira tickets clone button (instantiateTickets)", () => {
   });
 
   it("calls api.cloneTicket when clone button is clicked on a Jira ticket", async () => {
-    mockApi.ticketsMine.mockResolvedValue(okJira([jiraTicket()], "TARGET"));
+    mockApi.ticketsMine.mockResolvedValue(okJira([jiraTicket()], "TARGET", "conn-2"));
     mockApi.cloneTicket.mockResolvedValue({ data: { key: "TARGET-55", id: "55", url: "https://jira.example.com/browse/TARGET-55" } });
     const c = makeContainer();
     const inst = instantiateTickets(c, "conn-2", { wsName: "WS", title: "Tickets" });
@@ -239,16 +279,25 @@ describe("Jira tickets clone button (instantiateTickets)", () => {
     await new Promise(r => setTimeout(r, 0));
 
     expect(mockApi.cloneTicket).toHaveBeenCalledWith(expect.objectContaining({
-      sourceProvider:       "jira",
-      title:                "Fix login bug",
-      targetJiraProjectId:  "TARGET",
+      sourceProvider: "jira",
+      title:          "Fix login bug",
+      connectorId:    "conn-2",
     }));
+  });
+
+  it("encodes the connectorId on the clone button so the click handler can send it", async () => {
+    mockApi.ticketsMine.mockResolvedValue(okJira([jiraTicket()], "TARGET", "conn-jira-99"));
+    const c = makeContainer();
+    const inst = instantiateTickets(c, "conn-jira-99", { wsName: "WS", title: "Tickets" });
+    await inst.load();
+    const btn = c.querySelector<HTMLElement>(".clone-to-jira-btn");
+    expect(btn?.dataset.connectorId).toBe("conn-jira-99");
   });
 
   it("shows error toast when data-target-project is empty", async () => {
     mockApi.ticketsMine.mockResolvedValue(
       Promise.resolve({ data: [jiraTicket()], buckets: [], counts: {}, notConfigured: false, bucket: "mine",
-        connectorCloningConfig: { cloningEnabled: true, defaultTargetProject: "" } }),
+        connectorCloningConfig: { cloningEnabled: true, cloneTargetProject: "", connectorId: "conn-2" } }),
     );
     const c = makeContainer();
     const inst = instantiateTickets(c, "conn-2", { wsName: "WS", title: "Tickets" });
@@ -258,7 +307,7 @@ describe("Jira tickets clone button (instantiateTickets)", () => {
     btn?.click();
     await new Promise(r => setTimeout(r, 0));
 
-    expect(mockToast).toHaveBeenCalledWith(expect.stringContaining("Workspaces tab"), "error");
+    expect(mockToast).toHaveBeenCalledWith(expect.stringContaining("Configure 1-Click Cloning"), "error");
     expect(mockApi.cloneTicket).not.toHaveBeenCalled();
   });
 

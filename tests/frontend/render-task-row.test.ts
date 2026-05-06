@@ -82,10 +82,11 @@ describe("renderTaskRow", () => {
   });
 
   it("renders the clone button and cloneable class when cloneSource is set", () => {
-    const html = renderTaskRow(baseRow({ cloneSource: "jira", cloneTargetProject: "PROJ" }));
+    const html = renderTaskRow(baseRow({ cloneSource: "jira", cloneTargetProject: "PROJ", cloneConnectorId: "ci-1" }));
     expect(html).toContain("clone-to-jira-btn");
     expect(html).toContain("schedule-item--cloneable");
     expect(html).toContain('data-target-project="PROJ"');
+    expect(html).toContain('data-connector-id="ci-1"');
   });
 
   it("does NOT render the clone button when cloneSource is absent", () => {
@@ -123,10 +124,11 @@ describe("renderJiraTicket", () => {
   });
 
   it("includes a clone button when cloningEnabled is true", () => {
-    const html = renderJiraTicket(baseTicket(), true, "MYPROJ");
+    const html = renderJiraTicket(baseTicket(), true, "MYPROJ", "ci-jira-7");
     expect(html).toContain("clone-to-jira-btn");
     expect(html).toContain('data-clone-source="jira"');
     expect(html).toContain('data-target-project="MYPROJ"');
+    expect(html).toContain('data-connector-id="ci-jira-7"');
   });
 
   it("omits clone button when cloningEnabled is false", () => {

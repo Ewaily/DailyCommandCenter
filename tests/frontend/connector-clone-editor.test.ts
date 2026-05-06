@@ -67,12 +67,12 @@ describe("renderConnectorCloneEditor (Jira)", () => {
   it("falls back to a text <input> when no projects are provided", () => {
     const html = renderConnectorCloneEditor(makeConnector(), [], false);
     expect(html).not.toContain("<select");
-    expect(html).toContain('<input name="defaultTargetProject"');
+    expect(html).toContain('<input name="cloneTargetProject"');
   });
 
-  it("pre-selects the current defaultTargetProject value in the dropdown", () => {
+  it("pre-selects the current cloneTargetProject value in the dropdown", () => {
     const html = renderConnectorCloneEditor(
-      makeConnector({ cloningEnabled: true, defaultTargetProject: "DEV" }),
+      makeConnector({ cloningEnabled: true, cloneTargetProject: "DEV" }),
       projects,
       false,
     );
@@ -81,7 +81,7 @@ describe("renderConnectorCloneEditor (Jira)", () => {
 
   it("pre-fills the text input with the current value when no projects list", () => {
     const html = renderConnectorCloneEditor(
-      makeConnector({ defaultTargetProject: "CUSTOM" }),
+      makeConnector({ cloneTargetProject: "CUSTOM" }),
       [],
       false,
     );

@@ -117,7 +117,7 @@ export type ConnectorInstance = {
 
 export type SecondaryTz = { tz: string; label: string };
 export type JiraProject = { id: string; key: string; name: string };
-export type ConnectorCloningConfig = { cloningEnabled: boolean; defaultTargetProject: string };
+export type ConnectorCloningConfig = { cloningEnabled: boolean; cloneTargetProject: string; connectorId?: string };
 export type AppCreds = {
   brand:     { name: string; subtitle: string };
   prefs:     { primaryTz: string; secondaryTzs: SecondaryTz[] };
@@ -212,8 +212,7 @@ export const api = {
     title: string;
     description?: string;
     originalLink: string;
-    targetJiraProjectId: string;
-    connectorId?: string;
+    connectorId: string;
   }) => req<{ key: string; id: string; url: string }>(withWs("/jira/clone-ticket"), { method: "POST", body: JSON.stringify(payload) }),
 
   workspaceConnect: (wsId: string, body: { type: string; token: string; account?: string; label?: string; config?: Record<string, unknown>; connectorId?: string; addAnother?: boolean }) =>

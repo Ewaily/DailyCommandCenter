@@ -41,7 +41,7 @@ const clickupConnector = (overrides: Record<string, unknown> = {}) => ({
   type:        "clickup",
   identityId:  "id-cu",
   enabled:     true,
-  config:      { teamId: "12345", cloningEnabled: true, defaultTargetProject: "PROJ" },
+  config:      { teamId: "12345", cloningEnabled: true, cloneTargetProject: "PROJ" },
   ...overrides,
 });
 
@@ -97,28 +97,30 @@ describe("GET /tasks (clickup)", () => {
 
   it("returns connectorCloningConfig from the connector's config", async () => {
     const res = await request(app).get("/tasks");
-    expect(res.body.connectorCloningConfig).toEqual({
-      cloningEnabled:       true,
-      defaultTargetProject: "PROJ",
+    expect(res.body.connectorCloningConfig).toMatchObject({
+      cloningEnabled:     true,
+      cloneTargetProject: "PROJ",
+      connectorId:        "ci-cu-1",
     });
   });
 
-  it("returns disabled cloning config when connector has none", async () => {
+  it("returns disabled cloning config when connector has no clone fields set", async () => {
     mockListWs.mockReturnValue([clickupConnector({ config: { teamId: "1" } })]);
     const res = await request(app).get("/tasks");
-    expect(res.body.connectorCloningConfig).toEqual({
-      cloningEnabled:       false,
-      defaultTargetProject: "",
+    expect(res.body.connectorCloningConfig).toMatchObject({
+      cloningEnabled:     false,
+      cloneTargetProject: "",
+      connectorId:        "ci-cu-1",
     });
   });
 
   it("filters by connectorId query param", async () => {
     mockListWs.mockReturnValue([
       clickupConnector({ id: "ci-cu-1" }),
-      clickupConnector({ id: "ci-cu-2", config: { teamId: "2", cloningEnabled: false, defaultTargetProject: "OTHER" } }),
+      clickupConnector({ id: "ci-cu-2", config: { teamId: "2", cloningEnabled: false, cloneTargetProject: "OTHER" } }),
     ]);
     const res = await request(app).get("/tasks?connectorId=ci-cu-2");
-    expect(res.body.connectorCloningConfig.defaultTargetProject).toBe("OTHER");
+    expect(res.body.connectorCloningConfig.cloneTargetProject).toBe("OTHER");
   });
 
   it("includes watched users in buckets and unions across connectors", async () => {

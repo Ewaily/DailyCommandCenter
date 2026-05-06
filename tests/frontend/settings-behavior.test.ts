@@ -293,7 +293,7 @@ describe("bindSettings", () => {
     expect(() => document.getElementById("settings-modal")!.click()).not.toThrow();
   });
 
-  it("submitting connector-clone-save form patches the connector config", async () => {
+  it("submitting connector-clone-save form patches the connector config with all 4 fields", async () => {
     openSettings();
     bindSettings();
     await new Promise(r => setTimeout(r, 0));
@@ -301,15 +301,50 @@ describe("bindSettings", () => {
     await new Promise(r => setTimeout(r, 0));
 
     const form = document.querySelector<HTMLFormElement>('[data-form="connector-clone-save"]');
-    if (!form) return; // No clone form rendered (e.g. no Jira connector) — skip
-    // Set values directly on the form's inputs so FormData picks them up
-    const enabled = form.querySelector<HTMLInputElement>('input[name="cloningEnabled"]');
-    if (enabled) enabled.checked = true;
-    const target = form.querySelector<HTMLSelectElement | HTMLInputElement>('[name="defaultTargetProject"]');
-    if (target) (target as HTMLInputElement).value = "PROJ";
+    if (!form) return;
+    const setVal = (name: string, val: string | boolean) => {
+      const el = form.querySelector<HTMLInputElement>(`[name="${name}"]`);
+      if (!el) return;
+      if (typeof val === "boolean") el.checked = val;
+      else el.value = val;
+    };
+    setVal("cloningEnabled",     true);
+    setVal("cloneTargetUrl",     "https://target.atlassian.net");
+    setVal("cloneTargetEmail",   "user@target.com");
+    setVal("cloneTargetToken",   "TOKEN-XYZ");
+    setVal("cloneTargetProject", "PROJ");
 
     form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
     await new Promise(r => setTimeout(r, 0));
+    await new Promise(r => setTimeout(r, 0));
     expect(mockApi.connectorUpdate).toHaveBeenCalled();
+    const [, patch] = mockApi.connectorUpdate.mock.calls[0];
+    expect(patch.config).toMatchObject({
+      cloningEnabled:     true,
+      cloneTargetUrl:     "https://target.atlassian.net",
+      cloneTargetEmail:   "user@target.com",
+      cloneTargetToken:   "TOKEN-XYZ",
+      cloneTargetProject: "PROJ",
+    });
+  });
+
+  it("blocks save when 1-Click Cloning is enabled but credentials are incomplete", async () => {
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+    openSettings();
+    bindSettings();
+    await new Promise(r => setTimeout(r, 0));
+    await new Promise(r => setTimeout(r, 0));
+    await new Promise(r => setTimeout(r, 0));
+
+    const form = document.querySelector<HTMLFormElement>('[data-form="connector-clone-save"]');
+    if (!form) { alertSpy.mockRestore(); return; }
+    const enabled = form.querySelector<HTMLInputElement>('input[name="cloningEnabled"]');
+    if (enabled) enabled.checked = true;
+    // Deliberately leave URL/email/token/project blank
+    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    await new Promise(r => setTimeout(r, 0));
+    expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining("Target Base URL"));
+    expect(mockApi.connectorUpdate).not.toHaveBeenCalled();
+    alertSpy.mockRestore();
   });
 });

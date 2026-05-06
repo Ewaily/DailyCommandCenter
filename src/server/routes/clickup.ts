@@ -26,7 +26,8 @@ function resolveClickUp(scopeId?: string): ResolvedClickUp[] {
 
 export function pickClickUpCloningConfig(resolved: ResolvedClickUp[], scopeId?: string): ConnectorCloningConfig {
   const primary = (scopeId ? resolved.find(r => r.instance.id === scopeId) : resolved[0]);
-  return primary ? extractCloningConfig(primary.instance.config) : { cloningEnabled: false, defaultTargetProject: "" };
+  if (!primary) return { cloningEnabled: false, cloneTargetProject: "" };
+  return { ...extractCloningConfig(primary.instance.config), connectorId: primary.instance.id };
 }
 
 clickupRouter.get("/tasks", async (req, res) => {

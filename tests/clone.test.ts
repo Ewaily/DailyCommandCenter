@@ -126,7 +126,7 @@ describe("listProjectsWith", () => {
 
 describe("extractCloningConfig", () => {
   it("returns cloningEnabled:false and empty project when config is empty", () => {
-    expect(extractCloningConfig({})).toEqual({ cloningEnabled: false, defaultTargetProject: "" });
+    expect(extractCloningConfig({})).toEqual({ cloningEnabled: false, cloneTargetProject: "" });
   });
 
   it("returns cloningEnabled:true when flag is truthy", () => {
@@ -137,14 +137,14 @@ describe("extractCloningConfig", () => {
     expect(extractCloningConfig({ cloningEnabled: false })).toMatchObject({ cloningEnabled: false });
   });
 
-  it("returns the defaultTargetProject string", () => {
-    expect(extractCloningConfig({ cloningEnabled: true, defaultTargetProject: "PROJ" }))
-      .toMatchObject({ defaultTargetProject: "PROJ" });
+  it("returns the cloneTargetProject string", () => {
+    expect(extractCloningConfig({ cloningEnabled: true, cloneTargetProject: "PROJ" }))
+      .toMatchObject({ cloneTargetProject: "PROJ" });
   });
 
-  it("returns empty string for defaultTargetProject when value is not a string", () => {
-    expect(extractCloningConfig({ defaultTargetProject: 123 }))
-      .toMatchObject({ defaultTargetProject: "" });
+  it("returns empty string for cloneTargetProject when value is not a string", () => {
+    expect(extractCloningConfig({ cloneTargetProject: 123 }))
+      .toMatchObject({ cloneTargetProject: "" });
   });
 });
 
@@ -158,36 +158,36 @@ describe("pickClickUpCloningConfig", () => {
 
   it("returns the first connector's config when no scopeId given", () => {
     const resolved = [
-      makeResolved("c1", { cloningEnabled: true, defaultTargetProject: "FIRST" }),
-      makeResolved("c2", { cloningEnabled: false, defaultTargetProject: "SECOND" }),
+      makeResolved("c1", { cloningEnabled: true, cloneTargetProject: "FIRST" }),
+      makeResolved("c2", { cloningEnabled: false, cloneTargetProject: "SECOND" }),
     ];
-    expect(pickClickUpCloningConfig(resolved)).toMatchObject({ defaultTargetProject: "FIRST" });
+    expect(pickClickUpCloningConfig(resolved)).toMatchObject({ cloneTargetProject: "FIRST" });
   });
 
   it("returns the scoped connector's config when scopeId matches", () => {
     const resolved = [
-      makeResolved("c1", { cloningEnabled: false, defaultTargetProject: "FIRST" }),
-      makeResolved("c2", { cloningEnabled: true,  defaultTargetProject: "SECOND" }),
+      makeResolved("c1", { cloningEnabled: false, cloneTargetProject: "FIRST" }),
+      makeResolved("c2", { cloningEnabled: true,  cloneTargetProject: "SECOND" }),
     ];
-    expect(pickClickUpCloningConfig(resolved, "c2")).toMatchObject({ defaultTargetProject: "SECOND" });
+    expect(pickClickUpCloningConfig(resolved, "c2")).toMatchObject({ cloneTargetProject: "SECOND" });
   });
 
   it("returns disabled defaults when resolved list is empty", () => {
-    expect(pickClickUpCloningConfig([])).toEqual({ cloningEnabled: false, defaultTargetProject: "" });
+    expect(pickClickUpCloningConfig([])).toEqual({ cloningEnabled: false, cloneTargetProject: "" });
   });
 
   it("returns disabled defaults when scopeId does not match any connector", () => {
-    const resolved = [makeResolved("c1", { cloningEnabled: true, defaultTargetProject: "P" })];
-    expect(pickClickUpCloningConfig(resolved, "missing")).toEqual({ cloningEnabled: false, defaultTargetProject: "" });
+    const resolved = [makeResolved("c1", { cloningEnabled: true, cloneTargetProject: "P" })];
+    expect(pickClickUpCloningConfig(resolved, "missing")).toEqual({ cloningEnabled: false, cloneTargetProject: "" });
   });
 });
 
 // ── clone route input validation (pure logic, no Express) ────────────────────
 
 function validateClonePayload(body: Record<string, unknown>): string | null {
-  const { title, originalLink, targetJiraProjectId, sourceProvider } = body;
-  if (!title || !originalLink || !targetJiraProjectId || !sourceProvider) {
-    return "title, originalLink, targetJiraProjectId, and sourceProvider are required";
+  const { title, originalLink, sourceProvider, connectorId } = body;
+  if (!title || !originalLink || !sourceProvider || !connectorId) {
+    return "title, originalLink, sourceProvider, and connectorId are required";
   }
   return null;
 }
@@ -198,7 +198,7 @@ describe("clone route payload validation", () => {
       sourceProvider: "clickup",
       title: "Fix login bug",
       originalLink: "https://app.clickup.com/t/abc",
-      targetJiraProjectId: "PROJ",
+      connectorId: "ci-cu-1",
     })).toBeNull();
   });
 
@@ -206,7 +206,7 @@ describe("clone route payload validation", () => {
     expect(validateClonePayload({
       sourceProvider: "jira",
       originalLink: "https://jira.co/browse/X-1",
-      targetJiraProjectId: "PROJ",
+      connectorId: "ci-jira-1",
     })).toBeTruthy();
   });
 
@@ -214,11 +214,11 @@ describe("clone route payload validation", () => {
     expect(validateClonePayload({
       sourceProvider: "jira",
       title: "Some title",
-      targetJiraProjectId: "PROJ",
+      connectorId: "ci-jira-1",
     })).toBeTruthy();
   });
 
-  it("returns an error string when targetJiraProjectId is missing", () => {
+  it("returns an error string when connectorId is missing", () => {
     expect(validateClonePayload({
       sourceProvider: "clickup",
       title: "Some title",
@@ -230,7 +230,57 @@ describe("clone route payload validation", () => {
     expect(validateClonePayload({
       title: "Some title",
       originalLink: "https://app.clickup.com/t/1",
-      targetJiraProjectId: "PROJ",
+      connectorId: "ci-jira-1",
     })).toBeTruthy();
+  });
+});
+
+// ── extractCloneCredentials (server tickets.ts helper) ────────────────────────
+
+import { extractCloneCredentials } from "../src/server/routes/tickets.js";
+
+describe("extractCloneCredentials", () => {
+  it("returns null when cloningEnabled is false", () => {
+    expect(extractCloneCredentials({
+      cloningEnabled: false,
+      cloneTargetUrl: "https://x", cloneTargetEmail: "a@b", cloneTargetToken: "t", cloneTargetProject: "P",
+    })).toBeNull();
+  });
+
+  it("returns null when any of url/email/token/project is missing", () => {
+    expect(extractCloneCredentials({ cloningEnabled: true, cloneTargetUrl: "https://x" })).toBeNull();
+    expect(extractCloneCredentials({ cloningEnabled: true, cloneTargetUrl: "https://x", cloneTargetEmail: "" })).toBeNull();
+    expect(extractCloneCredentials({
+      cloningEnabled: true, cloneTargetUrl: "https://x", cloneTargetEmail: "a@b", cloneTargetToken: "",
+    })).toBeNull();
+    expect(extractCloneCredentials({
+      cloningEnabled: true, cloneTargetUrl: "https://x", cloneTargetEmail: "a@b", cloneTargetToken: "t", cloneTargetProject: "",
+    })).toBeNull();
+  });
+
+  it("returns the trimmed credentials when all four fields are present", () => {
+    const c = extractCloneCredentials({
+      cloningEnabled: true,
+      cloneTargetUrl:    "  https://target.atlassian.net  ",
+      cloneTargetEmail:  " user@target.com ",
+      cloneTargetToken:  " ATATT3xFfGF0 ",
+      cloneTargetProject: " PROJ ",
+    });
+    expect(c).toEqual({
+      baseUrl:    "https://target.atlassian.net",
+      email:      "user@target.com",
+      apiToken:   "ATATT3xFfGF0",
+      projectKey: "PROJ",
+    });
+  });
+
+  it("returns null when fields are non-string types", () => {
+    expect(extractCloneCredentials({
+      cloningEnabled: true,
+      cloneTargetUrl:    123,
+      cloneTargetEmail:  null,
+      cloneTargetToken:  true,
+      cloneTargetProject: ["x"],
+    })).toBeNull();
   });
 });

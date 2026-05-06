@@ -562,26 +562,39 @@ function renderClickUpWatchedUsersEditor(c: ConnectorInstance): string {
 }
 
 export function renderConnectorCloneEditor(c: ConnectorInstance, projects: import("../api.js").JiraProject[], isClickUp: boolean): string {
-  const cfg = c.config as { cloningEnabled?: boolean; defaultTargetProject?: string };
-  const enabled = !!cfg.cloningEnabled;
-  const current = cfg.defaultTargetProject || "";
+  const cfg = c.config as {
+    cloningEnabled?:    boolean;
+    cloneTargetUrl?:    string;
+    cloneTargetEmail?:  string;
+    cloneTargetToken?:  string;
+    cloneTargetProject?: string;
+  };
+  const enabled  = !!cfg.cloningEnabled;
+  const url      = cfg.cloneTargetUrl   || "";
+  const email    = cfg.cloneTargetEmail || "";
+  const token    = cfg.cloneTargetToken || "";
+  const current  = cfg.cloneTargetProject || "";
   const sourceLabel = isClickUp ? "ClickUp tasks" : "Jira tickets";
 
+  // Project control: a dropdown when the host workspace's Jira connectors return
+  // a project list. Falls back to a free-text input if none — useful when the
+  // TARGET Jira instance is in a different workspace and not currently connected
+  // here, so we can't enumerate projects.
   const projectControl = projects.length
-    ? `<select name="defaultTargetProject" class="pref-input pref-select">
+    ? `<select name="cloneTargetProject" class="pref-input pref-select">
         <option value="">— select a project —</option>
         ${projects.map(p => `<option value="${escapeHtml(p.key)}" ${p.key === current ? "selected" : ""}>${escapeHtml(p.name)} (${escapeHtml(p.key)})</option>`).join("")}
        </select>`
-    : `<input name="defaultTargetProject" class="pref-input" type="text"
+    : `<input name="cloneTargetProject" class="pref-input" type="text"
          placeholder="e.g. PROJ"
          value="${escapeHtml(current)}"
-         title="Enter the Jira project key. Connect a Jira account in this workspace to get a dropdown." />`;
+         title="Enter the Jira project key for the destination instance." />`;
 
   return `
     <div class="watched-users-editor">
       <div class="watched-users-head">
         <span class="watched-users-title">1-Click Cloning to Jira</span>
-        <span class="muted">Clone ${escapeHtml(sourceLabel)} into a Jira project in one click — no dialog needed.</span>
+        <span class="muted">Clone ${escapeHtml(sourceLabel)} into ANY Jira instance — even one in a different workspace — using its own credentials below.</span>
       </div>
       <form class="watched-users-list" data-form="connector-clone-save" data-ci="${escapeHtml(c.id)}">
         <div class="settings-pref-row" style="padding:0 0 8px">
@@ -591,7 +604,31 @@ export function renderConnectorCloneEditor(c: ConnectorInstance, projects: impor
           </label>
         </div>
         <div class="settings-pref-row" style="padding:0 0 8px">
-          <label class="connector-field-label">Target Jira project
+          <label class="connector-field-label">Target Base URL
+            <input name="cloneTargetUrl" class="pref-input" type="url"
+              placeholder="https://target.atlassian.net"
+              value="${escapeHtml(url)}" autocomplete="off" />
+            <span class="form-help">Full base URL of the destination Jira instance — no trailing slash.</span>
+          </label>
+        </div>
+        <div class="settings-pref-row" style="padding:0 0 8px">
+          <label class="connector-field-label">Target Email
+            <input name="cloneTargetEmail" class="pref-input" type="email"
+              placeholder="you@example.com"
+              value="${escapeHtml(email)}" autocomplete="off" />
+            <span class="form-help">Email of the Atlassian account whose API token authorizes the clone.</span>
+          </label>
+        </div>
+        <div class="settings-pref-row" style="padding:0 0 8px">
+          <label class="connector-field-label">Target API Token
+            <input name="cloneTargetToken" class="pref-input" type="password"
+              placeholder="ATATT3xFfGF0..."
+              value="${escapeHtml(token)}" autocomplete="off" spellcheck="false" />
+            <span class="form-help">Create at id.atlassian.com → Security → API tokens. Stored encrypted in this workspace's database.</span>
+          </label>
+        </div>
+        <div class="settings-pref-row" style="padding:0 0 8px">
+          <label class="connector-field-label">Target Jira Project Key
             ${projectControl}
             <span class="form-help">Cloned tickets land here. ${projects.length ? "" : "No Jira connector active in this workspace — type the project key directly."}</span>
           </label>
@@ -1529,12 +1566,28 @@ async function onSettingsSubmit(e: Event) {
       case "connector-clone-save": {
         const ciId = form.dataset.ci;
         if (!ciId) return;
-        const cloningEnabled       = fd.get("cloningEnabled") === "on";
-        const defaultTargetProject = String(fd.get("defaultTargetProject") || "");
+        const cloningEnabled     = fd.get("cloningEnabled") === "on";
+        const cloneTargetUrl     = String(fd.get("cloneTargetUrl")     || "").trim().replace(/\/+$/, "");
+        const cloneTargetEmail   = String(fd.get("cloneTargetEmail")   || "").trim();
+        const cloneTargetToken   = String(fd.get("cloneTargetToken")   || "").trim();
+        const cloneTargetProject = String(fd.get("cloneTargetProject") || "").trim();
+        // Hard validation: an "enabled" config without complete creds would be a
+        // foot-gun (the click would fail at runtime). Refuse here.
+        if (cloningEnabled && (!cloneTargetUrl || !cloneTargetEmail || !cloneTargetToken || !cloneTargetProject)) {
+          alert("To enable 1-Click Cloning, fill in all four fields: Target Base URL, Target Email, Target API Token, and Target Jira Project Key.");
+          return;
+        }
         const allConns = await api.connectors();
         const cur = allConns.data.find(c => c.id === ciId);
         if (!cur) return;
-        const newConfig = { ...cur.config, cloningEnabled, defaultTargetProject };
+        const newConfig = {
+          ...cur.config,
+          cloningEnabled,
+          cloneTargetUrl,
+          cloneTargetEmail,
+          cloneTargetToken,
+          cloneTargetProject,
+        };
         await api.connectorUpdate(ciId, { config: newConfig });
         window.dispatchEvent(new CustomEvent("workspace-changed"));
         break;

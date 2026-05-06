@@ -255,18 +255,21 @@ Reusable credentials shared across workspaces.
 <details>
 <summary><strong>Per-connector 1-Click Cloning (Workspaces tab)</strong></summary>
 
-Each Jira and ClickUp connector instance owns its own cloning config — there is no global toggle. Open the connector's card in the Workspaces tab and configure:
+Each Jira and ClickUp connector instance owns its own cloning config — including the destination Jira's full credentials — so a clone can land in ANY Jira instance, even one in a different workspace. Open the connector's card in the Workspaces tab and configure:
 
 - **Enable 1-Click Cloning to Jira** — per-connector toggle that shows/hides the clone icon on rows from this specific connector.
-- **Default Target Jira Project** — dropdown populated from the workspace's Jira connector(s). For ClickUp connectors, the dropdown lists every Jira project visible across the workspace's Jira connectors (de-duped by key). All clones from this connector are sent to the selected project.
+- **Target Base URL** — full base URL of the destination Jira (e.g. `https://target.atlassian.net`).
+- **Target Email** — Atlassian account email whose API token authorizes the clone.
+- **Target API Token** — created at id.atlassian.com → Security → API tokens. Stored in this workspace's database alongside the connector's other config; never sent in list-response envelopes.
+- **Target Jira Project Key** — dropdown populated from the workspace's Jira connector(s) when one is connected (so you can pick from a list); falls back to a free-text input if not — useful when the destination Jira isn't a connected source-connector here.
 
 Cloning rules (V1):
 1. Title is copied exactly.
 2. Description is prefixed with `> 🔄 Cloned from [Source]({originalLink})`.
-3. Issue type is `Task`; status defaults to the Jira project's backlog default.
+3. Issue type is `Task`; status defaults to the destination project's backlog default.
 4. Attachments are not copied.
 
-Settings stored on the connector instance as `config.cloningEnabled` / `config.defaultTargetProject` (merged into `connector_instances.config` JSON). The server returns each list response with a `connectorCloningConfig` field so the frontend renders the correct toggle state without a separate round-trip.
+The form refuses to save an "enabled" config without all four fields filled in. The backend `POST /api/jira/clone-ticket` route looks up the source connector by id, reads its stored target credentials, and calls Jira's REST API directly with those credentials — never falling back to the host workspace's primary Jira creds. Settings are stored on the connector instance as `config.cloningEnabled` / `config.cloneTargetUrl` / `config.cloneTargetEmail` / `config.cloneTargetToken` / `config.cloneTargetProject` inside the `connector_instances.config` JSON.
 
 </details>
 

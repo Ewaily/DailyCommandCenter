@@ -45,7 +45,7 @@ describe("api.cloneTicket", () => {
       sourceProvider:      "clickup",
       title:               "Build feature",
       originalLink:        "https://app.clickup.com/t/abc",
-      targetJiraProjectId: "PROJ",
+      connectorId:         "ci-source-1",
     });
     expect(result.data.key).toBe("PROJ-1");
     const [url, init] = fetchMock.mock.calls[0];
@@ -56,7 +56,7 @@ describe("api.cloneTicket", () => {
       sourceProvider:      "clickup",
       title:               "Build feature",
       originalLink:        "https://app.clickup.com/t/abc",
-      targetJiraProjectId: "PROJ",
+      connectorId:         "ci-source-1",
     });
   });
 
@@ -68,7 +68,7 @@ describe("api.cloneTicket", () => {
       sourceProvider:      "jira",
       title:               "X",
       originalLink:        "https://x",
-      targetJiraProjectId: "PROJ",
+      connectorId:         "ci-source-1",
     });
     const [url] = fetchMock.mock.calls[0];
     expect(url).toContain("workspace=ws-42");
@@ -80,7 +80,7 @@ describe("api.cloneTicket", () => {
       sourceProvider:      "jira",
       title:               "X",
       originalLink:        "https://x",
-      targetJiraProjectId: "PROJ",
+      connectorId:         "ci-source-1",
     })).rejects.toThrow("Boom");
   });
 });
@@ -91,7 +91,7 @@ describe("api.ticketsMine", () => {
       data: [],
       buckets: [],
       counts: {},
-      connectorCloningConfig: { cloningEnabled: false, defaultTargetProject: "" },
+      connectorCloningConfig: { cloningEnabled: false, cloneTargetProject: "" },
     }));
     vi.stubGlobal("fetch", fetchMock);
     const res = await api.ticketsMine();
@@ -114,7 +114,7 @@ describe("api.clickupTasks", () => {
       data: [],
       buckets: [],
       counts: {},
-      connectorCloningConfig: { cloningEnabled: false, defaultTargetProject: "" },
+      connectorCloningConfig: { cloningEnabled: false, cloneTargetProject: "" },
     }));
     vi.stubGlobal("fetch", fetchMock);
     const res = await api.clickupTasks();

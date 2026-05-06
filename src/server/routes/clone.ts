@@ -2,9 +2,12 @@ import { Router } from "express";
 import * as jira from "../integrations/jira.js";
 import { getActiveWorkspaceId } from "../lib/request-context.js";
 import { listConnectorsForWorkspace, listConnectorsForOverview, getIdentity } from "../lib/workspace-config.js";
+import { extractCloneCredentials } from "./tickets.js";
 
 export const cloneRouter = Router();
 
+// GET /projects: lists Jira projects from the workspace's primary Jira connector
+// (used by the settings UI to populate the target-project dropdown).
 function resolveFirstJira(scopeId?: string): { creds: jira.JiraCreds } | null {
   const wsId = getActiveWorkspaceId();
   const all  = wsId ? listConnectorsForWorkspace(wsId) : listConnectorsForOverview();
@@ -33,33 +36,45 @@ cloneRouter.get("/projects", async (req, res) => {
   }
 });
 
+// POST /clone-ticket: creates a Jira issue in the TARGET instance configured on
+// the source connector's cloning settings. The target Jira creds are stored on
+// each connector independently (cloneTargetUrl/Email/Token/Project) so a clone
+// from Workspace A's ClickUp can land in Workspace B's Jira without that B
+// instance being a connected source-connector here.
 cloneRouter.post("/clone-ticket", async (req, res) => {
-  const { sourceProvider, title, description, originalLink, targetJiraProjectId, connectorId } = req.body as {
+  const { sourceProvider, title, description, originalLink, connectorId } = req.body as {
     sourceProvider: string;
     title: string;
     description?: string;
     originalLink: string;
-    targetJiraProjectId: string;
     connectorId?: string;
   };
 
-  if (!title || !originalLink || !targetJiraProjectId || !sourceProvider) {
-    return res.status(400).json({ error: "title, originalLink, targetJiraProjectId, and sourceProvider are required" });
+  if (!title || !originalLink || !sourceProvider || !connectorId) {
+    return res.status(400).json({ error: "title, originalLink, sourceProvider, and connectorId are required" });
   }
 
-  const resolved = resolveFirstJira(connectorId);
-  if (!resolved) return res.status(503).json({ error: "No Jira connector configured for this workspace" });
+  const wsId = getActiveWorkspaceId();
+  const all = wsId ? listConnectorsForWorkspace(wsId) : listConnectorsForOverview();
+  const source = all.find(c => c.id === connectorId);
+  if (!source) return res.status(404).json({ error: "Connector not found" });
+
+  const creds = extractCloneCredentials(source.config);
+  if (!creds) {
+    return res.status(503).json({
+      error: "Cloning is not fully configured on this connector. Open Settings → Workspaces → this connector card and fill in Target Base URL, Email, API Token, and Project.",
+    });
+  }
 
   const providerLabel  = sourceProvider === "clickup" ? "ClickUp" : "Jira";
   const descriptionAdf = jira.buildCloneAdf(providerLabel, originalLink, description || "");
 
   try {
-    const result = await jira.createIssue(resolved.creds, {
-      projectKey:     targetJiraProjectId,
-      summary:        title,
-      descriptionAdf,
-    });
-    const url = `${resolved.creds.baseUrl}/browse/${result.key}`;
+    const result = await jira.createIssue(
+      { baseUrl: creds.baseUrl, email: creds.email, apiToken: creds.apiToken },
+      { projectKey: creds.projectKey, summary: title, descriptionAdf },
+    );
+    const url = `${creds.baseUrl}/browse/${result.key}`;
     res.json({ data: { key: result.key, id: result.id, url } });
   } catch (err: any) {
     res.status(502).json({ error: err.message });

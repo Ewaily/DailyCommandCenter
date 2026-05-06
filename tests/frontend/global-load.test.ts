@@ -96,7 +96,7 @@ describe("loadTickets (global DOM)", () => {
       counts: { mine: 1 },
       notConfigured: false,
       bucket: "mine",
-      connectorCloningConfig: { cloningEnabled: false, defaultTargetProject: "" },
+      connectorCloningConfig: { cloningEnabled: false, cloneTargetProject: "" },
     });
     await loadTickets();
     const body = document.getElementById("my-tickets-body")!;
@@ -110,7 +110,7 @@ describe("loadTickets (global DOM)", () => {
       counts: { mine: 3 },
       notConfigured: false,
       bucket: "mine",
-      connectorCloningConfig: { cloningEnabled: false, defaultTargetProject: "" },
+      connectorCloningConfig: { cloningEnabled: false, cloneTargetProject: "" },
     });
     await loadTickets();
     expect(mockAnimateNumber).toHaveBeenCalledWith(expect.anything(), 3);
@@ -137,7 +137,7 @@ describe("loadTickets (global DOM)", () => {
       counts: { mine: 0 },
       notConfigured: false,
       bucket: "mine",
-      connectorCloningConfig: { cloningEnabled: false, defaultTargetProject: "" },
+      connectorCloningConfig: { cloningEnabled: false, cloneTargetProject: "" },
     });
     await loadTickets();
     const body = document.getElementById("my-tickets-body")!;
@@ -151,7 +151,7 @@ describe("loadTickets (global DOM)", () => {
       counts: { mine: 0, "user-1": 2 },
       notConfigured: false,
       bucket: "mine",
-      connectorCloningConfig: { cloningEnabled: false, defaultTargetProject: "" },
+      connectorCloningConfig: { cloningEnabled: false, cloneTargetProject: "" },
     });
     await loadTickets();
     const tabs = document.getElementById("jira-tabs")!;
@@ -195,7 +195,7 @@ describe("loadClickUp (global DOM)", () => {
       counts: { mine: 1 },
       notConfigured: false,
       bucket: "mine",
-      connectorCloningConfig: { cloningEnabled: false, defaultTargetProject: "" },
+      connectorCloningConfig: { cloningEnabled: false, cloneTargetProject: "" },
     });
     await loadClickUp();
     const body = document.getElementById("clickup-body")!;
@@ -216,7 +216,7 @@ describe("loadClickUp (global DOM)", () => {
       counts: { mine: 0 },
       notConfigured: false,
       bucket: "mine",
-      connectorCloningConfig: { cloningEnabled: false, defaultTargetProject: "" },
+      connectorCloningConfig: { cloningEnabled: false, cloneTargetProject: "" },
     });
     await loadClickUp();
     const body = document.getElementById("clickup-body")!;
@@ -230,7 +230,7 @@ describe("loadClickUp (global DOM)", () => {
       counts: { mine: 0, "user-1": 1 },
       notConfigured: false,
       bucket: "mine",
-      connectorCloningConfig: { cloningEnabled: false, defaultTargetProject: "" },
+      connectorCloningConfig: { cloningEnabled: false, cloneTargetProject: "" },
     });
     await loadClickUp();
     const tabs = document.getElementById("clickup-tabs")!;
@@ -251,7 +251,7 @@ describe("loadClickUp (global DOM)", () => {
       counts: { mine: 1 },
       notConfigured: false,
       bucket: "mine",
-      connectorCloningConfig: { cloningEnabled: true, defaultTargetProject: "TARGET" },
+      connectorCloningConfig: { cloningEnabled: true, cloneTargetProject: "TARGET" },
     });
     await loadClickUp();
     const body = document.getElementById("clickup-body")!;
@@ -380,7 +380,8 @@ describe("bindTicketTabs — clone button click delegation", () => {
           data-clone-source="jira"
           data-clone-title="Original"
           data-clone-url="https://jira.example.com/browse/X-1"
-          data-target-project="PROJ">Clone</button>
+          data-target-project="PROJ"
+          data-connector-id="ci-jira-1">Clone</button>
       </div>
     `;
   });
@@ -393,10 +394,10 @@ describe("bindTicketTabs — clone button click delegation", () => {
     document.querySelector<HTMLButtonElement>(".clone-to-jira-btn")!.click();
     await new Promise(r => setTimeout(r, 0));
     expect(mockApi.cloneTicket).toHaveBeenCalledWith(expect.objectContaining({
-      sourceProvider:      "jira",
-      title:               "Original",
-      originalLink:        "https://jira.example.com/browse/X-1",
-      targetJiraProjectId: "PROJ",
+      sourceProvider: "jira",
+      title:          "Original",
+      originalLink:   "https://jira.example.com/browse/X-1",
+      connectorId:    "ci-jira-1",
     }));
   });
 
@@ -408,6 +409,24 @@ describe("bindTicketTabs — clone button click delegation", () => {
     bindTicketTabs();
     document.querySelector<HTMLElement>(".not-a-clone-btn")!.click();
     await new Promise(r => setTimeout(r, 0));
+    expect(mockApi.cloneTicket).not.toHaveBeenCalled();
+  });
+
+  it("shows error toast when the clone button is missing connectorId", async () => {
+    document.body.innerHTML = `
+      <div id="jira-tabs"></div>
+      <div id="my-tickets-body">
+        <button class="clone-to-jira-btn"
+          data-clone-source="jira"
+          data-clone-title="X"
+          data-clone-url="https://x"
+          data-target-project="PROJ">Clone</button>
+      </div>
+    `;
+    bindTicketTabs();
+    document.querySelector<HTMLButtonElement>(".clone-to-jira-btn")!.click();
+    await new Promise(r => setTimeout(r, 0));
+    expect(mockToast).toHaveBeenCalledWith(expect.stringContaining("Configure 1-Click Cloning"), "error");
     expect(mockApi.cloneTicket).not.toHaveBeenCalled();
   });
 });
@@ -423,7 +442,7 @@ describe("instantiateTickets — active bucket recovery", () => {
         counts: { mine: 0, u1: 0 },
         notConfigured: false,
         bucket: "u1",
-        connectorCloningConfig: { cloningEnabled: false, defaultTargetProject: "" },
+        connectorCloningConfig: { cloningEnabled: false, cloneTargetProject: "" },
       })
       .mockResolvedValueOnce({
         data: [],
@@ -431,7 +450,7 @@ describe("instantiateTickets — active bucket recovery", () => {
         counts: { mine: 0 },
         notConfigured: false,
         bucket: "mine",
-        connectorCloningConfig: { cloningEnabled: false, defaultTargetProject: "" },
+        connectorCloningConfig: { cloningEnabled: false, cloneTargetProject: "" },
       });
 
     mockGetSetting.mockReturnValue("u1");
@@ -463,7 +482,7 @@ describe("loadTickets — bucket coercion + tab click handlers", () => {
       counts: { mine: 0, u1: 0 },
       notConfigured: false,
       bucket: "u1",
-      connectorCloningConfig: { cloningEnabled: false, defaultTargetProject: "" },
+      connectorCloningConfig: { cloningEnabled: false, cloneTargetProject: "" },
     });
     await loadTickets();
     // The server returned bucket=u1 even though active was "mine" → triggers
@@ -479,7 +498,7 @@ describe("loadTickets — bucket coercion + tab click handlers", () => {
         counts: { mine: 0, u1: 0 },
         notConfigured: false,
         bucket: "u1",
-        connectorCloningConfig: { cloningEnabled: false, defaultTargetProject: "" },
+        connectorCloningConfig: { cloningEnabled: false, cloneTargetProject: "" },
       })
       .mockResolvedValueOnce({
         data: [],
@@ -487,7 +506,7 @@ describe("loadTickets — bucket coercion + tab click handlers", () => {
         counts: { mine: 0 },
         notConfigured: false,
         bucket: "mine",
-        connectorCloningConfig: { cloningEnabled: false, defaultTargetProject: "" },
+        connectorCloningConfig: { cloningEnabled: false, cloneTargetProject: "" },
       });
 
     await loadTickets();      // sets active=u1
@@ -503,7 +522,7 @@ describe("loadTickets — bucket coercion + tab click handlers", () => {
       counts: { mine: 0, u1: 0 },
       notConfigured: false,
       bucket: "mine",
-      connectorCloningConfig: { cloningEnabled: false, defaultTargetProject: "" },
+      connectorCloningConfig: { cloningEnabled: false, cloneTargetProject: "" },
     });
     await loadTickets();
     const tab = document.querySelector<HTMLElement>('[data-jira-tab="u1"]');
@@ -526,7 +545,8 @@ describe("Jira clone error path", () => {
           data-clone-source="jira"
           data-clone-title="Bug"
           data-clone-url="https://jira.example.com/browse/X-1"
-          data-target-project="PROJ">Clone</button>
+          data-target-project="PROJ"
+          data-connector-id="ci-jira-99">Clone</button>
       </div>
     `;
   });
