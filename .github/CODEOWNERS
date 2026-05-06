@@ -1,0 +1,17 @@
+# Default owner for everything in the repo.
+# More specific rules below override this.
+*       @Ewaily
+
+# Docs
+/README.md            @Ewaily
+/SETUP.md             @Ewaily
+/FEATURES.md          @Ewaily
+/CONTRIBUTING.md      @Ewaily
+/SECURITY.md          @Ewaily
+/CODE_OF_CONDUCT.md   @Ewaily
+
+# Build / CI
+/.github/             @Ewaily
+/package.json         @Ewaily
+/tsconfig*.json       @Ewaily
+/vite.config.ts       @Ewaily

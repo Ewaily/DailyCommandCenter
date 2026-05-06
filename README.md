@@ -146,15 +146,17 @@ See **[FEATURES.md](./FEATURES.md)** for the full feature inventory and **[SETUP
 
 ## 🤝 Contributing
 
-PRs welcome — and encouraged. Please:
+PRs welcome — and encouraged. The full contributor guide lives in **[CONTRIBUTING.md](./CONTRIBUTING.md)**. Quick version:
 
-1. **Fork** the repo and create a topic branch off `prod`: `git checkout -b feat/my-thing`.
-2. **Follow existing conventions** — TypeScript strict, no comments unless the *why* is non-obvious, no error handling for impossible cases. Read [CLAUDE.md](./CLAUDE.md) for the full code style.
-3. **Update docs in the same PR** — if you change a control, env var, route, or shortcut, update [FEATURES.md](./FEATURES.md) and [SETUP.md](./SETUP.md). Documentation drift will be flagged in review.
-4. **Run `npm run typecheck && npm test`** before pushing. Both must be clean.
-5. **Open a PR against `prod`** with a clear description and screenshots/GIFs for any UI change.
+1. **Fork** and branch off `prod`: `git checkout -b feat/my-thing`.
+2. **Follow existing conventions** — TypeScript strict, no comments unless the *why* is non-obvious, no error handling for impossible cases. See [CLAUDE.md](./CLAUDE.md).
+3. **Update docs in the same PR** — if you change a control, env var, route, or shortcut, update [FEATURES.md](./FEATURES.md) and [SETUP.md](./SETUP.md). Documentation drift is flagged in review.
+4. **Run `npm run typecheck && npm test`** before pushing. CI runs both on every PR.
+5. **Open a PR against `prod`**. The [PR template](./.github/PULL_REQUEST_TEMPLATE.md) walks you through what's required.
 
-For larger changes, please open a discussion or issue first so we can align on direction before you invest time.
+For larger changes, open a discussion or issue first so we can align on direction.
+
+By participating, you agree to the [Code of Conduct](./CODE_OF_CONDUCT.md). For security issues, see [SECURITY.md](./SECURITY.md) — please **never** open a public issue for a vulnerability.
 
 ### Connector contributions
 
