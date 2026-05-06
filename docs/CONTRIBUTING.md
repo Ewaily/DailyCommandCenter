@@ -2,7 +2,7 @@
 
 First — thank you. This project is built in the open precisely so people like you can make it better.
 
-This guide is the **single source of truth** for how contributions work. The rules in [CLAUDE.md](./CLAUDE.md) and [CLAUDE_SYSTEM_RULES.md](./CLAUDE_SYSTEM_RULES.md) apply to every change, human or AI-assisted.
+This guide is the **single source of truth** for how contributions work. The rules in [CLAUDE.md](../CLAUDE.md) and [CLAUDE_SYSTEM_RULES.md](../CLAUDE_SYSTEM_RULES.md) apply to every change, human or AI-assisted.
 
 ---
 
@@ -84,8 +84,8 @@ A PR is **not done** until **all** of the following are true:
 
 This is a **first-class** contribution path — we want more integrations. Read these before starting:
 
-1. **CONNECTOR STANDARD** in [CLAUDE.md](./CLAUDE.md) — every input field needs a real-world `placeholder`, a `helperText` line, and `stripUrl: true` on any field where a user might paste a URL.
-2. **INSTANCE-CARD REGISTRY** in [CLAUDE.md](./CLAUDE.md) — register dashboard cards via `CapabilitySpec` in `src/frontend/components/instance-card-registry.ts`. **Do not** add `if (cap === "...")` branches to `overview-widgets.ts`.
+1. **CONNECTOR STANDARD** in [CLAUDE.md](../CLAUDE.md) — every input field needs a real-world `placeholder`, a `helperText` line, and `stripUrl: true` on any field where a user might paste a URL.
+2. **INSTANCE-CARD REGISTRY** in [CLAUDE.md](../CLAUDE.md) — register dashboard cards via `CapabilitySpec` in `src/frontend/components/instance-card-registry.ts`. **Do not** add `if (cap === "...")` branches to `overview-widgets.ts`.
 3. **OAuth redirect URI rule** — every OAuth redirect URI must use port **3000** (the Node server). Vite (5173) does not handle callbacks.
 4. **Workspace isolation is absolute** — no workspace ever sees another's tokens. UI copy must never imply credentials are shared across workspaces.
 
@@ -93,7 +93,7 @@ This is a **first-class** contribution path — we want more integrations. Read 
 
 ## Reporting bugs
 
-Use the [Bug report template](./.github/ISSUE_TEMPLATE/bug_report.yml). Include:
+Use the [Bug report template](../.github/ISSUE_TEMPLATE/bug_report.yml). Include:
 - Reproduction steps
 - Node version, OS
 - Server logs / browser console (with secrets redacted)

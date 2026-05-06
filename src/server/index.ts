@@ -77,7 +77,7 @@ app.use("/api/app-settings", appSettingsRouter);
 
 // Serve SETUP.md raw so the "not connected" CTA can link to it.
 app.get("/SETUP.md", (_req, res) => {
-  const p = path.resolve(dirname, "../../SETUP.md");
+  const p = path.resolve(dirname, "../../docs/SETUP.md");
   if (fs.existsSync(p)) res.type("text/markdown").sendFile(p);
   else res.status(404).send("SETUP.md not found");
 });

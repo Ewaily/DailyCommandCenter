@@ -3,7 +3,7 @@
 A local-first, multi-workspace dashboard that pulls Google Calendar, Outlook, Slack, Jira, ClickUp, GitHub, and Notion into a single, customizable grid. Runs entirely on your laptop — no cloud, no telemetry, no account.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./docs/CONTRIBUTING.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Ewaily/DailyCommandCenter/ci.yml?branch=prod&label=CI)](https://github.com/Ewaily/DailyCommandCenter/actions/workflows/ci.yml)
 [![Node](https://img.shields.io/badge/node-%E2%89%A520-43853d?logo=node.js&logoColor=white)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -71,7 +71,7 @@ Cards you don't have credentials for are simply not rendered. The dashboard neve
 - **Smart caching** — every external API call is wrapped in a SQLite-backed TTL cache. Friendly to provider rate limits.
 - **Keyboard-first** — every primary action has a shortcut. The mouse is optional.
 
-A complete, exhaustive feature list lives in [FEATURES.md](./FEATURES.md).
+A complete, exhaustive feature list lives in [FEATURES.md](./docs/FEATURES.md).
 
 ---
 
@@ -170,7 +170,7 @@ npm install
 cp .env.example .env
 ```
 
-Open `.env` and fill in **only** the integrations you want to use. The dashboard works with zero credentials — every connector is opt-in. See [SETUP.md](./SETUP.md) for per-provider walkthroughs (the same content the in-app setup guides display).
+Open `.env` and fill in **only** the integrations you want to use. The dashboard works with zero credentials — every connector is opt-in. See [SETUP.md](./docs/SETUP.md) for per-provider walkthroughs (the same content the in-app setup guides display).
 
 > **OAuth note.** All redirect URIs must point to the **Node** server on port `3000`, not the Vite dev server. The canonical URIs are:
 > - `http://localhost:3000/api/auth/google/callback`
@@ -229,7 +229,7 @@ API-key connectors (GitHub, Jira, ClickUp, Notion) can also be added, edited, an
 | `G` then `C` | Jump to Channel Digest |
 | `G` then `M` | Jump to Mentions |
 
-The full mapping (and the modules each shortcut targets) is in [FEATURES.md](./FEATURES.md).
+The full mapping (and the modules each shortcut targets) is in [FEATURES.md](./docs/FEATURES.md).
 
 ---
 
@@ -267,10 +267,20 @@ src/
     api.ts                       Single fetch surface for the client
     styles.css                   Theme variables and layout
     components/                  Cards, palette, settings, registry, theme
+docs/
+  FEATURES.md                    Exhaustive feature and shortcut reference
+  SETUP.md                       Per-provider OAuth / API-key walkthroughs
+  CONTRIBUTING.md                Contributor guide (branches, PRs, connector standard)
+  CODE_OF_CONDUCT.md             Community standards
+  SECURITY.md                    Vulnerability reporting
+examples/
+  starter-dashboard.html         Static demo dashboard (no server required)
 scripts/
   reset-db.ts
 tests/
   slack-formatter.test.ts
+  cache.test.ts
+  workspace-config.test.ts
 .github/
   workflows/ci.yml               Typecheck + test + build matrix
   ISSUE_TEMPLATE/                Bug, feature, security routing
@@ -287,7 +297,7 @@ tests/
 - **No cloud component.** The server runs on `localhost`. There is no backend service, no managed database, no shared identity.
 - **Workspace isolation is absolute.** No workspace ever sees another workspace's tokens or credentials. UI copy never implies otherwise.
 - **`.env` is gitignored.** The repo's `.gitignore` blocks every variant of `.env*`, every form of `*.db` / `*.sqlite`, layout config, and OS junk. CI never sees secrets.
-- **Vulnerability reports** go through GitHub's private security advisories — see [SECURITY.md](./SECURITY.md). Please do not open public issues for security findings.
+- **Vulnerability reports** go through GitHub's private security advisories — see [SECURITY.md](./docs/SECURITY.md). Please do not open public issues for security findings.
 
 This app is single-user, single-machine by design. If you expose port `3000` to a network without an authenticating reverse proxy, you are publishing your unread Slack messages to that network. Don't do that.
 
@@ -295,14 +305,14 @@ This app is single-user, single-machine by design. If you expose port `3000` to 
 
 ## Contributing
 
-PRs welcome. The full contributor guide is in [CONTRIBUTING.md](./CONTRIBUTING.md). Quick version:
+PRs welcome. The full contributor guide is in [CONTRIBUTING.md](./docs/CONTRIBUTING.md). Quick version:
 
 1. Open an issue (or claim one) before non-trivial work.
 2. Branch off `prod`: `git checkout -b feat/short-description`.
 3. Code, test, **update docs in the same PR** — `README.md`, `FEATURES.md`, and `SETUP.md` must reflect reality before merge. CI typechecks and tests on Node 20 and 22.
 4. Open the PR against `prod`. The [PR template](./.github/PULL_REQUEST_TEMPLATE.md) walks you through what's required. We squash-merge.
 
-By participating you agree to the [Code of Conduct](./CODE_OF_CONDUCT.md).
+By participating you agree to the [Code of Conduct](./docs/CODE_OF_CONDUCT.md).
 
 ### Adding a connector
 
