@@ -63,6 +63,19 @@ A personal productivity dashboard running locally on Mac. Node + TypeScript back
 
 When adding a new connector type that should appear as a dashboard card (PRs, tickets, schedule, etc.), you **must** register it via one `CapabilitySpec` entry in `src/frontend/components/instance-card-registry.ts`. Do **not** introduce a new `if (cap === "...")` branch in `overview-widgets.ts` — the renderer is cap-agnostic by design and adding scattered branches breaks the guarantee that future connectors auto-inherit batch placement, tab state isolation, source labels, title inheritance, count syncing, and CSS isolation. One spec covers: matching `connector.type` values, the static widget id it replaces, default grid dims, icon, default title, optional tabs (fixed list or dynamic from API response), data fetcher, row renderer, and empty-state copy. Once an entry is added, multi-instance rendering, the `Workspace · account` source label, owner-workspace title inheritance, per-card tab state, count badges, and the workspace-mode "owned + shared" parallel rendering all work automatically.
 
+### WIDGET UI & RESPONSIVENESS STANDARD
+
+Every dashboard card MUST be built to withstand extreme resizing in the grid:
+
+1. **Bulletproof Shell:** The card wrapper must be `flex flex-col h-full` — in practice this means the `.card` element (already `display:flex; flex-direction:column; overflow:hidden`) is the correct outer shell; never add a nested wrapper that breaks this.
+2. **Shrink-proof Header:** `.card-header` must have `flex-shrink: 0` so the gradient header never collapses when the card is short.
+3. **Scrollable Body:** The main content area (`.card-body`) must carry `flex: 1; overflow-y: auto; min-height: 0` — the `min-height: 0` is **mandatory**; without it a flex child cannot shrink below its intrinsic content height and the scrollbar never appears.
+4. **Shrink-proof Chips:** Any filter chip row (`.chips`) between the header and body must have `flex-shrink: 0` so it is never squashed out of view.
+5. **Sticky Actions:** Headers, Footers, and Form Action buttons (like Save/Cancel) MUST use `flex-shrink: 0` so they are never pushed out of the visible bounds when the card is shrunk. For settings panels that open inside a card, wrap the scrollable form fields in a `.dc-scroll-area` (or equivalent `flex: 1; overflow-y: auto; min-height: 0` child) and keep the action row outside that wrapper so it is always visible.
+6. **Config panel isolation:** When a settings/config panel is open it should own the full space below the header — hide the regular card body with `#panel-el:not(:empty) ~ .card-body { display: none }` and give the panel itself `flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column`.
+7. **Sensible minimums:** `.dashboard-item` must carry `min-width: 160px; min-height: 100px` so widgets cannot be resized to a completely broken state.
+8. **Container Queries:** Use CSS `@container card (max-width: …)` queries to hide non-essential metadata (avatars, dates, secondary badges, source labels) when the widget is horizontally constrained. The container context is already set on `.dashboard-item` — do not re-declare it.
+
 ### COMPONENT PARITY (WORKSPACE VS OVERVIEW)
 
 A widget **MUST** look and function exactly the same in Overview mode as it does in Workspace mode.

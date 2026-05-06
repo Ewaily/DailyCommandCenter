@@ -478,6 +478,7 @@ button { font-family: inherit; }
   flex-wrap: wrap;
   border-bottom: 1px solid rgba(0,0,0,.15);
   min-height: 42px;
+  flex-shrink: 0;
 }
 .card-header .title-row {
   display: flex; align-items: center; gap: 8px;
@@ -562,7 +563,7 @@ body.dashboard-editing .card-header .tab:active { cursor: grabbing; }
 
 .card-body {
   padding: var(--pad-card); flex: 1; overflow-y: auto;
-  max-height: 520px;
+  max-height: 520px; min-height: 0;
 }
 .card-body.main-tall { max-height: 440px; }
 .card-body.half-tall { max-height: 192px; }
@@ -576,7 +577,7 @@ body.dashboard-editing .card-header .tab:active { cursor: grabbing; }
 }
 .card-body::-webkit-scrollbar-thumb:hover { background: var(--text-soft); }
 
-.chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 14px 10px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 14px 10px; flex-shrink: 0; }
 .chip {
   font-size: var(--fs-xs); padding: 4px 10px; border-radius: var(--r-pill);
   background: var(--card-alt); border: 1px solid var(--border);
@@ -2155,12 +2156,31 @@ body.sidebar-open .universal-sidebar { transform: translateX(0); }
 /* ==========================================================================
    CHANNEL DIGEST CONFIG PANEL
    ========================================================================== */
+/* When the config panel is populated it becomes a full-height flex child;
+   the card-body below is hidden so the panel can own the full remaining space. */
+#channels-config-panel:not(:empty) {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+#channels-config-panel:not(:empty) ~ .card-body {
+  display: none;
+}
+
 .digest-config-panel {
-  padding: 12px 14px;
   background: var(--card-alt);
   border-bottom: 1px solid var(--border);
-  display: flex; flex-direction: column; gap: 10px;
+  display: flex; flex-direction: column;
   animation: fade-in var(--t-fast) var(--ease);
+  flex: 1; min-height: 0; overflow: hidden;
+}
+
+.dc-scroll-area {
+  flex: 1; min-height: 0; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 12px 14px;
 }
 
 .dc-section-label {
@@ -2241,7 +2261,13 @@ body.sidebar-open .universal-sidebar { transform: translateX(0); }
   color: var(--text); min-width: 24px; text-align: center;
 }
 
-.dc-actions { display: flex; gap: 8px; padding-top: 2px; }
+.dc-actions {
+  display: flex; gap: 8px;
+  flex-shrink: 0;
+  padding: 10px 14px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--card-alt);
+}
 .dc-save-btn {
   background: var(--accent); color: #fff; border: none;
   border-radius: var(--r-sm); padding: 6px 14px;
@@ -2610,7 +2636,7 @@ img.task-avatar { object-fit: cover; }
 
 .dashboard-item {
   position: relative;
-  min-width: 0; min-height: 0;
+  min-width: 160px; min-height: 100px;
   container-type: inline-size;
   container-name: card;
 }
@@ -2624,7 +2650,6 @@ img.task-avatar { object-fit: cover; }
 .dashboard-grid .card-body.short,
 .dashboard-grid .card-body.tall {
   max-height: none;
-  height: 100%;
 }
 
 /* ── Container-fluid internals ──────────────────────────────────────── */
