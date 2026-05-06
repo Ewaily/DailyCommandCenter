@@ -135,6 +135,16 @@ verify the judgment call.
 
 ---
 
+## STARTUP & SYNC PROTOCOL (MANDATORY)
+
+- Before you begin ANY task or branch work, you MUST ensure your local state is aligned with the latest `prod`.
+- Run: `git fetch origin`
+- Check if your current branch needs to be rebased on `origin/prod`: `git log HEAD..origin/prod --oneline`.
+- If there are new commits on `origin/prod`, you MUST rebase your current branch: `git rebase origin/prod`.
+- Never assume your local state is up-to-date. Verify first.
+
+---
+
 ### AUTOMATIC DOCUMENTATION PROTOCOL
 
 - **Autonomous Maintenance:** After EVERY task, fix, or feature change, you MUST check if README.md, SETUP.md, and FEATURES.md are accurate. If they drift, you MUST fix them in the SAME response without being asked.
