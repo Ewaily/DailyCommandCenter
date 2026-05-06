@@ -49,5 +49,16 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+      - name: Upload to Codecov
+        if: matrix.node == '20'
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage/lcov.info
+          flags: unittests
+          fail_ci_if_error: false
+          verbose: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
       - name: Build
         run: npm run build

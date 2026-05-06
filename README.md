@@ -10,6 +10,7 @@ A local-first, multi-workspace dashboard that pulls Google Calendar, Outlook, Sl
 [![Vite](https://img.shields.io/badge/Vite-5-646cff?logo=vite&logoColor=white)](https://vitejs.dev)
 [![Express](https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white)](https://expressjs.com)
 [![SQLite](https://img.shields.io/badge/SQLite-local-003b57?logo=sqlite&logoColor=white)](https://www.sqlite.org/)
+[![codecov](https://codecov.io/gh/Ewaily/DailyCommandCenter/branch/prod/graph/badge.svg)](https://codecov.io/gh/Ewaily/DailyCommandCenter)
 
 ---
 
