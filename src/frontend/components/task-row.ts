@@ -94,15 +94,13 @@ export function renderTaskRow(row: TaskRow): string {
     : "";
   const keyTitle = row.keyTitle ? ` title="${escapeHtml(row.keyTitle)}"` : "";
   const cloneBtn = row.cloneSource
-    ? `<button class="clone-to-jira-btn" title="Clone to Jira"
+    ? `<button class="clone-to-jira-btn"
          data-clone-title="${escapeHtml(row.title)}"
          data-clone-url="${escapeHtml(row.url)}"
          data-clone-source="${escapeHtml(row.cloneSource)}"
          data-target-project="${escapeHtml(row.cloneTargetProject || "")}"
          data-connector-id="${escapeHtml(row.cloneConnectorId || "")}"
-         aria-label="Clone to Jira">
-         <span data-icon="copy"></span>
-       </button>`
+         aria-label="Clone to Jira"></button>`
     : "";
   return `
     <div class="schedule-item${row.cloneSource ? " schedule-item--cloneable" : ""}">
