@@ -136,3 +136,119 @@ export function bindTicketTabs() {
 
 // Team Board still lives in lists.ts (no spec change for it).
 export { loadTeamBoard } from "./lists.js";
+
+export interface TicketsInstance {
+  load(silent?: boolean): Promise<void>;
+}
+
+export function instantiateTickets(
+  container: HTMLElement,
+  connectorId: string,
+  opts: { wsName: string; title: string }
+): TicketsInstance {
+  const { wsName, title } = opts;
+  let activeBucket: string = getSetting<string>("jiraTab") || MINE;
+  let localWatched: WatchedUser[] = [];
+
+  container.innerHTML = `
+    <div class="card-header">
+      <div class="title-row">
+        <span class="title-source">${escapeHtml(wsName)}</span>
+        <span class="title-text">
+          <span class="title-icon" data-icon="ticket"></span>
+          <span>${escapeHtml(title)}</span>
+        </span>
+      </div>
+      <div class="tabs" data-ov-tabs></div>
+    </div>
+    <div class="card-body" data-ov-body></div>
+  `;
+
+  const body = container.querySelector<HTMLElement>("[data-ov-body]")!;
+  const tabsEl = container.querySelector<HTMLElement>("[data-ov-tabs]");
+
+  function bucketIdsLocal() { return [MINE, ...localWatched.map(w => w.id)]; }
+  function bucketLabelLocal(id: string) {
+    if (id === MINE) return "Mine";
+    return localWatched.find(w => w.id === id)?.label || id;
+  }
+
+  function renderTabsLocal(counts?: Record<string, number>) {
+    if (!tabsEl) return;
+    tabsEl.innerHTML = bucketIdsLocal().map(id => {
+      const cls = id === activeBucket ? "tab active" : "tab";
+      const count = counts?.[id] ?? "—";
+      return `<button class="${cls}" data-ov-bucket="${escapeHtml(id)}">${escapeHtml(bucketLabelLocal(id))} <span class="tab-count" data-ov-count="${escapeHtml(id)}">${count}</span></button>`;
+    }).join("");
+    tabsEl.querySelectorAll<HTMLElement>("[data-ov-bucket]").forEach(b => {
+      b.addEventListener("click", () => {
+        activeBucket = b.dataset.ovBucket || MINE;
+        saveSetting("jiraTab", activeBucket);
+        syncTabUILocal();
+        load();
+      });
+    });
+  }
+
+  function syncTabUILocal() {
+    tabsEl?.querySelectorAll<HTMLElement>("[data-ov-bucket]").forEach(b => {
+      b.classList.toggle("active", b.dataset.ovBucket === activeBucket);
+    });
+  }
+
+  function updateCountsLocal(counts: Record<string, number>) {
+    for (const id of bucketIdsLocal()) {
+      const el = container.querySelector(`[data-ov-count="${CSS.escape(id)}"]`);
+      if (el) el.textContent = String(counts[id] ?? 0);
+    }
+  }
+
+  renderTabsLocal();
+
+  async function load(silent = false): Promise<void> {
+    if (!body) return;
+    if (!silent) body.innerHTML = skeletonCompact(3);
+    try {
+      const resp = await api.ticketsMine(activeBucket, connectorId);
+      if (resp.notConfigured) {
+        localWatched = [];
+        renderTabsLocal();
+        body.innerHTML = renderNotConnected("Jira", "jira");
+        return;
+      }
+      const incoming = Array.isArray(resp.buckets) ? resp.buckets : [];
+      const idsChanged = incoming.length !== localWatched.length
+        || incoming.some((w, i) => w.id !== localWatched[i]?.id || w.label !== localWatched[i]?.label);
+      if (idsChanged) {
+        localWatched = incoming;
+        if (activeBucket !== MINE && !localWatched.some(w => w.id === activeBucket)) {
+          activeBucket = MINE;
+          saveSetting("jiraTab", activeBucket);
+        }
+        renderTabsLocal(resp.counts as Record<string, number> | undefined);
+      }
+      if (resp.bucket && resp.bucket !== activeBucket) {
+        activeBucket = resp.bucket;
+        saveSetting("jiraTab", activeBucket);
+        syncTabUILocal();
+      }
+      if (resp.counts) updateCountsLocal(resp.counts as Record<string, number>);
+      const data = resp.data || [];
+      if (!data.length) {
+        const owner = activeBucket === MINE ? "Your" : `${bucketLabelLocal(activeBucket)}'s`;
+        body.innerHTML = `<div class="empty">
+          <span class="emoji">${activeBucket === MINE ? "🎉" : "✅"}</span>
+          <div class="empty-title">${escapeHtml(owner)} queue is clear</div>
+          <div>No open tickets in this view.</div>
+        </div>`;
+        return;
+      }
+      body.innerHTML = data.map(renderTicket).join("");
+    } catch (err) {
+      if (isAuthError(err)) body.innerHTML = renderNotConnected("Jira", "jira");
+      else body.innerHTML = `<div class="error">${escapeHtml((err as Error).message)}</div>`;
+    }
+  }
+
+  return { load };
+}

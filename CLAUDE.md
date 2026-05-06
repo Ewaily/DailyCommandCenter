@@ -51,6 +51,17 @@ A personal productivity dashboard running locally on Mac. Node + TypeScript back
 
 When adding a new connector type that should appear as a dashboard card (PRs, tickets, schedule, etc.), you **must** register it via one `CapabilitySpec` entry in `src/frontend/components/instance-card-registry.ts`. Do **not** introduce a new `if (cap === "...")` branch in `overview-widgets.ts` — the renderer is cap-agnostic by design and adding scattered branches breaks the guarantee that future connectors auto-inherit batch placement, tab state isolation, source labels, title inheritance, count syncing, and CSS isolation. One spec covers: matching `connector.type` values, the static widget id it replaces, default grid dims, icon, default title, optional tabs (fixed list or dynamic from API response), data fetcher, row renderer, and empty-state copy. Once an entry is added, multi-instance rendering, the `Workspace · account` source label, owner-workspace title inheritance, per-card tab state, count badges, and the workspace-mode "owned + shared" parallel rendering all work automatically.
 
+### COMPONENT PARITY (WORKSPACE VS OVERVIEW)
+
+A widget **MUST** look and function exactly the same in Overview mode as it does in Workspace mode.
+
+- **Never** build a "lite" or separate rendering shell for the Overview.
+- **Never** strip out filters, pagination, or header controls in multi-instance views.
+- Reuse the primary widget component by calling its `instantiate*(container, connectorId, opts)` factory. The factory renders the full card HTML (header controls, filter chips, tabs, day navigation, body) into the supplied container and scopes all data fetches to the given `connectorId`.
+- The `MOUNTERS` map in `src/frontend/components/overview-widgets.ts` is the coupling point: every capability registered in the registry **must** have a corresponding entry in `MOUNTERS` pointing to its `instantiate*` factory.
+- Any new connector added to the registry must ship its own `instantiate*` factory in its widget module and be wired into `MOUNTERS` — failing to do so means Overview cards for that connector will silently render nothing.
+- Any new connector added to the registry must guarantee 100% UI parity across all views.
+
 ## OAUTH REDIRECT URI RULE — never get this wrong
 
 The Node server listens on **port 3000** (`src/server/config.ts` default, overridable via `PORT` env var). Vite dev server runs on **port 5173** (overridable via `VITE_PORT`). These are **not** the same.

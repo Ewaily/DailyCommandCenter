@@ -17,9 +17,13 @@ function tagFor(p: PR & { merged?: boolean; state?: string }): string {
   return `<span class="badge badge-info">${escapeHtml(p.status)}</span>`;
 }
 
-function renderPR(p: PR): string {
-  const timeLabel = active === "closed" ? "closed" : "opened";
-  const showAuthor = active !== "mine";
+export interface PRInstance {
+  load(silent?: boolean): Promise<void>;
+}
+
+function renderPR(p: PR, bucket: Bucket = active): string {
+  const timeLabel = bucket === "closed" ? "closed" : "opened";
+  const showAuthor = bucket !== "mine";
   return `
     <div class="schedule-item">
       <div class="schedule-time item-key">#${escapeHtml(String(p.number || ""))}</div>
@@ -87,7 +91,7 @@ export async function loadPRs(silent = false) {
       </div>`;
       return;
     }
-    body.innerHTML = data.map(renderPR).join("");
+    body.innerHTML = data.map(p => renderPR(p)).join("");
   } catch (err) {
     if (isAuthError(err)) { body.innerHTML = renderNotConnected("GitHub", "github"); resetCounts(); }
     else body.innerHTML = `<div class="error">${escapeHtml((err as Error).message)}</div>`;
@@ -102,4 +106,90 @@ export function bindPrTabs() {
       loadPRs();
     });
   });
+}
+
+export function instantiatePRs(
+  container: HTMLElement,
+  connectorId: string,
+  opts: { wsName: string; title: string }
+): PRInstance {
+  const { wsName, title } = opts;
+  const _stored = getSetting<string>("prTab");
+  let bucket: Bucket = (BUCKETS.includes(_stored as Bucket) ? _stored as Bucket : "review");
+
+  container.innerHTML = `
+    <div class="card-header">
+      <div class="title-row">
+        <span class="title-source">${escapeHtml(wsName)}</span>
+        <span class="title-text">
+          <span class="title-icon" data-icon="gitPr"></span>
+          <span>${escapeHtml(title)}</span>
+        </span>
+      </div>
+      <div class="tabs" data-ov-tabs>
+        <button class="tab${bucket === "review" ? " active" : ""}" data-ov-bucket="review">Needs Review <span class="tab-count" data-ov-count="review">—</span></button>
+        <button class="tab${bucket === "mine" ? " active" : ""}" data-ov-bucket="mine">My PRs <span class="tab-count" data-ov-count="mine">—</span></button>
+        <button class="tab${bucket === "all" ? " active" : ""}" data-ov-bucket="all">All Open <span class="tab-count" data-ov-count="all">—</span></button>
+        <button class="tab${bucket === "closed" ? " active" : ""}" data-ov-bucket="closed">Closed <span class="tab-count" data-ov-count="closed">—</span></button>
+      </div>
+    </div>
+    <div class="card-body" data-ov-body></div>
+  `;
+
+  const body = container.querySelector<HTMLElement>("[data-ov-body]")!;
+  const tabsEl = container.querySelector<HTMLElement>("[data-ov-tabs]");
+
+  function syncTabUI() {
+    tabsEl?.querySelectorAll<HTMLElement>("[data-ov-bucket]").forEach(b => {
+      b.classList.toggle("active", b.dataset.ovBucket === bucket);
+    });
+  }
+
+  function updateCounts(counts: Record<string, number>) {
+    for (const b of BUCKETS) {
+      const el = container.querySelector(`[data-ov-count="${b}"]`);
+      if (el) el.textContent = String(counts[b] ?? 0);
+    }
+  }
+
+  tabsEl?.querySelectorAll<HTMLElement>("[data-ov-bucket]").forEach(b => {
+    b.addEventListener("click", () => {
+      bucket = (b.dataset.ovBucket as Bucket) || "review";
+      saveSetting("prTab", bucket);
+      syncTabUI();
+      load();
+    });
+  });
+
+  async function load(silent = false): Promise<void> {
+    if (!silent) body.innerHTML = skeletonCompact(3);
+    try {
+      const resp = await api.prs(bucket, connectorId);
+      if (resp.notConfigured) {
+        body.innerHTML = renderNotConnected("GitHub", "github");
+        return;
+      }
+      if (resp.counts) updateCounts(resp.counts);
+      const data = resp.data || [];
+      if (!data.length) {
+        const cfg =
+          bucket === "review" ? { emoji: "✨", title: "Review queue is clear",  desc: "No PRs waiting on your review." } :
+          bucket === "mine"   ? { emoji: "🚀", title: "No open PRs",            desc: "Open one when you're ready." } :
+          bucket === "all"    ? { emoji: "🏖️",  title: "Repo is quiet",          desc: "No open PRs in this repository." } :
+                                { emoji: "📦", title: "No closed PRs yet",      desc: "Recently closed and merged PRs land here." };
+        body.innerHTML = `<div class="empty">
+          <span class="emoji">${cfg.emoji}</span>
+          <div class="empty-title">${cfg.title}</div>
+          <div>${cfg.desc}</div>
+        </div>`;
+        return;
+      }
+      body.innerHTML = data.map(p => renderPR(p, bucket)).join("");
+    } catch (err) {
+      if (isAuthError(err)) body.innerHTML = renderNotConnected("GitHub", "github");
+      else body.innerHTML = `<div class="error">${escapeHtml((err as Error).message)}</div>`;
+    }
+  }
+
+  return { load };
 }

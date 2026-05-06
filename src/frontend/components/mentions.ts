@@ -118,3 +118,93 @@ export async function loadMentions(silent = false) {
 export function bindMentionsTabs() {
   // no-op — kept for import compatibility; wiring is in main.ts bindHeaderActions
 }
+
+export interface MentionsInstance {
+  load(silent?: boolean): Promise<void>;
+}
+
+export function instantiateMentions(
+  container: HTMLElement,
+  connectorId: string,
+  opts: { wsName: string; title: string }
+): MentionsInstance {
+  const { wsName, title } = opts;
+  let instanceDayOffset = 0;
+  let instanceCachedData: Mention[] = [];
+
+  container.innerHTML = `
+    <div class="card-header">
+      <div class="title-row">
+        <span class="title-source">${escapeHtml(wsName)}</span>
+        <span class="title-text">
+          <span class="title-icon" data-icon="bell"></span>
+          <span>${escapeHtml(title)}</span>
+        </span>
+        <span class="header-meta" data-ov-day-label>Today</span>
+      </div>
+      <div class="tabs">
+        <button class="tab tab-icon" data-ov-nav="prev" data-icon="chevronLeft" aria-label="Previous day"></button>
+        <button class="tab active" data-ov-nav="today">Today</button>
+        <button class="tab tab-icon" data-ov-nav="next" data-icon="chevronRight" aria-label="Next day"></button>
+      </div>
+    </div>
+    <div class="card-body main-tall" data-ov-body></div>
+  `;
+
+  const body = container.querySelector<HTMLElement>("[data-ov-body]")!;
+  const dayLabelEl = container.querySelector<HTMLElement>("[data-ov-day-label]");
+  const todayBtn = container.querySelector<HTMLElement>("[data-ov-nav='today']");
+  const nextBtn = container.querySelector<HTMLElement>("[data-ov-nav='next']");
+
+  function updateNavState() {
+    if (todayBtn) todayBtn.classList.toggle("active", instanceDayOffset === 0);
+    if (nextBtn) {
+      nextBtn.style.opacity = instanceDayOffset >= 0 ? "0.35" : "";
+      nextBtn.style.pointerEvents = instanceDayOffset >= 0 ? "none" : "";
+    }
+    if (dayLabelEl) dayLabelEl.textContent = dayLabel(instanceDayOffset);
+  }
+
+  function renderBodyLocal() {
+    const items = instanceCachedData.filter(m => isOnDay(m.ts, instanceDayOffset));
+    updateNavState();
+    if (!items.length) {
+      const label = dayLabel(instanceDayOffset).toLowerCase();
+      body.innerHTML = `<div class="empty">
+        <span class="emoji">✨</span>
+        <div class="empty-title">Nothing ${label}</div>
+        <div class="empty-hint">No mentions or DMs ${label === "today" ? "since midnight" : "on this day"}</div>
+      </div>`;
+      return;
+    }
+    body.innerHTML = items.map(renderMention).join("");
+  }
+
+  container.querySelector("[data-ov-nav='prev']")?.addEventListener("click", () => { instanceDayOffset--; renderBodyLocal(); });
+  container.querySelector("[data-ov-nav='today']")?.addEventListener("click", () => { instanceDayOffset = 0; renderBodyLocal(); });
+  container.querySelector("[data-ov-nav='next']")?.addEventListener("click", () => {
+    if (instanceDayOffset < 0) { instanceDayOffset++; renderBodyLocal(); }
+  });
+
+  async function load(silent = false): Promise<void> {
+    if (!silent) body.innerHTML = skeletonList(4);
+    try {
+      const resp = await api.mentions(4, !silent, connectorId);
+      if (resp.notConfigured) {
+        body.innerHTML = renderWorkspaceNotConfigured("Slack");
+        instanceCachedData = [];
+        return;
+      }
+      instanceCachedData = resp.data;
+      renderBodyLocal();
+    } catch (err) {
+      if (isAuthError(err)) {
+        body.innerHTML = renderNotConnected("Slack", "slack");
+      } else {
+        body.innerHTML = `<div class="error">Mentions error: ${escapeHtml((err as Error).message)}</div>`;
+      }
+    }
+  }
+
+  return { load };
+}
