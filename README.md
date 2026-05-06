@@ -243,6 +243,7 @@ The full mapping (and the modules each shortcut targets) is in [FEATURES.md](./F
 | `npm start` | Run the compiled production server. |
 | `npm test` | Run the Vitest suite once. |
 | `npm run test:watch` | Run Vitest in watch mode. |
+| `npm run test:coverage` | Run Vitest with V8 coverage and enforce the global thresholds defined in [vitest.config.ts](./vitest.config.ts). Required to pass before any PR can merge. |
 | `npm run typecheck` | Strict-mode typecheck across client and server. |
 | `npm run reset-db` | Wipe the local SQLite DB and reseed from `.env`. |
 

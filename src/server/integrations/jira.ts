@@ -39,7 +39,7 @@ async function jiraGet<T = any>(creds: JiraCreds, path: string): Promise<T> {
     const body = await res.text();
     throw new Error(`jira GET ${path}: ${res.status} ${body.slice(0, 200)}`);
   }
-  return res.json();
+  return res.json() as Promise<T>;
 }
 
 async function jiraPost<T = any>(creds: JiraCreds, path: string, body: unknown): Promise<T> {
@@ -56,7 +56,7 @@ async function jiraPost<T = any>(creds: JiraCreds, path: string, body: unknown):
     const text = await res.text();
     throw new Error(`jira POST ${path}: ${res.status} ${text.slice(0, 200)}`);
   }
-  return res.json();
+  return res.json() as Promise<T>;
 }
 
 // Resolve a display name → accountId. Cached per baseUrl so different Jira
