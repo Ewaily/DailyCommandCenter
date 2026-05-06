@@ -229,6 +229,104 @@ export type JiraProject = { id: string; key: string; name: string };
  * - body: appended as-is when it is already an ADF doc; converted to ADF
  *   paragraphs when it is a plain string (ClickUp / fallback text).
  */
+/** Convert an inline Markdown string into ADF inline nodes (text + marks). */
+function inlineToAdfNodes(line: string): unknown[] {
+  const nodes: unknown[] = [];
+  // Split on **bold**, *italic*, `code`, [text](url) — handle each token
+  const tokenRe = /(\*\*(.+?)\*\*|\*(.+?)\*|`([^`]+)`|\[([^\]]+)\]\(([^)]+)\))/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = tokenRe.exec(line)) !== null) {
+    if (m.index > last) nodes.push({ type: "text", text: line.slice(last, m.index) });
+    if (m[2] !== undefined) {
+      nodes.push({ type: "text", text: m[2], marks: [{ type: "strong" }] });
+    } else if (m[3] !== undefined) {
+      nodes.push({ type: "text", text: m[3], marks: [{ type: "em" }] });
+    } else if (m[4] !== undefined) {
+      nodes.push({ type: "text", text: m[4], marks: [{ type: "code" }] });
+    } else if (m[5] !== undefined) {
+      nodes.push({ type: "text", text: m[5], marks: [{ type: "link", attrs: { href: m[6] } }] });
+    }
+    last = m.index + m[0].length;
+  }
+  if (last < line.length) nodes.push({ type: "text", text: line.slice(last) });
+  return nodes.length ? nodes : [{ type: "text", text: line }];
+}
+
+/** Best-effort conversion of Markdown text into top-level ADF nodes. */
+function markdownToAdfNodes(md: string): unknown[] {
+  const nodes: unknown[] = [];
+  const lines = md.split("\n");
+  let codeBlock: string[] | null = null;
+  let codeLang = "";
+  let listItems: unknown[] = [];
+
+  const flushList = () => {
+    if (!listItems.length) return;
+    nodes.push({ type: "bulletList", content: listItems });
+    listItems = [];
+  };
+
+  for (const raw of lines) {
+    // Fenced code block
+    if (raw.startsWith("```")) {
+      if (codeBlock === null) {
+        flushList();
+        codeBlock = [];
+        codeLang = raw.slice(3).trim();
+      } else {
+        nodes.push({ type: "codeBlock", attrs: { language: codeLang || null }, content: [{ type: "text", text: codeBlock.join("\n") }] });
+        codeBlock = null;
+        codeLang = "";
+      }
+      continue;
+    }
+    if (codeBlock !== null) { codeBlock.push(raw); continue; }
+
+    // Heading
+    const hm = raw.match(/^(#{1,6})\s+(.*)/);
+    if (hm) {
+      flushList();
+      const level = Math.min(hm[1].length, 6);
+      nodes.push({ type: "heading", attrs: { level }, content: inlineToAdfNodes(hm[2]) });
+      continue;
+    }
+
+    // Horizontal rule
+    if (/^[-*_]{3,}$/.test(raw.trim())) { flushList(); nodes.push({ type: "rule" }); continue; }
+
+    // Bullet list item
+    const lm = raw.match(/^[-*+]\s+(.*)/);
+    if (lm) {
+      listItems.push({ type: "listItem", content: [{ type: "paragraph", content: inlineToAdfNodes(lm[1]) }] });
+      continue;
+    }
+
+    // Numbered list item
+    const nm = raw.match(/^\d+\.\s+(.*)/);
+    if (nm) {
+      listItems.push({ type: "listItem", content: [{ type: "paragraph", content: inlineToAdfNodes(nm[1]) }] });
+      continue;
+    }
+
+    flushList();
+
+    // Blank line → separator (skip, ADF paragraphs implicitly separate)
+    if (!raw.trim()) continue;
+
+    // Blockquote
+    if (raw.startsWith("> ")) {
+      nodes.push({ type: "blockquote", content: [{ type: "paragraph", content: inlineToAdfNodes(raw.slice(2)) }] });
+      continue;
+    }
+
+    nodes.push({ type: "paragraph", content: inlineToAdfNodes(raw) });
+  }
+  flushList();
+  if (codeBlock !== null) nodes.push({ type: "codeBlock", attrs: { language: codeLang || null }, content: [{ type: "text", text: codeBlock.join("\n") }] });
+  return nodes;
+}
+
 export function buildCloneAdf(
   providerLabel: string,
   originalLink: string,
@@ -253,12 +351,7 @@ export function buildCloneAdf(
     const nodes: unknown[] = (body as any).content ?? [];
     content.push(...nodes);
   } else if (typeof body === "string" && body.trim()) {
-    // Plain text (ClickUp) — one paragraph per non-empty line
-    for (const line of body.split("\n")) {
-      if (line.trim()) {
-        content.push({ type: "paragraph", content: [{ type: "text", text: line }] });
-      }
-    }
+    content.push(...markdownToAdfNodes(body));
   }
 
   return { type: "doc", version: 1, content };

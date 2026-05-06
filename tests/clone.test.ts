@@ -56,6 +56,66 @@ describe("buildCloneAdf", () => {
   });
 });
 
+// ── buildCloneAdf — Markdown body (ClickUp rich text) ─────────────────────────
+
+describe("buildCloneAdf — markdown body", () => {
+  it("converts a heading to an ADF heading node", () => {
+    const adf = buildCloneAdf("ClickUp", "https://x", "# My Heading");
+    const nodes = adf.content.slice(1) as any[];
+    expect(nodes[0].type).toBe("heading");
+    expect(nodes[0].attrs.level).toBe(1);
+    expect(nodes[0].content[0].text).toBe("My Heading");
+  });
+
+  it("converts **bold** to a strong mark", () => {
+    const adf = buildCloneAdf("ClickUp", "https://x", "**bold text**");
+    const nodes = adf.content.slice(1) as any[];
+    expect(nodes[0].type).toBe("paragraph");
+    expect(nodes[0].content[0].marks[0].type).toBe("strong");
+    expect(nodes[0].content[0].text).toBe("bold text");
+  });
+
+  it("converts *italic* to an em mark", () => {
+    const adf = buildCloneAdf("ClickUp", "https://x", "*italic*");
+    const nodes = adf.content.slice(1) as any[];
+    expect(nodes[0].content[0].marks[0].type).toBe("em");
+  });
+
+  it("converts `code` spans to code marks", () => {
+    const adf = buildCloneAdf("ClickUp", "https://x", "`npm install`");
+    const nodes = adf.content.slice(1) as any[];
+    expect(nodes[0].content[0].marks[0].type).toBe("code");
+  });
+
+  it("converts a fenced code block to a codeBlock node", () => {
+    const adf = buildCloneAdf("ClickUp", "https://x", "```ts\nconst x = 1;\n```");
+    const nodes = adf.content.slice(1) as any[];
+    expect(nodes[0].type).toBe("codeBlock");
+    expect(nodes[0].content[0].text).toBe("const x = 1;");
+  });
+
+  it("converts a bullet list to a bulletList node", () => {
+    const adf = buildCloneAdf("ClickUp", "https://x", "- item one\n- item two");
+    const nodes = adf.content.slice(1) as any[];
+    expect(nodes[0].type).toBe("bulletList");
+    expect(nodes[0].content).toHaveLength(2);
+    expect(nodes[0].content[0].type).toBe("listItem");
+  });
+
+  it("converts [text](url) to a link mark", () => {
+    const adf = buildCloneAdf("ClickUp", "https://x", "[click here](https://example.com)");
+    const nodes = adf.content.slice(1) as any[];
+    const linkNode = nodes[0].content[0];
+    expect(linkNode.marks[0].type).toBe("link");
+    expect(linkNode.marks[0].attrs.href).toBe("https://example.com");
+  });
+
+  it("produces only a blockquote for blank markdown body", () => {
+    const adf = buildCloneAdf("ClickUp", "https://x", "   \n\n  ");
+    expect(adf.content).toHaveLength(1);
+  });
+});
+
 // ── createIssue ───────────────────────────────────────────────────────────────
 
 const creds: JiraCreds = { baseUrl: "https://test.atlassian.net", email: "test@example.com", apiToken: "tok" };

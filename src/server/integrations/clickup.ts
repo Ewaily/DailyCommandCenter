@@ -41,12 +41,20 @@ async function clickUpGet<T = any>(creds: ClickUpCreds, path: string): Promise<T
   return res.json() as Promise<T>;
 }
 
-/** Fetches a single task's description by task ID using the connector for the given workspace. */
+/** Fetches a single task's description by task ID using the connector for the given workspace.
+ *  ClickUp's block-based editor stores content in `markdown_description` (not `description`),
+ *  so we request both and prefer markdown_description when present. */
 export async function getTaskDescription(taskId: string, workspaceId?: string): Promise<string | null> {
   try {
     const creds = effective(workspaceId);
-    const data: any = await clickUpGet<any>(creds, `/task/${encodeURIComponent(taskId)}`);
-    return typeof data?.description === "string" ? data.description : null;
+    const data: any = await clickUpGet<any>(
+      creds,
+      `/task/${encodeURIComponent(taskId)}?include_markdown_description=true`,
+    );
+    const md = typeof data?.markdown_description === "string" ? data.markdown_description.trim() : "";
+    if (md) return md;
+    const plain = typeof data?.description === "string" ? data.description.trim() : "";
+    return plain || null;
   } catch {
     return null;
   }
