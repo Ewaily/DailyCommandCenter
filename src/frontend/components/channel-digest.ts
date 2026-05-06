@@ -78,23 +78,25 @@ function renderPanel() {
 
   el.innerHTML = `
     <div class="digest-config-panel">
-      <div class="dc-section-label">Channels</div>
-      <div class="dc-channels-list" id="dc-channels-list">
-        ${channelRows || '<div class="dc-empty">No channels — add one below.</div>'}
-      </div>
+      <div class="dc-scroll-area">
+        <div class="dc-section-label">Channels</div>
+        <div class="dc-channels-list" id="dc-channels-list">
+          ${channelRows || '<div class="dc-empty">No channels — add one below.</div>'}
+        </div>
 
-      <div class="dc-add-row">
-        <input class="dc-input" id="dc-add-id" placeholder="Channel ID (e.g. C05BWN1AHSS)" spellcheck="false">
-        <input class="dc-input dc-input-name" id="dc-add-name" placeholder="Display name (e.g. ai-guild)">
-        <button class="dc-add-btn" id="dc-add-btn">+ Add</button>
-      </div>
+        <div class="dc-add-row">
+          <input class="dc-input" id="dc-add-id" placeholder="Channel ID (e.g. C05BWN1AHSS)" spellcheck="false">
+          <input class="dc-input dc-input-name" id="dc-add-name" placeholder="Display name (e.g. ai-guild)">
+          <button class="dc-add-btn" id="dc-add-btn">+ Add</button>
+        </div>
 
-      <div class="dc-msgs-row">
-        <span class="dc-section-label" style="margin:0;">Messages per channel</span>
-        <div class="dc-stepper">
-          <button class="dc-step-btn" id="dc-step-down">−</button>
-          <span class="dc-step-val" id="dc-step-val">${currentConfig.msgsPerChannel}</span>
-          <button class="dc-step-btn" id="dc-step-up">+</button>
+        <div class="dc-msgs-row">
+          <span class="dc-section-label" style="margin:0;">Messages per channel</span>
+          <div class="dc-stepper">
+            <button class="dc-step-btn" id="dc-step-down">−</button>
+            <span class="dc-step-val" id="dc-step-val">${currentConfig.msgsPerChannel}</span>
+            <button class="dc-step-btn" id="dc-step-up">+</button>
+          </div>
         </div>
       </div>
 
