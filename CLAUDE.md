@@ -27,6 +27,18 @@ Update whenever:
 ### Self-check before ending the turn
 Before you say "done", scan: did this change touch any user-facing control, env var, route, shortcut, integration, setting, or section? If yes, open SETUP.md and FEATURES.md and confirm both still describe the project accurately. If not, fix them now — in the same response.
 
+## MANDATORY PRE-PUSH CHECKLIST — no exceptions
+
+Before any `git push` or PR, ALL of the following must pass locally:
+
+1. **`npx tsc --noEmit`** — zero type errors.
+2. **`npm run test:coverage`** — NOT `npm test`. This is the command CI runs and it enforces coverage thresholds. `npm test` alone is insufficient.
+3. **New code = new tests.** Every new function, module, or non-trivial branch added in a PR must have a corresponding unit test. "It's frontend DOM code" is not an exemption — if the code cannot be reached by the existing Node test environment, either (a) write a test using jsdom/happy-dom, or (b) get explicit sign-off from the user before accepting a threshold adjustment. Silently lowering thresholds without explaining the reason and getting approval is not acceptable.
+4. **Coverage thresholds must not decrease** unless the user explicitly approves. If new code genuinely cannot be unit-tested (pure browser APIs with no jsdom path), document why in the commit message and ask the user before touching `vitest.config.ts`.
+5. **Sync with `prod` before every push.** Run `git fetch origin prod && git rebase origin/prod` before pushing any branch. Resolve all conflicts locally, re-run steps 1–4, then push. A PR with a merge conflict is not ready for review.
+
+A push that causes CI to fail or has unresolved conflicts is a broken workflow. The checklist above exists so that never happens.
+
 ---
 
 ## Project overview
@@ -50,6 +62,17 @@ A personal productivity dashboard running locally on Mac. Node + TypeScript back
 ## INSTANCE-CARD REGISTRY — single source of truth for per-instance widgets
 
 When adding a new connector type that should appear as a dashboard card (PRs, tickets, schedule, etc.), you **must** register it via one `CapabilitySpec` entry in `src/frontend/components/instance-card-registry.ts`. Do **not** introduce a new `if (cap === "...")` branch in `overview-widgets.ts` — the renderer is cap-agnostic by design and adding scattered branches breaks the guarantee that future connectors auto-inherit batch placement, tab state isolation, source labels, title inheritance, count syncing, and CSS isolation. One spec covers: matching `connector.type` values, the static widget id it replaces, default grid dims, icon, default title, optional tabs (fixed list or dynamic from API response), data fetcher, row renderer, and empty-state copy. Once an entry is added, multi-instance rendering, the `Workspace · account` source label, owner-workspace title inheritance, per-card tab state, count badges, and the workspace-mode "owned + shared" parallel rendering all work automatically.
+
+### COMPONENT PARITY (WORKSPACE VS OVERVIEW)
+
+A widget **MUST** look and function exactly the same in Overview mode as it does in Workspace mode.
+
+- **Never** build a "lite" or separate rendering shell for the Overview.
+- **Never** strip out filters, pagination, or header controls in multi-instance views.
+- Reuse the primary widget component by calling its `instantiate*(container, connectorId, opts)` factory. The factory renders the full card HTML (header controls, filter chips, tabs, day navigation, body) into the supplied container and scopes all data fetches to the given `connectorId`.
+- The `MOUNTERS` map in `src/frontend/components/overview-widgets.ts` is the coupling point: every capability registered in the registry **must** have a corresponding entry in `MOUNTERS` pointing to its `instantiate*` factory.
+- Any new connector added to the registry must ship its own `instantiate*` factory in its widget module and be wired into `MOUNTERS` — failing to do so means Overview cards for that connector will silently render nothing.
+- Any new connector added to the registry must guarantee 100% UI parity across all views.
 
 ## OAUTH REDIRECT URI RULE — never get this wrong
 

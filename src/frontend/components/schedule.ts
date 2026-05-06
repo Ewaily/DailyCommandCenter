@@ -4,6 +4,10 @@ import { setDayBounds } from "./header.js";
 import { getPrimaryTz } from "./tz.js";
 import { saveSetting, getSetting } from "../state.js";
 
+export interface ScheduleInstance {
+  load(silent?: boolean): Promise<void>;
+}
+
 export type ScheduleFilter = "all" | "mine" | "needs-response" | "hide-focus";
 
 const state = {
@@ -96,6 +100,106 @@ function emptyState(): string {
     <div>Enjoy the breathing room.</div>
     <div class="empty-hint">Tip: press <kbd>R</kbd> to refresh, or <kbd>⌘</kbd>+<kbd>K</kbd> to jump anywhere.</div>
   </div>`;
+}
+
+export function instantiateSchedule(
+  container: HTMLElement,
+  connectorId: string,
+  opts: { wsName: string; title: string }
+): ScheduleInstance {
+  const { wsName, title } = opts;
+  let offset = 0;
+  let filter: ScheduleFilter = (getSetting("scheduleFilter") as ScheduleFilter) || "all";
+
+  container.innerHTML = `
+    <div class="card-header">
+      <div class="title-row">
+        <span class="title-source">${escapeHtml(wsName)}</span>
+        <span class="title-text">
+          <span class="title-icon" data-icon="calendar"></span>
+          <span>${escapeHtml(title)}</span>
+        </span>
+        <span class="header-meta" data-ov-summary>—</span>
+      </div>
+      <div class="tabs">
+        <button class="tab tab-icon" data-ov-nav="prev" data-icon="chevronLeft" aria-label="Previous day"></button>
+        <button class="tab active" data-ov-nav="today">Today</button>
+        <button class="tab tab-icon" data-ov-nav="next" data-icon="chevronRight" aria-label="Next day"></button>
+      </div>
+    </div>
+    <div class="chips" data-ov-chips>
+      <div class="chip${filter === "all" ? " active" : ""}" data-filter="all" tabindex="0" role="button">All</div>
+      <div class="chip${filter === "mine" ? " active" : ""}" data-filter="mine" tabindex="0" role="button">Mine</div>
+      <div class="chip${filter === "needs-response" ? " active" : ""}" data-filter="needs-response" tabindex="0" role="button">Needs response</div>
+      <div class="chip${filter === "hide-focus" ? " active" : ""}" data-filter="hide-focus" tabindex="0" role="button">Hide focus</div>
+    </div>
+    <div class="card-body main-tall" data-ov-body></div>
+  `;
+
+  const body = container.querySelector<HTMLElement>("[data-ov-body]")!;
+  const summaryEl = container.querySelector<HTMLElement>("[data-ov-summary]");
+  const dayLabelEl = container.querySelector<HTMLElement>("[data-ov-nav='today']");
+  const chipsEl = container.querySelector<HTMLElement>("[data-ov-chips]");
+
+  chipsEl?.querySelectorAll<HTMLElement>(".chip").forEach(c => {
+    c.addEventListener("click", () => {
+      chipsEl.querySelectorAll(".chip").forEach(x => x.classList.remove("active"));
+      c.classList.add("active");
+      filter = (c.dataset.filter as ScheduleFilter) || "all";
+      saveSetting("scheduleFilter", filter);
+      load();
+    });
+  });
+  container.querySelector("[data-ov-nav='prev']")?.addEventListener("click", () => { offset--; load(); });
+  container.querySelector("[data-ov-nav='today']")?.addEventListener("click", () => { offset = 0; load(); });
+  container.querySelector("[data-ov-nav='next']")?.addEventListener("click", () => { offset++; load(); });
+
+  function applyLocalFilter(events: CalendarEvent[]): CalendarEvent[] {
+    return events.filter(e => {
+      if (filter === "hide-focus" && e.isFocus) return false;
+      if (filter === "mine" && (e.responseStatus !== "accepted" || e.isFocus)) return false;
+      if (filter === "needs-response" && e.responseStatus !== "needsAction") return false;
+      return true;
+    });
+  }
+
+  async function load(silent = false): Promise<void> {
+    const { label, startIso, endIso } = offsetDateInTz(offset, getPrimaryTz());
+    if (dayLabelEl) dayLabelEl.textContent = offset === 0 ? "Today" : label;
+    if (!silent) body.innerHTML = skeletonList(4);
+    try {
+      const resp = await api.calendarEvents(startIso, endIso, connectorId);
+      if (resp.notConfigured) {
+        body.innerHTML = renderWorkspaceNotConfigured("Calendar");
+        if (summaryEl) summaryEl.textContent = "—";
+        return;
+      }
+      const events = applyLocalFilter(resp.data);
+      if (summaryEl) summaryEl.textContent = `${events.length} shown`;
+      if (!events.length) { body.innerHTML = emptyState(); return; }
+      const now = offset === 0 ? Date.now() : -1;
+      const sorted = [...events].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+      let inserted = false;
+      const chunks: string[] = [];
+      for (const e of sorted) {
+        const start = new Date(e.start).getTime();
+        if (offset === 0 && !inserted && now < start) {
+          chunks.push(`<div class="now-line">Now · ${new Date().toLocaleTimeString("en-US", { timeZone: getPrimaryTz(), hour: "numeric", minute: "2-digit", hour12: true })}</div>`);
+          inserted = true;
+        }
+        chunks.push(renderEvent(e, now));
+      }
+      if (offset === 0 && !inserted && sorted.length) {
+        chunks.push(`<div class="now-line">Now · day wrapped</div>`);
+      }
+      body.innerHTML = chunks.join("");
+    } catch (err) {
+      if (isAuthError(err)) body.innerHTML = renderNotConnected("Google Calendar", "google");
+      else body.innerHTML = `<div class="error">Calendar error: ${escapeHtml((err as Error).message)}</div>`;
+    }
+  }
+
+  return { load };
 }
 
 export async function loadSchedule(silent = false) {
