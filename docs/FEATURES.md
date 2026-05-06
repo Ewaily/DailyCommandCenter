@@ -48,7 +48,7 @@
 - **Dynamic watched-teammate tabs**: "Mine" is always shown; every other tab is configured per-connector in Settings → Workspaces → Jira → Watched teammates. Each entry takes a tab label, a Jira identifier (display name, email, or accountId), an optional status filter, and a **Hide closed** toggle.
 - **Result limit**: fetches all matching tickets from Jira, paginated 100 per API call, ordered by last-updated descending.
 - Rows show: issue key · assignee avatar · project pill · status chip (tinted with Jira's `statusCategory` color) · priority badge · due date.
-- **1-Click Clone to Jira**: when cloning is enabled (Settings → Preferences → Ticket Workflows), hovering a row reveals a clone icon. Clicking immediately creates a copy in the configured default Jira project, shows a pending toast, then a success toast with a clickable link to the new issue. No dialog required.
+- **1-Click Clone to Jira**: when cloning is enabled on the Jira connector (Settings → Workspaces → expand the Jira connector card → "1-Click Cloning to Jira"), hovering a row reveals a clone icon. Clicking immediately creates a copy in the connector's configured default Jira project, shows a pending toast, then a success toast with a clickable link to the new issue. No dialog required.
 - Powered by: **Jira**.
 
 </details>
@@ -60,7 +60,7 @@
 - Rows show: task id (custom_id when set) · assignee avatars · list · status chip (ClickUp's own status color) · priority badge · due date.
 - Watched-teammate tabs respect the **Hide closed** toggle per entry.
 - Fetched via `/api/clickup/tasks`, scoped to the connector's Team ID.
-- **1-Click Clone to Jira**: same hover-icon mechanic as the Tickets widget. When enabled, clicking the icon clones the ClickUp task into the configured default Jira project.
+- **1-Click Clone to Jira**: same hover-icon mechanic as the Tickets widget. Enable on the ClickUp connector itself (Settings → Workspaces → expand the ClickUp connector card → "1-Click Cloning to Jira"); clicking clones the ClickUp task into the configured default Jira project for that connector.
 - Powered by: **ClickUp**.
 
 </details>
@@ -253,12 +253,12 @@ Reusable credentials shared across workspaces.
 </details>
 
 <details>
-<summary><strong>Preferences tab — Ticket Workflows</strong></summary>
+<summary><strong>Per-connector 1-Click Cloning (Workspaces tab)</strong></summary>
 
-Configure 1-Click Cloning from ClickUp or Jira into a target Jira project:
+Each Jira and ClickUp connector instance owns its own cloning config — there is no global toggle. Open the connector's card in the Workspaces tab and configure:
 
-- **Enable 1-Click Cloning to Jira** — toggle that shows/hides the clone icon on all ticket and task rows across Jira and ClickUp widgets.
-- **Default Target Jira Project** — dropdown populated from the active workspace's Jira connector. All clones are sent here. If Jira is not configured the dropdown shows a hint instead.
+- **Enable 1-Click Cloning to Jira** — per-connector toggle that shows/hides the clone icon on rows from this specific connector.
+- **Default Target Jira Project** — dropdown populated from the workspace's Jira connector(s). For ClickUp connectors, the dropdown lists every Jira project visible across the workspace's Jira connectors (de-duped by key). All clones from this connector are sent to the selected project.
 
 Cloning rules (V1):
 1. Title is copied exactly.
@@ -266,7 +266,7 @@ Cloning rules (V1):
 3. Issue type is `Task`; status defaults to the Jira project's backlog default.
 4. Attachments are not copied.
 
-Settings stored as `ticketWorkflows.cloningEnabled` / `ticketWorkflows.defaultTargetProject` in the `settings` table, and mirrored to localStorage for instant widget reads.
+Settings stored on the connector instance as `config.cloningEnabled` / `config.defaultTargetProject` (merged into `connector_instances.config` JSON). The server returns each list response with a `connectorCloningConfig` field so the frontend renders the correct toggle state without a separate round-trip.
 
 </details>
 

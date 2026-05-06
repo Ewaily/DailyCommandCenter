@@ -3,7 +3,7 @@ import { api, isAuthError, type Envelope, type Ticket, type PR } from "../api.js
 import { $, escapeHtml, renderNotConnected, skeletonCompact, animateNumber } from "./util.js";
 import { renderTaskRow } from "./task-row.js";
 
-export function renderJiraTicket(t: Ticket, cloningEnabled = false): string {
+export function renderJiraTicket(t: Ticket, cloningEnabled = false, targetProject = ""): string {
   return renderTaskRow({
     key: t.key || "",
     keyTitle: t.project || undefined,
@@ -17,6 +17,7 @@ export function renderJiraTicket(t: Ticket, cloningEnabled = false): string {
     listLabel: t.project,
     dueDate: t.dueDate,
     cloneSource: cloningEnabled ? "jira" : undefined,
+    cloneTargetProject: cloningEnabled ? targetProject : undefined,
   });
 }
 

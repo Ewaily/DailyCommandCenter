@@ -117,8 +117,8 @@ export type ConnectorInstance = {
 
 export type SecondaryTz = { tz: string; label: string };
 export type JiraProject = { id: string; key: string; name: string };
+export type ConnectorCloningConfig = { cloningEnabled: boolean; defaultTargetProject: string };
 export type AppCreds = {
-  ticketWorkflows: { cloningEnabled: boolean; defaultTargetProject: string };
   brand:     { name: string; subtitle: string };
   prefs:     { primaryTz: string; secondaryTzs: SecondaryTz[] };
   google:    { clientId: string | null; clientSecret: string | null; hasSecret: boolean; redirectUri: string | null };
@@ -159,14 +159,14 @@ export const api = {
 
   ticketsMine: (bucket: string = "mine", connectorId?: string) =>
     req<Ticket[]>(withWs(`/tickets/mine?bucket=${encodeURIComponent(bucket)}${connectorId ? `&connectorId=${encodeURIComponent(connectorId)}` : ""}`)) as Promise<
-      Envelope<Ticket[]> & { counts?: Record<string, number>; bucket?: string; buckets?: WatchedUser[] }
+      Envelope<Ticket[]> & { counts?: Record<string, number>; bucket?: string; buckets?: WatchedUser[]; connectorCloningConfig?: ConnectorCloningConfig }
     >,
   ticketsTeam: (project?: string, connectorId?: string) => req<Ticket[]>(withWs(`/tickets/team${project ? `?project=${encodeURIComponent(project)}` : ""}${connectorId ? `${project ? "&" : "?"}connectorId=${encodeURIComponent(connectorId)}` : ""}`)),
   prs: (bucket: "review" | "mine" | "all" | "closed" = "review", connectorId?: string) =>
     req<PR[]>(withWs(`/prs/queue?bucket=${bucket}${connectorId ? `&connectorId=${encodeURIComponent(connectorId)}` : ""}`)) as Promise<Envelope<PR[]> & { counts?: Record<string, number> }>,
   clickupTasks: (bucket = "mine", connectorId?: string) =>
     req<ClickUpTask[]>(withWs(`/clickup/tasks?bucket=${encodeURIComponent(bucket)}${connectorId ? `&connectorId=${encodeURIComponent(connectorId)}` : ""}`)) as Promise<
-      Envelope<ClickUpTask[]> & { counts?: Record<string, number>; bucket?: string; buckets?: WatchedUser[] }
+      Envelope<ClickUpTask[]> & { counts?: Record<string, number>; bucket?: string; buckets?: WatchedUser[]; connectorCloningConfig?: ConnectorCloningConfig }
     >,
 
   todos: () => req<Todo[]>("/todos"),

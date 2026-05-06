@@ -12,18 +12,10 @@ const MINE = "mine";
 let watchedUsers: WatchedUser[] = [];
 let active: string = getSetting<string>("clickupTab") || MINE;
 
-function isCloningEnabled(): boolean {
-  return getSetting<boolean>("ticketWorkflows.cloningEnabled") === true;
-}
-
-function defaultTargetProject(): string {
-  return getSetting<string>("ticketWorkflows.defaultTargetProject") || "";
-}
-
 async function handleClone(btn: HTMLElement): Promise<void> {
-  const project = defaultTargetProject();
+  const project = btn.dataset.targetProject || "";
   if (!project) {
-    toast("Set a default Jira project in Settings → Preferences → Ticket Workflows", "error");
+    toast("Configure a default Jira project in this connector's settings (Workspaces tab)", "error");
     return;
   }
   const title   = btn.dataset.cloneTitle || "";
@@ -43,7 +35,7 @@ async function handleClone(btn: HTMLElement): Promise<void> {
   }
 }
 
-function renderTask(t: ClickUpTask, cloningEnabled = false): string {
+function renderTask(t: ClickUpTask, cloningEnabled = false, targetProject = ""): string {
   const key = t.customId || `#${t.id.slice(-5)}`;
   return renderTaskRow({
     key,
@@ -58,6 +50,7 @@ function renderTask(t: ClickUpTask, cloningEnabled = false): string {
     listLabel: t.list,
     dueDate: t.dueDate,
     cloneSource: cloningEnabled ? "clickup" : undefined,
+    cloneTargetProject: cloningEnabled ? targetProject : undefined,
   });
 }
 
@@ -135,8 +128,8 @@ export async function loadClickUp(silent = false) {
         </div>`;
       return;
     }
-    const cloning = isCloningEnabled();
-    body.innerHTML = data.map(t => renderTask(t, cloning)).join("");
+    const cc = resp.connectorCloningConfig ?? { cloningEnabled: false, defaultTargetProject: "" };
+    body.innerHTML = data.map(t => renderTask(t, cc.cloningEnabled, cc.defaultTargetProject)).join("");
   } catch (err) {
     if (isAuthError(err)) {
       body.innerHTML = renderWorkspaceNotConfigured("ClickUp");
@@ -232,7 +225,8 @@ export function instantiateClickUp(
           </div>`;
         return;
       }
-      body.innerHTML = data.map(t => renderTask(t, isCloningEnabled())).join("");
+      const cc = resp.connectorCloningConfig ?? { cloningEnabled: false, defaultTargetProject: "" };
+      body.innerHTML = data.map(t => renderTask(t, cc.cloningEnabled, cc.defaultTargetProject)).join("");
     } catch (err) {
       if (isAuthError(err)) {
         body.innerHTML = renderWorkspaceNotConfigured("ClickUp");

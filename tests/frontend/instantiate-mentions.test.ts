@@ -246,3 +246,4 @@ describe("instantiateMentions — instance isolation", () => {
     expect(c2.querySelector("[data-ov-day-label]")?.textContent).toBe("Today");
   });
 });
+

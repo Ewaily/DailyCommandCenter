@@ -5,18 +5,10 @@ import { renderJiraTicket } from "./lists.js";
 
 const MINE = "mine";
 
-function isCloningEnabled(): boolean {
-  return getSetting<boolean>("ticketWorkflows.cloningEnabled") === true;
-}
-
-function defaultTargetProject(): string {
-  return getSetting<string>("ticketWorkflows.defaultTargetProject") || "";
-}
-
 async function handleClone(btn: HTMLElement): Promise<void> {
-  const project = defaultTargetProject();
+  const project = btn.dataset.targetProject || "";
   if (!project) {
-    toast("Set a default Jira project in Settings → Preferences → Ticket Workflows", "error");
+    toast("Configure a default Jira project in this connector's settings (Workspaces tab)", "error");
     return;
   }
   const title  = btn.dataset.cloneTitle || "";
@@ -42,8 +34,6 @@ async function handleClone(btn: HTMLElement): Promise<void> {
 // add or remove tracked teammates without touching code.
 let watchedUsers: WatchedUser[] = [];
 let active: string = getSetting<string>("jiraTab") || MINE;
-
-const renderTicket = (t: Ticket): string => renderJiraTicket(t);
 
 function bucketIds(): string[] {
   return [MINE, ...watchedUsers.map(w => w.id)];
@@ -154,8 +144,8 @@ export async function loadTickets(silent = false) {
       </div>`;
       return;
     }
-    const cloning = isCloningEnabled();
-    body.innerHTML = data.map(t => renderJiraTicket(t, cloning)).join("");
+    const cc = resp.connectorCloningConfig ?? { cloningEnabled: false, defaultTargetProject: "" };
+    body.innerHTML = data.map(t => renderJiraTicket(t, cc.cloningEnabled, cc.defaultTargetProject)).join("");
   } catch (err) {
     if (isAuthError(err)) { body.innerHTML = renderNotConnected("Jira", "jira"); resetCounts(); }
     else body.innerHTML = `<div class="error">${escapeHtml((err as Error).message)}</div>`;
@@ -286,8 +276,8 @@ export function instantiateTickets(
         </div>`;
         return;
       }
-      const cloning = isCloningEnabled();
-      body.innerHTML = data.map(t => renderJiraTicket(t, cloning)).join("");
+      const cc = resp.connectorCloningConfig ?? { cloningEnabled: false, defaultTargetProject: "" };
+      body.innerHTML = data.map(t => renderJiraTicket(t, cc.cloningEnabled, cc.defaultTargetProject)).join("");
     } catch (err) {
       if (isAuthError(err)) body.innerHTML = renderNotConnected("Jira", "jira");
       else body.innerHTML = `<div class="error">${escapeHtml((err as Error).message)}</div>`;

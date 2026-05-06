@@ -21,9 +21,6 @@ vi.mock("../../src/frontend/components/util.js", async (importOriginal) => {
   return { ...actual, animateNumber: vi.fn(), toast: mockToast };
 });
 
-// Use real renderTaskRow so clone buttons are actually rendered.
-// We do NOT mock task-row.js or lists.js here.
-
 import { instantiateClickUp, bindClickUpClone } from "../../src/frontend/components/clickup.js";
 import { instantiateTickets, bindTicketTabs }   from "../../src/frontend/components/tickets.js";
 
@@ -64,19 +61,30 @@ const jiraTicket = (overrides = {}) => ({
   ...overrides,
 });
 
-const okClickup = (items = [clickupTask()]) =>
-  Promise.resolve({ data: items, buckets: [], counts: { mine: items.length }, notConfigured: false, bucket: "mine" });
-
-const okJira = (items = [jiraTicket()]) =>
-  Promise.resolve({ data: items, buckets: [], counts: { mine: items.length }, notConfigured: false, bucket: "mine" });
-
-function withCloning(project = "PROJ") {
-  mockGetSetting.mockImplementation((k: string) => {
-    if (k === "ticketWorkflows.cloningEnabled")       return true;
-    if (k === "ticketWorkflows.defaultTargetProject") return project;
-    return undefined;
+// connectorCloningConfig is now part of the server response — no global state needed.
+const okClickup = (items = [clickupTask()], project?: string) =>
+  Promise.resolve({
+    data: items,
+    buckets: [],
+    counts: { mine: items.length },
+    notConfigured: false,
+    bucket: "mine",
+    connectorCloningConfig: project
+      ? { cloningEnabled: true,  defaultTargetProject: project }
+      : { cloningEnabled: false, defaultTargetProject: "" },
   });
-}
+
+const okJira = (items = [jiraTicket()], project?: string) =>
+  Promise.resolve({
+    data: items,
+    buckets: [],
+    counts: { mine: items.length },
+    notConfigured: false,
+    bucket: "mine",
+    connectorCloningConfig: project
+      ? { cloningEnabled: true,  defaultTargetProject: project }
+      : { cloningEnabled: false, defaultTargetProject: "" },
+  });
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -88,9 +96,8 @@ beforeEach(() => {
 // ── ClickUp clone button ──────────────────────────────────────────────────────
 
 describe("ClickUp clone button", () => {
-  it("renders a .clone-to-jira-btn when cloningEnabled is true", async () => {
-    withCloning();
-    mockApi.clickupTasks.mockResolvedValue(okClickup());
+  it("renders a .clone-to-jira-btn when connectorCloningConfig.cloningEnabled is true", async () => {
+    mockApi.clickupTasks.mockResolvedValue(okClickup([clickupTask()], "PROJ"));
     const c = makeContainer();
     const inst = instantiateClickUp(c, "conn-1", { wsName: "WS", title: "Tasks" });
     await inst.load();
@@ -98,7 +105,6 @@ describe("ClickUp clone button", () => {
   });
 
   it("does NOT render .clone-to-jira-btn when cloningEnabled is false", async () => {
-    mockGetSetting.mockReturnValue(undefined);
     mockApi.clickupTasks.mockResolvedValue(okClickup());
     const c = makeContainer();
     const inst = instantiateClickUp(c, "conn-1", { wsName: "WS", title: "Tasks" });
@@ -106,9 +112,17 @@ describe("ClickUp clone button", () => {
     expect(c.querySelector(".clone-to-jira-btn")).toBeNull();
   });
 
+  it("sets data-target-project on the clone button from connectorCloningConfig", async () => {
+    mockApi.clickupTasks.mockResolvedValue(okClickup([clickupTask()], "TARGET"));
+    const c = makeContainer();
+    const inst = instantiateClickUp(c, "conn-1", { wsName: "WS", title: "Tasks" });
+    await inst.load();
+    const btn = c.querySelector<HTMLElement>(".clone-to-jira-btn");
+    expect(btn?.dataset.targetProject).toBe("TARGET");
+  });
+
   it("calls api.cloneTicket with correct payload when clone button is clicked", async () => {
-    withCloning("TARGET");
-    mockApi.clickupTasks.mockResolvedValue(okClickup());
+    mockApi.clickupTasks.mockResolvedValue(okClickup([clickupTask()], "TARGET"));
     mockApi.cloneTicket.mockResolvedValue({ data: { key: "TARGET-99", id: "99", url: "https://jira.example.com/browse/TARGET-99" } });
     const c = makeContainer();
     const inst = instantiateClickUp(c, "conn-1", { wsName: "WS", title: "Tasks" });
@@ -127,11 +141,12 @@ describe("ClickUp clone button", () => {
     }));
   });
 
-  it("shows error toast when no default project is configured", async () => {
-    mockGetSetting.mockImplementation((k: string) =>
-      k === "ticketWorkflows.cloningEnabled" ? true : undefined,
+  it("shows error toast when no target project is on the button", async () => {
+    // cloningEnabled true but targetProject empty — simulates misconfigured state
+    mockApi.clickupTasks.mockResolvedValue(
+      Promise.resolve({ data: [clickupTask()], buckets: [], counts: {}, notConfigured: false, bucket: "mine",
+        connectorCloningConfig: { cloningEnabled: true, defaultTargetProject: "" } }),
     );
-    mockApi.clickupTasks.mockResolvedValue(okClickup());
     const c = makeContainer();
     const inst = instantiateClickUp(c, "conn-1", { wsName: "WS", title: "Tasks" });
     await inst.load();
@@ -140,13 +155,12 @@ describe("ClickUp clone button", () => {
     btn?.click();
     await new Promise(r => setTimeout(r, 0));
 
-    expect(mockToast).toHaveBeenCalledWith(expect.stringContaining("default Jira project"), "error");
+    expect(mockToast).toHaveBeenCalledWith(expect.stringContaining("Workspaces tab"), "error");
     expect(mockApi.cloneTicket).not.toHaveBeenCalled();
   });
 
   it("shows error toast when api.cloneTicket rejects", async () => {
-    withCloning("PROJ");
-    mockApi.clickupTasks.mockResolvedValue(okClickup());
+    mockApi.clickupTasks.mockResolvedValue(okClickup([clickupTask()], "PROJ"));
     mockApi.cloneTicket.mockRejectedValue(new Error("Jira 403 Forbidden"));
     const c = makeContainer();
     const inst = instantiateClickUp(c, "conn-1", { wsName: "WS", title: "Tasks" });
@@ -156,6 +170,14 @@ describe("ClickUp clone button", () => {
     await new Promise(r => setTimeout(r, 10));
 
     expect(mockToast).toHaveBeenCalledWith(expect.stringContaining("403 Forbidden"), "error");
+  });
+
+  it("shows notConfigured state when ClickUp is not connected", async () => {
+    mockApi.clickupTasks.mockResolvedValue({ data: [], notConfigured: true, buckets: [], counts: {} });
+    const c = makeContainer();
+    const inst = instantiateClickUp(c, "conn-1", { wsName: "WS", title: "Tasks" });
+    await inst.load();
+    expect(c.querySelector(".clone-to-jira-btn")).toBeNull();
   });
 });
 
@@ -180,9 +202,8 @@ describe("bindClickUpClone", () => {
 // ── Jira tickets clone button ─────────────────────────────────────────────────
 
 describe("Jira tickets clone button (instantiateTickets)", () => {
-  it("renders a .clone-to-jira-btn when cloningEnabled is true", async () => {
-    withCloning();
-    mockApi.ticketsMine.mockResolvedValue(okJira());
+  it("renders a .clone-to-jira-btn when connectorCloningConfig.cloningEnabled is true", async () => {
+    mockApi.ticketsMine.mockResolvedValue(okJira([jiraTicket()], "PROJ"));
     const c = makeContainer();
     const inst = instantiateTickets(c, "conn-2", { wsName: "WS", title: "Tickets" });
     await inst.load();
@@ -197,9 +218,17 @@ describe("Jira tickets clone button (instantiateTickets)", () => {
     expect(c.querySelector(".clone-to-jira-btn")).toBeNull();
   });
 
+  it("sets data-target-project on the button from connectorCloningConfig", async () => {
+    mockApi.ticketsMine.mockResolvedValue(okJira([jiraTicket()], "TARGET"));
+    const c = makeContainer();
+    const inst = instantiateTickets(c, "conn-2", { wsName: "WS", title: "Tickets" });
+    await inst.load();
+    const btn = c.querySelector<HTMLElement>(".clone-to-jira-btn");
+    expect(btn?.dataset.targetProject).toBe("TARGET");
+  });
+
   it("calls api.cloneTicket when clone button is clicked on a Jira ticket", async () => {
-    withCloning("TARGET");
-    mockApi.ticketsMine.mockResolvedValue(okJira());
+    mockApi.ticketsMine.mockResolvedValue(okJira([jiraTicket()], "TARGET"));
     mockApi.cloneTicket.mockResolvedValue({ data: { key: "TARGET-55", id: "55", url: "https://jira.example.com/browse/TARGET-55" } });
     const c = makeContainer();
     const inst = instantiateTickets(c, "conn-2", { wsName: "WS", title: "Tickets" });
@@ -214,6 +243,31 @@ describe("Jira tickets clone button (instantiateTickets)", () => {
       title:                "Fix login bug",
       targetJiraProjectId:  "TARGET",
     }));
+  });
+
+  it("shows error toast when data-target-project is empty", async () => {
+    mockApi.ticketsMine.mockResolvedValue(
+      Promise.resolve({ data: [jiraTicket()], buckets: [], counts: {}, notConfigured: false, bucket: "mine",
+        connectorCloningConfig: { cloningEnabled: true, defaultTargetProject: "" } }),
+    );
+    const c = makeContainer();
+    const inst = instantiateTickets(c, "conn-2", { wsName: "WS", title: "Tickets" });
+    await inst.load();
+
+    const btn = c.querySelector<HTMLElement>(".clone-to-jira-btn");
+    btn?.click();
+    await new Promise(r => setTimeout(r, 0));
+
+    expect(mockToast).toHaveBeenCalledWith(expect.stringContaining("Workspaces tab"), "error");
+    expect(mockApi.cloneTicket).not.toHaveBeenCalled();
+  });
+
+  it("shows notConfigured state when Jira is not connected", async () => {
+    mockApi.ticketsMine.mockResolvedValue({ data: [], notConfigured: true, buckets: [], counts: {} });
+    const c = makeContainer();
+    const inst = instantiateTickets(c, "conn-2", { wsName: "WS", title: "Tickets" });
+    await inst.load();
+    expect(c.querySelector(".clone-to-jira-btn")).toBeNull();
   });
 });
 

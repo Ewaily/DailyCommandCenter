@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { buildCloneAdf, createIssue, listProjectsWith, type JiraCreds } from "../src/server/integrations/jira.js";
+import { extractCloningConfig } from "../src/server/routes/tickets.js";
+import { pickClickUpCloningConfig } from "../src/server/routes/clickup.js";
 
 // ── buildCloneAdf ─────────────────────────────────────────────────────────────
 
@@ -117,6 +119,66 @@ describe("listProjectsWith", () => {
     }));
     const projects = await listProjectsWith(creds);
     expect(projects).toEqual([]);
+  });
+});
+
+// ── extractCloningConfig ──────────────────────────────────────────────────────
+
+describe("extractCloningConfig", () => {
+  it("returns cloningEnabled:false and empty project when config is empty", () => {
+    expect(extractCloningConfig({})).toEqual({ cloningEnabled: false, defaultTargetProject: "" });
+  });
+
+  it("returns cloningEnabled:true when flag is truthy", () => {
+    expect(extractCloningConfig({ cloningEnabled: true })).toMatchObject({ cloningEnabled: true });
+  });
+
+  it("returns cloningEnabled:false when flag is falsy", () => {
+    expect(extractCloningConfig({ cloningEnabled: false })).toMatchObject({ cloningEnabled: false });
+  });
+
+  it("returns the defaultTargetProject string", () => {
+    expect(extractCloningConfig({ cloningEnabled: true, defaultTargetProject: "PROJ" }))
+      .toMatchObject({ defaultTargetProject: "PROJ" });
+  });
+
+  it("returns empty string for defaultTargetProject when value is not a string", () => {
+    expect(extractCloningConfig({ defaultTargetProject: 123 }))
+      .toMatchObject({ defaultTargetProject: "" });
+  });
+});
+
+// ── pickClickUpCloningConfig ──────────────────────────────────────────────────
+
+describe("pickClickUpCloningConfig", () => {
+  const makeResolved = (id: string, cfg: Record<string, unknown>) => ({
+    workspaceId: "ws-1" as string | undefined,
+    instance: { id, config: cfg } as any,
+  });
+
+  it("returns the first connector's config when no scopeId given", () => {
+    const resolved = [
+      makeResolved("c1", { cloningEnabled: true, defaultTargetProject: "FIRST" }),
+      makeResolved("c2", { cloningEnabled: false, defaultTargetProject: "SECOND" }),
+    ];
+    expect(pickClickUpCloningConfig(resolved)).toMatchObject({ defaultTargetProject: "FIRST" });
+  });
+
+  it("returns the scoped connector's config when scopeId matches", () => {
+    const resolved = [
+      makeResolved("c1", { cloningEnabled: false, defaultTargetProject: "FIRST" }),
+      makeResolved("c2", { cloningEnabled: true,  defaultTargetProject: "SECOND" }),
+    ];
+    expect(pickClickUpCloningConfig(resolved, "c2")).toMatchObject({ defaultTargetProject: "SECOND" });
+  });
+
+  it("returns disabled defaults when resolved list is empty", () => {
+    expect(pickClickUpCloningConfig([])).toEqual({ cloningEnabled: false, defaultTargetProject: "" });
+  });
+
+  it("returns disabled defaults when scopeId does not match any connector", () => {
+    const resolved = [makeResolved("c1", { cloningEnabled: true, defaultTargetProject: "P" })];
+    expect(pickClickUpCloningConfig(resolved, "missing")).toEqual({ cloningEnabled: false, defaultTargetProject: "" });
   });
 });
 

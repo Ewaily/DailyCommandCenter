@@ -10,11 +10,21 @@ import {
 
 export const ticketsRouter = Router();
 
+export type ConnectorCloningConfig = { cloningEnabled: boolean; defaultTargetProject: string };
+
 type ResolvedJira = {
   id: string;
   creds: jira.JiraCreds;
   watchedUsers: WatchedUser[];
+  cloningConfig: ConnectorCloningConfig;
 };
+
+export function extractCloningConfig(cfg: Record<string, unknown>): ConnectorCloningConfig {
+  return {
+    cloningEnabled:       !!(cfg.cloningEnabled),
+    defaultTargetProject: typeof cfg.defaultTargetProject === "string" ? cfg.defaultTargetProject : "",
+  };
+}
 
 function resolveJira(scopeId?: string): ResolvedJira[] {
   const wsId = getActiveWorkspaceId();
@@ -34,6 +44,7 @@ function resolveJira(scopeId?: string): ResolvedJira[] {
       id: c.id,
       creds: { baseUrl, email, apiToken },
       watchedUsers: Array.isArray(cfg.watchedUsers) ? cfg.watchedUsers : [],
+      cloningConfig: extractCloningConfig(c.config),
     });
   }
   return result;
@@ -94,11 +105,16 @@ ticketsRouter.get("/mine", async (req, res) => {
     counts[id] = deduped.length;
   });
 
+  // Use the scoped connector's config when connectorId is set; else the first resolved.
+  const primaryConfig = (scopeId ? resolved.find(r => r.id === scopeId) : resolved[0])?.cloningConfig
+    ?? { cloningEnabled: false, defaultTargetProject: "" };
+
   res.json({
     data: merged[bucket] ?? [],
     bucket,
     counts,
-    buckets: watched, // "mine" is implicit in the client
+    buckets: watched,
+    connectorCloningConfig: primaryConfig,
   });
 });
 
