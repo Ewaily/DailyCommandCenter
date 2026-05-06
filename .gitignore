@@ -94,3 +94,4 @@ desktop.ini
 *.tar.gz
 .tmp/
 tmp/
+coverage/

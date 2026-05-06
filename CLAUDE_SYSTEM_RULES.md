@@ -41,6 +41,36 @@ the rule has already been violated.
 
 ---
 
+## TESTING RULE
+
+Claude **MUST** write comprehensive unit tests for every new feature, component, or
+utility function it creates. Claude **must never** consider a task "complete" unless
+the corresponding tests are written **and passing**.
+
+This is enforced at three levels:
+
+1. **Authoring** — every new exported function, branch, and edge case must have at
+   least one assertion. New bug fixes must start with a failing regression test
+   that reproduces the bug, then be made to pass.
+2. **Local gate** — Claude must run `npm run test:coverage` before declaring the
+   work done. The command runs Vitest with V8 coverage, enforces the thresholds
+   in `vitest.config.ts`, and fails non-zero if any global metric (statements,
+   branches, functions, lines) drops below the project floor.
+3. **CI gate** — `.github/workflows/ci.yml` runs `npm run test:coverage` on every
+   pull request to `prod` against Node 20 and Node 22. A drop below the floor
+   blocks the merge — there is no override.
+
+The current coverage floor lives in `vitest.config.ts` under
+`test.coverage.thresholds`. Claude **must never** lower these numbers to make a
+build pass. If coverage rises permanently, the floor should be ratcheted **up**
+in the same PR that raised it, never down.
+
+When refactoring, existing tests must still pass without modification — if a
+test breaks, either the refactor is wrong or the test was protecting behavior
+that is changing intentionally. State which it is in the PR description.
+
+---
+
 ## SECURITY RULE
 
 - Treat every string that looks like a token (`ghp_…`, `xox[pb]-…`, `ATATT…`,
