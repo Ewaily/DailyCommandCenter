@@ -538,11 +538,13 @@ button { font-family: inherit; }
 .card-header .tab {
   background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.15);
   color: rgba(255,255,255,.85); padding: 3px 8px; border-radius: 4px;
-  font-size: var(--fs-xs); cursor: grab; text-transform: none; letter-spacing: 0;
+  font-size: var(--fs-xs); cursor: pointer; text-transform: none; letter-spacing: 0;
   transition: background var(--t-fast) var(--ease), box-shadow 120ms ease, opacity 120ms ease;
   white-space: nowrap; user-select: none;
 }
 .card-header .tab:hover { background: rgba(255,255,255,.18); }
+body.dashboard-editing .card-header .tab { cursor: grab; }
+body.dashboard-editing .card-header .tab:active { cursor: grabbing; }
 .card-header .tab.active {
   background: var(--accent); color: var(--accent-on, #fff);
   border-color: var(--accent); font-weight: 600;
