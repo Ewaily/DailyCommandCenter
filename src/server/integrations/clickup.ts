@@ -60,6 +60,50 @@ export async function getTaskDescription(taskId: string, workspaceId?: string): 
   }
 }
 
+export type ClickUpAttachment = {
+  id: string;
+  title: string; // filename
+  url: string;   // CDN download URL
+  size: number;  // may be 0 if not provided
+};
+
+const MEDIA_FILENAME_RE = /\.(jpe?g|png|gif|webp|svg|bmp|ico|tiff?|heic|heif|avif|mp4|webm|mov|avi|mkv|m4v|ogv|flv|wmv)$/i;
+const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
+
+/** Returns image/video attachments for a task. Filters by filename extension. */
+export async function getTaskAttachments(taskId: string, workspaceId?: string): Promise<ClickUpAttachment[]> {
+  try {
+    const creds = effective(workspaceId);
+    const data: any = await clickUpGet<any>(creds, `/task/${encodeURIComponent(taskId)}`);
+    const raw: any[] = Array.isArray(data?.attachments) ? data.attachments : [];
+    return raw
+      .filter(a => MEDIA_FILENAME_RE.test(a.title ?? ""))
+      .map(a => ({ id: a.id ?? "", title: a.title ?? "attachment", url: a.url ?? "", size: a.size ?? 0 }));
+  } catch {
+    return [];
+  }
+}
+
+/** Downloads a ClickUp attachment using the workspace token. Returns null on failure or oversize. */
+export async function downloadClickUpFile(
+  url: string,
+  workspaceId?: string,
+): Promise<{ buffer: Buffer; mimeType: string } | null> {
+  try {
+    const creds = effective(workspaceId);
+    const res = await fetch(url, { headers: { Authorization: creds.token } });
+    if (!res.ok) return null;
+    const cl = parseInt(res.headers.get("content-length") ?? "0", 10);
+    if (cl > MAX_ATTACHMENT_BYTES) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.byteLength > MAX_ATTACHMENT_BYTES) return null;
+    const mimeType = (res.headers.get("content-type") ?? "application/octet-stream").split(";")[0].trim();
+    return { buffer: buf, mimeType };
+  } catch {
+    return null;
+  }
+}
+
 /** Returns the authenticated user — used to verify the token works. */
 export async function whoAmI(workspaceId?: string) {
   const creds = effective(workspaceId);

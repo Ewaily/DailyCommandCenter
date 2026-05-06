@@ -112,11 +112,10 @@ cloneRouter.post("/clone-ticket", async (req, res) => {
   const providerLabel  = sourceProvider === "clickup" ? "ClickUp" : "Jira";
   const descriptionAdf = jira.buildCloneAdf(providerLabel, originalLink, sourceDescription);
 
+  const targetCreds = { baseUrl: creds.baseUrl, email: creds.email, apiToken: creds.apiToken };
+
   try {
-    const result = await jira.createIssue(
-      { baseUrl: creds.baseUrl, email: creds.email, apiToken: creds.apiToken },
-      { projectKey: creds.projectKey, summary: title, descriptionAdf },
-    );
+    const result = await jira.createIssue(targetCreds, { projectKey: creds.projectKey, summary: title, descriptionAdf });
     const clonedUrl = `${creds.baseUrl}/browse/${result.key}`;
 
     // Persist to clone_history — never deleted.
@@ -124,7 +123,40 @@ cloneRouter.post("/clone-ticket", async (req, res) => {
       "INSERT INTO clone_history (source_url, source_title, cloned_key, cloned_url, cloned_at) VALUES (?, ?, ?, ?, ?)",
     ).run(originalLink, title, result.key, clonedUrl, Date.now());
 
-    res.json({ data: { key: result.key, id: result.id, url: clonedUrl } });
+    // Clone attachments (images + videos) — best-effort, non-fatal.
+    let attachmentsCloned = 0;
+    try {
+      if (sourceProvider === "clickup") {
+        const taskId = clickupIdFromUrl(originalLink);
+        if (taskId) {
+          const atts = await clickup.getTaskAttachments(taskId, wsId ?? undefined);
+          for (const att of atts) {
+            if (att.size > 0 && att.size > 25 * 1024 * 1024) continue;
+            const dl = await clickup.downloadClickUpFile(att.url, wsId ?? undefined);
+            if (!dl || !/^(image|video)\//.test(dl.mimeType)) continue;
+            await jira.uploadAttachment(targetCreds, result.key, att.title, dl.buffer, dl.mimeType);
+            attachmentsCloned++;
+          }
+        }
+      } else if (sourceProvider === "jira") {
+        const issueKey = jiraKeyFromUrl(originalLink);
+        if (issueKey) {
+          const sourceCreds = resolveFirstJira(connectorId) ?? resolveFirstJira();
+          if (sourceCreds) {
+            const atts = await jira.getIssueAttachments(sourceCreds.creds, issueKey);
+            for (const att of atts) {
+              if (att.size > 25 * 1024 * 1024) continue;
+              const dl = await jira.downloadJiraFile(sourceCreds.creds, att.url);
+              if (!dl) continue;
+              await jira.uploadAttachment(targetCreds, result.key, att.filename, dl.buffer, dl.mimeType);
+              attachmentsCloned++;
+            }
+          }
+        }
+      }
+    } catch { /* attachment failures never abort the clone */ }
+
+    res.json({ data: { key: result.key, id: result.id, url: clonedUrl, attachmentsCloned } });
   } catch (err: any) {
     res.status(502).json({ error: err.message });
   }

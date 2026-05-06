@@ -17,13 +17,18 @@ const mockDb   = { prepare: vi.fn().mockReturnValue(mockStmt) };
 const { mockJira, mockClickup, mockListConnectorsForWorkspace, mockListConnectorsForOverview, mockGetIdentity, mockGetActiveWorkspaceId } =
   vi.hoisted(() => ({
     mockJira: {
-      listProjectsWith:     vi.fn(),
-      createIssue:          vi.fn(),
-      buildCloneAdf:        vi.fn().mockReturnValue({ type: "doc", version: 1, content: [] }),
-      getIssueDescription:  vi.fn().mockResolvedValue(null),
+      listProjectsWith:      vi.fn(),
+      createIssue:           vi.fn(),
+      buildCloneAdf:         vi.fn().mockReturnValue({ type: "doc", version: 1, content: [] }),
+      getIssueDescription:   vi.fn().mockResolvedValue(null),
+      getIssueAttachments:   vi.fn().mockResolvedValue([]),
+      downloadJiraFile:      vi.fn().mockResolvedValue(null),
+      uploadAttachment:      vi.fn().mockResolvedValue(undefined),
     },
     mockClickup: {
-      getTaskDescription: vi.fn().mockResolvedValue(null),
+      getTaskDescription:   vi.fn().mockResolvedValue(null),
+      getTaskAttachments:   vi.fn().mockResolvedValue([]),
+      downloadClickUpFile:  vi.fn().mockResolvedValue(null),
     },
     mockListConnectorsForWorkspace: vi.fn(),
     mockListConnectorsForOverview:  vi.fn(),
@@ -375,5 +380,117 @@ describe("POST /clone-ticket", () => {
     });
     expect(res.status).toBe(200);
     expect(mockListConnectorsForOverview).toHaveBeenCalled();
+  });
+
+  it("uploads ClickUp image attachments to the new Jira issue", async () => {
+    const imgBuf = Buffer.from("fake-png-bytes");
+    mockJira.createIssue.mockResolvedValue({ key: "P-1", id: "1" });
+    mockClickup.getTaskAttachments.mockResolvedValue([
+      { id: "a1", title: "screenshot.png", url: "https://cdn.clickup.com/screenshot.png", size: 1024 },
+    ]);
+    mockClickup.downloadClickUpFile.mockResolvedValue({ buffer: imgBuf, mimeType: "image/png" });
+
+    const res = await request(app).post("/clone-ticket").send({
+      sourceProvider: "clickup",
+      title:          "X",
+      originalLink:   "https://app.clickup.com/t/abc123",
+      connectorId:    "ci-source-1",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.attachmentsCloned).toBe(1);
+    expect(mockJira.uploadAttachment).toHaveBeenCalledWith(
+      expect.objectContaining({ baseUrl: "https://target.atlassian.net" }),
+      "P-1",
+      "screenshot.png",
+      imgBuf,
+      "image/png",
+    );
+  });
+
+  it("skips ClickUp attachments whose download returns a non-media mimeType", async () => {
+    mockJira.createIssue.mockResolvedValue({ key: "P-1", id: "1" });
+    mockClickup.getTaskAttachments.mockResolvedValue([
+      { id: "a1", title: "screenshot.png", url: "https://cdn.clickup.com/x.png", size: 100 },
+    ]);
+    mockClickup.downloadClickUpFile.mockResolvedValue({ buffer: Buffer.from("x"), mimeType: "text/plain" });
+
+    const res = await request(app).post("/clone-ticket").send({
+      sourceProvider: "clickup",
+      title:          "X",
+      originalLink:   "https://app.clickup.com/t/abc123",
+      connectorId:    "ci-source-1",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.attachmentsCloned).toBe(0);
+    expect(mockJira.uploadAttachment).not.toHaveBeenCalled();
+  });
+
+  it("skips ClickUp attachments that exceed 25 MB size limit", async () => {
+    mockJira.createIssue.mockResolvedValue({ key: "P-1", id: "1" });
+    mockClickup.getTaskAttachments.mockResolvedValue([
+      { id: "a1", title: "huge.mp4", url: "https://cdn.clickup.com/huge.mp4", size: 30 * 1024 * 1024 },
+    ]);
+
+    const res = await request(app).post("/clone-ticket").send({
+      sourceProvider: "clickup",
+      title:          "X",
+      originalLink:   "https://app.clickup.com/t/abc123",
+      connectorId:    "ci-source-1",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.attachmentsCloned).toBe(0);
+    expect(mockClickup.downloadClickUpFile).not.toHaveBeenCalled();
+  });
+
+  it("uploads Jira source image attachments to the target Jira issue", async () => {
+    const imgBuf = Buffer.from("fake-jpg-bytes");
+    mockListConnectorsForWorkspace.mockReturnValue([
+      jiraConnector({ id: "ci-jira-src", config: { baseUrl: "https://src.atlassian.net", ...fullCloneCfg }, identityId: "id-j" }),
+    ]);
+    mockGetIdentity.mockReturnValue({ accessToken: "tok", account: "u@j.com" });
+    mockJira.createIssue.mockResolvedValue({ key: "P-1", id: "1" });
+    mockJira.getIssueAttachments.mockResolvedValue([
+      { filename: "design.jpg", url: "https://src.atlassian.net/secure/attachment/1/design.jpg", mimeType: "image/jpeg", size: 2048 },
+    ]);
+    mockJira.downloadJiraFile.mockResolvedValue({ buffer: imgBuf, mimeType: "image/jpeg" });
+
+    const res = await request(app).post("/clone-ticket").send({
+      sourceProvider: "jira",
+      title:          "Fix bug",
+      originalLink:   "https://src.atlassian.net/browse/PROJ-42",
+      connectorId:    "ci-jira-src",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.attachmentsCloned).toBe(1);
+    expect(mockJira.uploadAttachment).toHaveBeenCalledWith(
+      expect.objectContaining({ baseUrl: "https://target.atlassian.net" }),
+      "P-1",
+      "design.jpg",
+      imgBuf,
+      "image/jpeg",
+    );
+  });
+
+  it("still returns 200 when attachment upload throws (best-effort)", async () => {
+    mockJira.createIssue.mockResolvedValue({ key: "P-1", id: "1" });
+    mockClickup.getTaskAttachments.mockResolvedValue([
+      { id: "a1", title: "img.png", url: "https://cdn.clickup.com/img.png", size: 100 },
+    ]);
+    mockClickup.downloadClickUpFile.mockResolvedValue({ buffer: Buffer.from("x"), mimeType: "image/png" });
+    mockJira.uploadAttachment.mockRejectedValue(new Error("Jira attachment limit exceeded"));
+
+    const res = await request(app).post("/clone-ticket").send({
+      sourceProvider: "clickup",
+      title:          "X",
+      originalLink:   "https://app.clickup.com/t/abc123",
+      connectorId:    "ci-source-1",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.key).toBe("P-1");
   });
 });

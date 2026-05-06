@@ -383,6 +383,68 @@ export async function getIssueDescription(creds: JiraCreds, issueKey: string): P
   }
 }
 
+export type AttachmentInfo = {
+  filename: string;
+  url: string;
+  mimeType: string;
+  size: number;
+};
+
+const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024; // 25 MB hard cap per file
+
+/** Returns the attachment list for a Jira issue (images + videos only by mimeType). */
+export async function getIssueAttachments(creds: JiraCreds, issueKey: string): Promise<AttachmentInfo[]> {
+  try {
+    const data: any = await jiraGet(creds, `/rest/api/3/issue/${encodeURIComponent(issueKey)}?fields=attachment`);
+    const raw: any[] = data?.fields?.attachment ?? [];
+    return raw
+      .filter(a => /^(image|video)\//.test(a.mimeType ?? ""))
+      .map(a => ({ filename: a.filename, url: a.content, mimeType: a.mimeType, size: a.size ?? 0 }));
+  } catch {
+    return [];
+  }
+}
+
+/** Downloads a Jira attachment using the connector's credentials. Returns null on any failure or oversize. */
+export async function downloadJiraFile(creds: JiraCreds, url: string): Promise<{ buffer: Buffer; mimeType: string } | null> {
+  try {
+    const res = await fetch(url, { headers: { Authorization: authHeader(creds) } });
+    if (!res.ok) return null;
+    const cl = parseInt(res.headers.get("content-length") ?? "0", 10);
+    if (cl > MAX_ATTACHMENT_BYTES) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.byteLength > MAX_ATTACHMENT_BYTES) return null;
+    const mimeType = (res.headers.get("content-type") ?? "application/octet-stream").split(";")[0].trim();
+    return { buffer: buf, mimeType };
+  } catch {
+    return null;
+  }
+}
+
+/** Uploads a file to a Jira issue as an attachment. Throws on API error. */
+export async function uploadAttachment(
+  creds: JiraCreds,
+  issueKey: string,
+  filename: string,
+  data: Buffer,
+  mimeType: string,
+): Promise<void> {
+  const form = new FormData();
+  form.append("file", new Blob([new Uint8Array(data)], { type: mimeType }), filename);
+  const res = await fetch(`${creds.baseUrl}/rest/api/2/issue/${encodeURIComponent(issueKey)}/attachments`, {
+    method: "POST",
+    headers: {
+      Authorization: authHeader(creds),
+      "X-Atlassian-Token": "no-check",
+    },
+    body: form,
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`attachment upload ${filename}: ${res.status} ${text.slice(0, 120)}`);
+  }
+}
+
 export async function listProjectsWith(creds: JiraCreds): Promise<JiraProject[]> {
   const data: any = await jiraGet(creds, "/rest/api/3/project/search?maxResults=50&orderBy=name");
   return (data.values || []).map((p: any) => ({
