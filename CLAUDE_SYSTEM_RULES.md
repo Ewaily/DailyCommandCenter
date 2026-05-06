@@ -7,15 +7,15 @@ These are **strict, non-negotiable directives** that Claude must follow on every
 ## OPEN SOURCE RULE
 
 Before modifying any code, Claude **must** read the existing documentation
-([README.md](./README.md), [SETUP.md](./SETUP.md), [FEATURES.md](./FEATURES.md), [CLAUDE.md](./CLAUDE.md))
+([README.md](./README.md), [SETUP.md](./docs/SETUP.md), [FEATURES.md](./docs/FEATURES.md), [CLAUDE.md](./CLAUDE.md))
 that covers the area being changed.
 
 After completing **any** feature, fix, refactor, or behavior change, Claude **must autonomously**
 update the following files in the same response — without being asked, without confirmation:
 
-- **[FEATURE_BREAKDOWN.md](./FEATURES.md)** (the project's `FEATURES.md`) — every user-facing
+- **[FEATURE_BREAKDOWN.md](./docs/FEATURES.md)** (the project's `FEATURES.md`) — every user-facing
   feature, card, shortcut, toggle, integration, and setting must reflect reality.
-- **[USER_ONBOARDING.md](./SETUP.md)** (the project's `SETUP.md`) — every env var,
+- **[USER_ONBOARDING.md](./docs/SETUP.md)** (the project's `SETUP.md`) — every env var,
   prerequisite, OAuth redirect URI, and "how to connect" step must reflect reality.
 - **[README.md](./README.md)** — the public-facing description, feature list, tech stack,
   scripts table, and Getting Started flow must reflect reality.
@@ -107,7 +107,7 @@ Did this change touch any:
 - API route, integration, or OAuth flow?
 - keyboard shortcut, card, or sidebar section?
 
-If **yes** to any of the above → open `README.md`, `SETUP.md`, and `FEATURES.md`
+If **yes** to any of the above → open `README.md`, `docs/SETUP.md`, and `docs/FEATURES.md`
 and confirm each is still accurate. Fix drift in the **same** response.
 
 If **no** → state explicitly that no doc update is required, so the user can
@@ -124,3 +124,11 @@ verify the judgment call.
    b. Updated `TESTING_STATUS.md` to reflect the new test coverage status.
    c. Verified that the overall coverage thresholds in `vitest.config.ts` are updated to reflect the higher baseline.
 4. **Enforcement:** If a file is marked as 'Pending' or 'High Priority' in `TESTING_STATUS.md`, you must prioritize writing tests for it before completing other features.
+
+---
+
+## PROJECT STRUCTURE STANDARD
+
+1. **Documentation:** All documentation files (*.md) except `README.md` must be placed in the `docs/` directory.
+2. **Examples:** All starter templates, examples, or demo files must be placed in the `examples/` directory.
+3. **Rule Enforcement:** Before creating any new markdown file or example file, ensure it is directed to the appropriate subdirectory (`docs/` or `examples/`).
