@@ -92,14 +92,17 @@ cloneRouter.post("/clone-ticket", async (req, res) => {
     });
   }
 
-  // Fetch the full description from the source provider.
+  // Fetch the full description (and attachment list for Jira) from the source provider.
   let sourceDescription: unknown = null;
+  let jiraSourceDetails: { description: unknown | null; attachments: jira.AttachmentInfo[] } | null = null;
+
   if (sourceProvider === "jira") {
     const issueKey = jiraKeyFromUrl(originalLink);
     if (issueKey) {
       const sourceCreds = resolveFirstJira(connectorId) ?? resolveFirstJira();
       if (sourceCreds) {
-        sourceDescription = await jira.getIssueDescription(sourceCreds.creds, issueKey);
+        jiraSourceDetails = await jira.getIssueDetails(sourceCreds.creds, issueKey);
+        sourceDescription = jiraSourceDetails.description;
       }
     }
   } else if (sourceProvider === "clickup") {
@@ -138,17 +141,17 @@ cloneRouter.post("/clone-ticket", async (req, res) => {
             attachmentsCloned++;
           }
         }
-      } else if (sourceProvider === "jira") {
+      } else if (sourceProvider === "jira" && jiraSourceDetails) {
         const issueKey = jiraKeyFromUrl(originalLink);
         if (issueKey) {
           const sourceCreds = resolveFirstJira(connectorId) ?? resolveFirstJira();
           if (sourceCreds) {
-            const atts = await jira.getIssueAttachments(sourceCreds.creds, issueKey);
-            for (const att of atts) {
+            for (const att of jiraSourceDetails.attachments) {
               if (att.size > 25 * 1024 * 1024) continue;
               const dl = await jira.downloadJiraFile(sourceCreds.creds, att.url);
               if (!dl) continue;
-              await jira.uploadAttachment(targetCreds, result.key, att.filename, dl.buffer, dl.mimeType);
+              // Use mimeType from Jira API (authoritative) not CDN Content-Type header
+              await jira.uploadAttachment(targetCreds, result.key, att.filename, dl.buffer, att.mimeType);
               attachmentsCloned++;
             }
           }

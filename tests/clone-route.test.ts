@@ -21,6 +21,7 @@ const { mockJira, mockClickup, mockListConnectorsForWorkspace, mockListConnector
       createIssue:           vi.fn(),
       buildCloneAdf:         vi.fn().mockReturnValue({ type: "doc", version: 1, content: [] }),
       getIssueDescription:   vi.fn().mockResolvedValue(null),
+      getIssueDetails:       vi.fn().mockResolvedValue({ description: null, attachments: [] }),
       getIssueAttachments:   vi.fn().mockResolvedValue([]),
       downloadJiraFile:      vi.fn().mockResolvedValue(null),
       uploadAttachment:      vi.fn().mockResolvedValue(undefined),
@@ -252,7 +253,7 @@ describe("POST /clone-ticket", () => {
       jiraConnector({ id: "ci-jira-src", config: { baseUrl: "https://src.atlassian.net", ...fullCloneCfg }, identityId: "id-j" }),
     ]);
     mockGetIdentity.mockReturnValue({ accessToken: "tok", account: "u@j.com" });
-    mockJira.getIssueDescription.mockResolvedValue({ type: "doc", version: 1, content: [] });
+    mockJira.getIssueDetails.mockResolvedValue({ description: { type: "doc", version: 1, content: [] }, attachments: [] });
     mockJira.createIssue.mockResolvedValue({ key: "P-1", id: "1" });
     await request(app).post("/clone-ticket").send({
       sourceProvider: "jira",
@@ -260,7 +261,7 @@ describe("POST /clone-ticket", () => {
       originalLink:   "https://src.atlassian.net/browse/PROJ-42",
       connectorId:    "ci-jira-src",
     });
-    expect(mockJira.getIssueDescription).toHaveBeenCalledWith(
+    expect(mockJira.getIssueDetails).toHaveBeenCalledWith(
       expect.objectContaining({ baseUrl: expect.any(String) }),
       "PROJ-42",
     );
@@ -452,10 +453,13 @@ describe("POST /clone-ticket", () => {
     ]);
     mockGetIdentity.mockReturnValue({ accessToken: "tok", account: "u@j.com" });
     mockJira.createIssue.mockResolvedValue({ key: "P-1", id: "1" });
-    mockJira.getIssueAttachments.mockResolvedValue([
-      { filename: "design.jpg", url: "https://src.atlassian.net/secure/attachment/1/design.jpg", mimeType: "image/jpeg", size: 2048 },
-    ]);
-    mockJira.downloadJiraFile.mockResolvedValue({ buffer: imgBuf, mimeType: "image/jpeg" });
+    mockJira.getIssueDetails.mockResolvedValue({
+      description: { type: "doc", version: 1, content: [] },
+      attachments: [
+        { filename: "design.jpg", url: "https://src.atlassian.net/secure/attachment/1/design.jpg", mimeType: "image/jpeg", size: 2048 },
+      ],
+    });
+    mockJira.downloadJiraFile.mockResolvedValue({ buffer: imgBuf, mimeType: "application/octet-stream" }); // CDN returns generic type
 
     const res = await request(app).post("/clone-ticket").send({
       sourceProvider: "jira",
@@ -466,6 +470,7 @@ describe("POST /clone-ticket", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.data.attachmentsCloned).toBe(1);
+    // mimeType must come from the Jira API (att.mimeType), not the CDN Content-Type header
     expect(mockJira.uploadAttachment).toHaveBeenCalledWith(
       expect.objectContaining({ baseUrl: "https://target.atlassian.net" }),
       "P-1",

@@ -373,16 +373,6 @@ export async function createIssue(creds: JiraCreds, opts: {
   return { key: data.key as string, id: data.id as string };
 }
 
-/** Fetches a single issue's ADF description by key. Returns null if not found or no description. */
-export async function getIssueDescription(creds: JiraCreds, issueKey: string): Promise<unknown | null> {
-  try {
-    const data: any = await jiraGet(creds, `/rest/api/3/issue/${encodeURIComponent(issueKey)}?fields=description`);
-    return data?.fields?.description ?? null;
-  } catch {
-    return null;
-  }
-}
-
 export type AttachmentInfo = {
   filename: string;
   url: string;
@@ -392,17 +382,34 @@ export type AttachmentInfo = {
 
 const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024; // 25 MB hard cap per file
 
-/** Returns the attachment list for a Jira issue (images + videos only by mimeType). */
-export async function getIssueAttachments(creds: JiraCreds, issueKey: string): Promise<AttachmentInfo[]> {
+export type IssueDetails = {
+  description: unknown | null;
+  attachments: AttachmentInfo[];
+};
+
+/** Fetches description (ADF) + image/video attachments for a Jira issue in one API call. */
+export async function getIssueDetails(creds: JiraCreds, issueKey: string): Promise<IssueDetails> {
   try {
-    const data: any = await jiraGet(creds, `/rest/api/3/issue/${encodeURIComponent(issueKey)}?fields=attachment`);
+    const data: any = await jiraGet(creds, `/rest/api/3/issue/${encodeURIComponent(issueKey)}?fields=description,attachment`);
+    const description = data?.fields?.description ?? null;
     const raw: any[] = data?.fields?.attachment ?? [];
-    return raw
+    const attachments = raw
       .filter(a => /^(image|video)\//.test(a.mimeType ?? ""))
       .map(a => ({ filename: a.filename, url: a.content, mimeType: a.mimeType, size: a.size ?? 0 }));
+    return { description, attachments };
   } catch {
-    return [];
+    return { description: null, attachments: [] };
   }
+}
+
+/** @deprecated Use getIssueDetails — kept for test compatibility */
+export async function getIssueDescription(creds: JiraCreds, issueKey: string): Promise<unknown | null> {
+  return (await getIssueDetails(creds, issueKey)).description;
+}
+
+/** @deprecated Use getIssueDetails — kept for test compatibility */
+export async function getIssueAttachments(creds: JiraCreds, issueKey: string): Promise<AttachmentInfo[]> {
+  return (await getIssueDetails(creds, issueKey)).attachments;
 }
 
 /** Downloads a Jira attachment using the connector's credentials. Returns null on any failure or oversize. */
