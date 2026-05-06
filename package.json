@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "better-sqlite3": "^11.3.0",
-    "dotenv": "^16.4.5",
+    "dotenv": "^17.4.2",
     "express": "^4.21.0",
     "googleapis": "^144.0.0",
     "http-proxy-middleware": "^3.0.3",
