@@ -1,9 +1,41 @@
 import { api, isAuthError, type Ticket, type WatchedUser } from "../api.js";
-import { $, escapeHtml, renderNotConnected, skeletonCompact, animateNumber } from "./util.js";
+import { $, escapeHtml, renderNotConnected, skeletonCompact, animateNumber, toast } from "./util.js";
 import { saveSetting, getSetting } from "../state.js";
 import { renderJiraTicket } from "./lists.js";
 
 const MINE = "mine";
+
+function isCloningEnabled(): boolean {
+  return getSetting<boolean>("ticketWorkflows.cloningEnabled") === true;
+}
+
+function defaultTargetProject(): string {
+  return getSetting<string>("ticketWorkflows.defaultTargetProject") || "";
+}
+
+async function handleClone(btn: HTMLElement): Promise<void> {
+  const project = defaultTargetProject();
+  if (!project) {
+    toast("Set a default Jira project in Settings → Preferences → Ticket Workflows", "error");
+    return;
+  }
+  const title  = btn.dataset.cloneTitle || "";
+  const url    = btn.dataset.cloneUrl   || "";
+  const source = (btn.dataset.cloneSource || "jira") as "jira" | "clickup";
+  const dismiss = toast("Cloning ticket…", { type: "info", duration: 15_000 });
+  try {
+    const resp = await api.cloneTicket({ sourceProvider: source, title, originalLink: url, targetJiraProjectId: project });
+    dismiss?.();
+    toast("Cloned!", {
+      type: "success",
+      duration: 6000,
+      action: { label: `Open ${resp.data.key}`, onClick: () => window.open(resp.data.url, "_blank") },
+    });
+  } catch (err: any) {
+    dismiss?.();
+    toast(`Clone failed: ${err.message}`, "error");
+  }
+}
 
 // The visible tabs are always [Mine, ...watchedUsers] for the active workspace.
 // `watchedUsers` arrives from the server (per-connector config) so the user can
@@ -122,7 +154,8 @@ export async function loadTickets(silent = false) {
       </div>`;
       return;
     }
-    body.innerHTML = data.map(renderTicket).join("");
+    const cloning = isCloningEnabled();
+    body.innerHTML = data.map(t => renderJiraTicket(t, cloning)).join("");
   } catch (err) {
     if (isAuthError(err)) { body.innerHTML = renderNotConnected("Jira", "jira"); resetCounts(); }
     else body.innerHTML = `<div class="error">${escapeHtml((err as Error).message)}</div>`;
@@ -130,8 +163,13 @@ export async function loadTickets(silent = false) {
 }
 
 export function bindTicketTabs() {
-  // Initial render with just "Mine" — server response then expands the list.
   renderTabs();
+
+  const body = $("#my-tickets-body");
+  body?.addEventListener("click", (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>(".clone-to-jira-btn");
+    if (btn) { e.preventDefault(); void handleClone(btn); }
+  });
 }
 
 // Team Board still lives in lists.ts (no spec change for it).
@@ -205,6 +243,11 @@ export function instantiateTickets(
 
   renderTabsLocal();
 
+  body.addEventListener("click", (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>(".clone-to-jira-btn");
+    if (btn) { e.preventDefault(); void handleClone(btn); }
+  });
+
   async function load(silent = false): Promise<void> {
     if (!body) return;
     if (!silent) body.innerHTML = skeletonCompact(3);
@@ -243,7 +286,8 @@ export function instantiateTickets(
         </div>`;
         return;
       }
-      body.innerHTML = data.map(renderTicket).join("");
+      const cloning = isCloningEnabled();
+      body.innerHTML = data.map(t => renderJiraTicket(t, cloning)).join("");
     } catch (err) {
       if (isAuthError(err)) body.innerHTML = renderNotConnected("Jira", "jira");
       else body.innerHTML = `<div class="error">${escapeHtml((err as Error).message)}</div>`;

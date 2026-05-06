@@ -633,6 +633,7 @@ body.dashboard-editing .card-header .tab:active { cursor: grabbing; }
   border-radius: var(--r-sm);
   margin: 0 -6px; padding-left: 6px; padding-right: 6px;
 }
+.schedule-item--cloneable { grid-template-columns: 70px 1fr 26px; }
 .schedule-item:last-child { border-bottom: none; }
 .schedule-item:hover { background: var(--card-alt); }
 
@@ -3115,3 +3116,29 @@ body.has-dynamic-overview [data-ov-hidden="1"] {
 @media (max-width: 720px) {
   .swatch-grid { grid-template-columns: repeat(6, 1fr); max-width: 100%; }
 }
+
+/* ── 1-Click Clone to Jira ───────────────────────────────────────────────── */
+.clone-to-jira-btn {
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 2px 0; width: 26px;
+  background: none; border: none; cursor: pointer;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+  flex-shrink: 0;
+}
+.schedule-item--cloneable:hover .clone-to-jira-btn { opacity: 1; }
+.clone-to-jira-btn:hover { color: var(--primary); }
+.clone-to-jira-btn:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--primary);
+  border-radius: var(--r-sm);
+}
+.clone-to-jira-btn [data-icon] { pointer-events: none; width: 14px; height: 14px; }
+
+/* Ticket Workflows settings toggle */
+.settings-toggle-label {
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
+  font-size: var(--fs-md);
+}
+.settings-toggle-label input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }

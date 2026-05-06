@@ -20,6 +20,7 @@ import { todosRouter } from "./routes/todos.js";
 import { settingsRouter } from "./routes/settings.js";
 import { workspacesRouter, identitiesRouter, connectorsRouter } from "./routes/workspaces.js";
 import { appSettingsRouter } from "./routes/app-settings.js";
+import { cloneRouter } from "./routes/clone.js";
 import { getAppSetting } from "./lib/app-settings.js";
 
 import { googleStatus } from "./auth/google.js";
@@ -74,6 +75,7 @@ app.use("/api/workspaces", workspacesRouter);
 app.use("/api/identities", identitiesRouter);
 app.use("/api/connectors", connectorsRouter);
 app.use("/api/app-settings", appSettingsRouter);
+app.use("/api/jira", cloneRouter);
 
 // Serve SETUP.md raw so the "not connected" CTA can link to it.
 app.get("/SETUP.md", (_req, res) => {

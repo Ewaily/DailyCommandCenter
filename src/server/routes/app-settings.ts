@@ -22,6 +22,10 @@ export const DEFAULT_BRAND_SUBTITLE = "";
 
 function readAll() {
   return {
+    ticketWorkflows: {
+      cloningEnabled:       getAppSetting("ticketWorkflows.cloningEnabled",       "false") === "true",
+      defaultTargetProject: getAppSetting("ticketWorkflows.defaultTargetProject", ""),
+    },
     brand: {
       name:     getAppSetting("brand.name",     DEFAULT_BRAND_NAME),
       subtitle: getAppSetting("brand.subtitle", DEFAULT_BRAND_SUBTITLE),
@@ -57,6 +61,7 @@ appSettingsRouter.get("/", (_req, res) => {
 });
 
 const ALLOWED_KEYS = new Set([
+  "ticketWorkflows.cloningEnabled", "ticketWorkflows.defaultTargetProject",
   "brand.name", "brand.subtitle",
   "prefs.primaryTz", "prefs.secondaryTzs",
   "google.clientId", "google.clientSecret", "google.redirectUri",

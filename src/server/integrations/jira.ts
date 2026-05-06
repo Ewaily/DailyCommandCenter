@@ -221,6 +221,53 @@ export async function listTeamIssuesWith(creds: JiraCreds, project?: string) {
   });
 }
 
+export type JiraProject = { id: string; key: string; name: string };
+
+export function buildCloneAdf(providerLabel: string, originalLink: string, body: string) {
+  const content: unknown[] = [
+    {
+      type: "blockquote",
+      content: [{
+        type: "paragraph",
+        content: [{
+          type: "text",
+          text: `🔄 Cloned from ${providerLabel}`,
+          marks: [{ type: "link", attrs: { href: originalLink } }],
+        }],
+      }],
+    },
+  ];
+  if (body.trim()) {
+    content.push({ type: "paragraph", content: [{ type: "text", text: body }] });
+  }
+  return { type: "doc", version: 1, content };
+}
+
+export async function createIssue(creds: JiraCreds, opts: {
+  projectKey: string;
+  summary: string;
+  descriptionAdf: unknown;
+}) {
+  const data: any = await jiraPost(creds, "/rest/api/3/issue", {
+    fields: {
+      project: { key: opts.projectKey },
+      summary: opts.summary,
+      description: opts.descriptionAdf,
+      issuetype: { name: "Task" },
+    },
+  });
+  return { key: data.key as string, id: data.id as string };
+}
+
+export async function listProjectsWith(creds: JiraCreds): Promise<JiraProject[]> {
+  const data: any = await jiraGet(creds, "/rest/api/3/project/search?maxResults=50&orderBy=name");
+  return (data.values || []).map((p: any) => ({
+    id: p.id as string,
+    key: p.key as string,
+    name: p.name as string,
+  }));
+}
+
 /** Issues with a due date in the next `days` days, assigned to Ewaily. */
 export async function listDeadlines(days = 7) {
   const creds = effective();

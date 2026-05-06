@@ -48,6 +48,7 @@
 - **Dynamic watched-teammate tabs**: "Mine" is always shown; every other tab is configured per-connector in Settings → Workspaces → Jira → Watched teammates. Each entry takes a tab label, a Jira identifier (display name, email, or accountId), an optional status filter, and a **Hide closed** toggle.
 - **Result limit**: fetches all matching tickets from Jira, paginated 100 per API call, ordered by last-updated descending.
 - Rows show: issue key · assignee avatar · project pill · status chip (tinted with Jira's `statusCategory` color) · priority badge · due date.
+- **1-Click Clone to Jira**: when cloning is enabled (Settings → Preferences → Ticket Workflows), hovering a row reveals a clone icon. Clicking immediately creates a copy in the configured default Jira project, shows a pending toast, then a success toast with a clickable link to the new issue. No dialog required.
 - Powered by: **Jira**.
 
 </details>
@@ -59,6 +60,7 @@
 - Rows show: task id (custom_id when set) · assignee avatars · list · status chip (ClickUp's own status color) · priority badge · due date.
 - Watched-teammate tabs respect the **Hide closed** toggle per entry.
 - Fetched via `/api/clickup/tasks`, scoped to the connector's Team ID.
+- **1-Click Clone to Jira**: same hover-icon mechanic as the Tickets widget. When enabled, clicking the icon clones the ClickUp task into the configured default Jira project.
 - Powered by: **ClickUp**.
 
 </details>
@@ -247,6 +249,24 @@ Reusable credentials shared across workspaces.
 
 - **API-key types** (GitHub PAT, Jira API token, Notion token, ClickUp personal token): add/edit/delete via Settings UI — no `.env` required.
 - **OAuth types** (Google, Slack, Microsoft): connected per-workspace via the Workspaces tab connect buttons.
+
+</details>
+
+<details>
+<summary><strong>Preferences tab — Ticket Workflows</strong></summary>
+
+Configure 1-Click Cloning from ClickUp or Jira into a target Jira project:
+
+- **Enable 1-Click Cloning to Jira** — toggle that shows/hides the clone icon on all ticket and task rows across Jira and ClickUp widgets.
+- **Default Target Jira Project** — dropdown populated from the active workspace's Jira connector. All clones are sent here. If Jira is not configured the dropdown shows a hint instead.
+
+Cloning rules (V1):
+1. Title is copied exactly.
+2. Description is prefixed with `> 🔄 Cloned from [Source]({originalLink})`.
+3. Issue type is `Task`; status defaults to the Jira project's backlog default.
+4. Attachments are not copied.
+
+Settings stored as `ticketWorkflows.cloningEnabled` / `ticketWorkflows.defaultTargetProject` in the `settings` table, and mirrored to localStorage for instant widget reads.
 
 </details>
 

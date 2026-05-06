@@ -1,5 +1,5 @@
 import { api, isAuthError, type ClickUpTask, type WatchedUser } from "../api.js";
-import { $, escapeHtml, renderWorkspaceNotConfigured, skeletonCompact } from "./util.js";
+import { $, escapeHtml, renderWorkspaceNotConfigured, skeletonCompact, toast } from "./util.js";
 import { saveSetting, getSetting } from "../state.js";
 import { renderTaskRow } from "./task-row.js";
 
@@ -12,9 +12,38 @@ const MINE = "mine";
 let watchedUsers: WatchedUser[] = [];
 let active: string = getSetting<string>("clickupTab") || MINE;
 
-function renderTask(t: ClickUpTask): string {
-  // ClickUp ids are opaque hashes — fall back to the last 5 chars prefixed with
-  // `#` so every row still has a stable identifier column like Jira's EPM-465.
+function isCloningEnabled(): boolean {
+  return getSetting<boolean>("ticketWorkflows.cloningEnabled") === true;
+}
+
+function defaultTargetProject(): string {
+  return getSetting<string>("ticketWorkflows.defaultTargetProject") || "";
+}
+
+async function handleClone(btn: HTMLElement): Promise<void> {
+  const project = defaultTargetProject();
+  if (!project) {
+    toast("Set a default Jira project in Settings → Preferences → Ticket Workflows", "error");
+    return;
+  }
+  const title   = btn.dataset.cloneTitle || "";
+  const url     = btn.dataset.cloneUrl   || "";
+  const dismiss = toast("Cloning ticket…", { type: "info", duration: 15_000 });
+  try {
+    const resp = await api.cloneTicket({ sourceProvider: "clickup", title, originalLink: url, targetJiraProjectId: project });
+    dismiss?.();
+    toast("Cloned!", {
+      type: "success",
+      duration: 6000,
+      action: { label: `Open ${resp.data.key}`, onClick: () => window.open(resp.data.url, "_blank") },
+    });
+  } catch (err: any) {
+    dismiss?.();
+    toast(`Clone failed: ${err.message}`, "error");
+  }
+}
+
+function renderTask(t: ClickUpTask, cloningEnabled = false): string {
   const key = t.customId || `#${t.id.slice(-5)}`;
   return renderTaskRow({
     key,
@@ -28,6 +57,7 @@ function renderTask(t: ClickUpTask): string {
     assignees: t.assignees.map(a => ({ name: a.name, avatar: a.avatar, color: a.color })),
     listLabel: t.list,
     dueDate: t.dueDate,
+    cloneSource: cloningEnabled ? "clickup" : undefined,
   });
 }
 
@@ -65,6 +95,14 @@ function syncTabUI() {
   });
 }
 
+export function bindClickUpClone() {
+  const body = $("#clickup-body");
+  body?.addEventListener("click", (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>(".clone-to-jira-btn");
+    if (btn) { e.preventDefault(); void handleClone(btn); }
+  });
+}
+
 export async function loadClickUp(silent = false) {
   const body = $("#clickup-body");
   if (!body) return;
@@ -97,7 +135,8 @@ export async function loadClickUp(silent = false) {
         </div>`;
       return;
     }
-    body.innerHTML = data.map(renderTask).join("");
+    const cloning = isCloningEnabled();
+    body.innerHTML = data.map(t => renderTask(t, cloning)).join("");
   } catch (err) {
     if (isAuthError(err)) {
       body.innerHTML = renderWorkspaceNotConfigured("ClickUp");
@@ -132,6 +171,11 @@ export function instantiateClickUp(
 
   const body = container.querySelector<HTMLElement>("[data-ov-body]")!;
   const tabsEl = container.querySelector<HTMLElement>("[data-ov-tabs]");
+
+  body.addEventListener("click", (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>(".clone-to-jira-btn");
+    if (btn) { e.preventDefault(); void handleClone(btn); }
+  });
 
   function bucketIdsLocal() { return [MINE, ...localWatched.map(w => w.id)]; }
   function bucketLabelLocal(id: string) {
@@ -188,7 +232,7 @@ export function instantiateClickUp(
           </div>`;
         return;
       }
-      body.innerHTML = data.map(renderTask).join("");
+      body.innerHTML = data.map(t => renderTask(t, isCloningEnabled())).join("");
     } catch (err) {
       if (isAuthError(err)) {
         body.innerHTML = renderWorkspaceNotConfigured("ClickUp");

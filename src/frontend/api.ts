@@ -116,7 +116,9 @@ export type ConnectorInstance = {
 };
 
 export type SecondaryTz = { tz: string; label: string };
+export type JiraProject = { id: string; key: string; name: string };
 export type AppCreds = {
+  ticketWorkflows: { cloningEnabled: boolean; defaultTargetProject: string };
   brand:     { name: string; subtitle: string };
   prefs:     { primaryTz: string; secondaryTzs: SecondaryTz[] };
   google:    { clientId: string | null; clientSecret: string | null; hasSecret: boolean; redirectUri: string | null };
@@ -200,6 +202,19 @@ export const api = {
   appSettingsGet: () => req<AppCreds>("/app-settings"),
   appSettingsPut: (patch: Record<string, unknown>) =>
     req<AppCreds>("/app-settings", { method: "PUT", body: JSON.stringify(patch) }),
+
+  jiraProjects: (connectorId?: string) =>
+    req<JiraProject[]>(withWs(`/jira/projects${connectorId ? `?connectorId=${encodeURIComponent(connectorId)}` : ""}`)) as Promise<
+      Envelope<JiraProject[]> & { notConfigured?: boolean }
+    >,
+  cloneTicket: (payload: {
+    sourceProvider: "jira" | "clickup";
+    title: string;
+    description?: string;
+    originalLink: string;
+    targetJiraProjectId: string;
+    connectorId?: string;
+  }) => req<{ key: string; id: string; url: string }>(withWs("/jira/clone-ticket"), { method: "POST", body: JSON.stringify(payload) }),
 
   workspaceConnect: (wsId: string, body: { type: string; token: string; account?: string; label?: string; config?: Record<string, unknown>; connectorId?: string; addAnother?: boolean }) =>
     req<{ ok: boolean }>(`/workspaces/${wsId}/connect`, { method: "POST", body: JSON.stringify(body) }),

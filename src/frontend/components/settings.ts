@@ -1005,13 +1005,28 @@ async function renderPreferences(): Promise<string> {
   let brandName = "", brandSubtitle = "";
   let primaryTz = "Africa/Cairo";
   let secondaryTzs: { tz: string; label: string }[] = [];
+  let cloningEnabled = false;
+  let defaultTargetProject = "";
   try {
     const app = await api.appSettingsGet();
-    brandName     = app.data.brand?.name     ?? "";
-    brandSubtitle = app.data.brand?.subtitle ?? "";
-    primaryTz     = app.data.prefs?.primaryTz ?? primaryTz;
-    secondaryTzs  = app.data.prefs?.secondaryTzs ?? [];
+    brandName            = app.data.brand?.name     ?? "";
+    brandSubtitle        = app.data.brand?.subtitle ?? "";
+    primaryTz            = app.data.prefs?.primaryTz ?? primaryTz;
+    secondaryTzs         = app.data.prefs?.secondaryTzs ?? [];
+    cloningEnabled       = app.data.ticketWorkflows?.cloningEnabled ?? false;
+    defaultTargetProject = app.data.ticketWorkflows?.defaultTargetProject ?? "";
   } catch { /* fall through with defaults */ }
+
+  // Mirror to localStorage so widgets can read without an extra API round-trip.
+  saveSetting("ticketWorkflows.cloningEnabled",       cloningEnabled);
+  saveSetting("ticketWorkflows.defaultTargetProject", defaultTargetProject);
+
+  // Fetch Jira projects for the dropdown — fail gracefully if Jira not configured.
+  let jiraProjects: { key: string; name: string }[] = [];
+  try {
+    const pRes = await api.jiraProjects();
+    if (!pRes.notConfigured) jiraProjects = pRes.data ?? [];
+  } catch { /* Jira not configured */ }
 
   const secondaryRows = [0, 1, 2].map(i => {
     const cur = secondaryTzs[i];
@@ -1175,6 +1190,55 @@ async function renderPreferences(): Promise<string> {
               </select>
             </div>
           </div>
+
+        </div>
+      </details>
+
+      <details class="pref-group" data-collapse-key="pref-ticket-workflows" ${isOpen("pref-ticket-workflows") ? "open" : ""}>
+        <summary class="pref-group-head">
+          <span class="pref-group-chevron">▸</span>
+          <span class="pref-group-icon" data-icon="ticket"></span>
+          <div>
+            <h3 class="pref-group-title">Ticket Workflows</h3>
+            <p class="pref-group-desc">1-Click Cloning lets you send any ticket from ClickUp or Jira into a target Jira project in one click, preserving the title and linking back to the source.</p>
+          </div>
+        </summary>
+        <div class="pref-group-body">
+
+          <form data-form="ticket-workflows" class="pref-stacked-form">
+            <div class="settings-pref-row">
+              <div class="settings-pref-label">
+                <label for="pref-cloning-enabled">Enable 1-Click Cloning to Jira</label>
+                <span class="muted">When on, a clone icon appears on hover over every ticket row in both Jira and ClickUp cards. Clicking it immediately creates a copy in your default Jira project — no dialog needed.</span>
+              </div>
+              <div class="settings-pref-control">
+                <label class="settings-toggle-label">
+                  <input id="pref-cloning-enabled" type="checkbox" name="cloningEnabled" ${cloningEnabled ? "checked" : ""} />
+                  <span>${cloningEnabled ? "Enabled" : "Disabled"}</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="settings-pref-row">
+              <div class="settings-pref-label">
+                <label for="pref-default-project">Default Target Jira Project</label>
+                <span class="muted">All clones go here unless you change this setting. Choose from the projects your Jira connector can access.</span>
+              </div>
+              <div class="settings-pref-control">
+                ${jiraProjects.length
+                  ? `<select id="pref-default-project" name="defaultTargetProject" class="pref-input pref-select">
+                      <option value="">— select a project —</option>
+                      ${jiraProjects.map(p => `<option value="${escapeHtml(p.key)}" ${p.key === defaultTargetProject ? "selected" : ""}>${escapeHtml(p.name)} (${escapeHtml(p.key)})</option>`).join("")}
+                    </select>`
+                  : `<span class="muted">Connect Jira in the Workspaces tab to populate this list.</span>`
+                }
+              </div>
+            </div>
+
+            <div class="pref-stacked-actions">
+              <button type="submit" class="btn-primary">Save Ticket Workflows</button>
+            </div>
+          </form>
 
         </div>
       </details>
@@ -1457,6 +1521,19 @@ async function onSettingsSubmit(e: Event) {
         }
         // Notify the rest of the app so connector visibility refreshes.
         window.dispatchEvent(new CustomEvent("workspace-changed", { detail: { workspaceId: wsId } }));
+        break;
+      }
+
+      case "ticket-workflows": {
+        const cloningEnabled       = fd.get("cloningEnabled") === "on";
+        const defaultTargetProject = String(fd.get("defaultTargetProject") || "");
+        await api.appSettingsPut({
+          "ticketWorkflows.cloningEnabled":       String(cloningEnabled),
+          "ticketWorkflows.defaultTargetProject": defaultTargetProject,
+        });
+        // Mirror to localStorage so widgets pick it up without a page reload.
+        saveSetting("ticketWorkflows.cloningEnabled",       cloningEnabled);
+        saveSetting("ticketWorkflows.defaultTargetProject", defaultTargetProject);
         break;
       }
 
