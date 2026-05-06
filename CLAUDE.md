@@ -27,6 +27,17 @@ Update whenever:
 ### Self-check before ending the turn
 Before you say "done", scan: did this change touch any user-facing control, env var, route, shortcut, integration, setting, or section? If yes, open SETUP.md and FEATURES.md and confirm both still describe the project accurately. If not, fix them now — in the same response.
 
+## MANDATORY PRE-PUSH CHECKLIST — no exceptions
+
+Before any `git push` or PR, ALL of the following must pass locally:
+
+1. **`npx tsc --noEmit`** — zero type errors.
+2. **`npm run test:coverage`** — NOT `npm test`. This is the command CI runs and it enforces coverage thresholds. `npm test` alone is insufficient.
+3. **New code = new tests.** Every new function, module, or non-trivial branch added in a PR must have a corresponding unit test. "It's frontend DOM code" is not an exemption — if the code cannot be reached by the existing Node test environment, either (a) write a test using jsdom/happy-dom, or (b) get explicit sign-off from the user before accepting a threshold adjustment. Silently lowering thresholds without explaining the reason and getting approval is not acceptable.
+4. **Coverage thresholds must not decrease** unless the user explicitly approves. If new code genuinely cannot be unit-tested (pure browser APIs with no jsdom path), document why in the commit message and ask the user before touching `vitest.config.ts`.
+
+A push that causes CI to fail on coverage is a broken workflow. The checklist above exists so that never happens.
+
 ---
 
 ## Project overview
