@@ -77,15 +77,29 @@ Full setup walkthroughs — OAuth registration, API tokens, redirect URIs — ar
 
 ## Architecture
 
-```
-Browser (Vite · TypeScript)          Node + Express (TypeScript)
-  drag-and-drop grid           ◄──►   request-context (AsyncLocalStorage)
-  command palette                     OAuth flows + integration adapters
-  per-workspace layout                TTL cache (SQLite-backed)
-                                             │
-                                      SQLite (better-sqlite3)
-                                      workspaces · connectors · tokens
-                                      identities · cache · settings
+```mermaid
+flowchart LR
+    subgraph Browser["Browser · Vite + TypeScript"]
+        UI[Drag-and-drop grid<br/>Command palette<br/>Per-workspace layout]
+    end
+
+    subgraph Server["Node + Express · TypeScript"]
+        Ctx[Request context<br/>AsyncLocalStorage]
+        OAuth[OAuth flows<br/>Google · Slack · Microsoft]
+        Adapters[Integration adapters<br/>Jira · GitHub · Notion · ClickUp]
+        Cache[TTL cache<br/>SQLite-backed]
+    end
+
+    subgraph DB["SQLite · better-sqlite3"]
+        Tables[(workspaces<br/>connectors<br/>tokens<br/>identities<br/>cache<br/>settings)]
+    end
+
+    UI -- "?workspace=…" --> Ctx
+    Ctx --> OAuth
+    Ctx --> Adapters
+    Adapters --> Cache
+    Cache --> Tables
+    OAuth --> Tables
 ```
 
 - **Workspace context** travels through every request via AsyncLocalStorage, set from `?workspace=`.
