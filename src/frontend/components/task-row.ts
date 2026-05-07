@@ -36,8 +36,9 @@ const statusBucketPalette = (b: TaskRow["statusBucket"]) =>
 
 function statusChip(row: TaskRow): string {
   if (row.statusColor) {
+    // Custom API color: solid fill + ink-inverse text (80% opacity)
     const c = escapeHtml(row.statusColor);
-    return `<span class="badge badge-task-status" style="background:${c}1f;color:${c};border:1px solid ${c}55;">${escapeHtml(row.status)}</span>`;
+    return `<span class="badge badge-task-status" style="background:${c};color:color-mix(in srgb, var(--ink-inverse) 80%, transparent);">${escapeHtml(row.status)}</span>`;
   }
   return `<span class="badge badge-${statusBucketPalette(row.statusBucket)}">${escapeHtml(row.status)}</span>`;
 }
@@ -100,7 +101,8 @@ export function renderTaskRow(row: TaskRow): string {
          data-clone-source="${escapeHtml(row.cloneSource)}"
          data-target-project="${escapeHtml(row.cloneTargetProject || "")}"
          data-connector-id="${escapeHtml(row.cloneConnectorId || "")}"
-         aria-label="Clone to Jira"></button>`
+         aria-label="Clone to Jira"
+         title="Clone to Jira"></button>`
     : "";
   return `
     <div class="schedule-item${row.cloneSource ? " schedule-item--cloneable" : ""}">
