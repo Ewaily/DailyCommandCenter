@@ -1,138 +1,216 @@
 /* ==========================================================================
-   Daily Command Center — design system
+   Daily Command Center — "Quiet Operator" Design System
    - Light/dark themes via [data-theme]
    - Tokens-first: change a variable, propagate everywhere
    ========================================================================== */
 
+/* Tailwind utilities layer — component classes are still hand-authored CSS;
+   this unlocks utility classes (bg-paper-1, text-ink-1, etc.) for new work. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Söhne (humanist sans) and Berkeley Mono are loaded via the app's font
+   strategy; Inter is kept as a web-safe fallback during the font migration. */
 @import url("https://rsms.me/inter/inter.css");
 
+/* ==========================================================================
+   BASE TOKENS — theme-independent, never override per [data-theme]
+   ========================================================================== */
 :root {
-  /* spacing */
-  --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px;
-  --s-5: 20px; --s-6: 24px; --s-7: 32px; --s-8: 40px;
-
-  /* radii */
-  --r-sm: 6px; --r-md: 10px; --r-lg: 14px; --r-xl: 20px; --r-pill: 999px;
-
-  /* type */
-  --font-sans: "Inter var", "Inter", -apple-system, BlinkMacSystemFont,
-               "Segoe UI", system-ui, sans-serif;
-  --font-mono: ui-monospace, "JetBrains Mono", SFMono-Regular, Menlo, monospace;
-
-  --fs-2xs: 10px; --fs-xs: 11px; --fs-sm: 12px; --fs-md: 13px;
-  --fs-lg: 15px;  --fs-xl: 17px; --fs-2xl: 22px; --fs-3xl: 28px; --fs-4xl: 34px;
-
-  /* layout spacing */
-  --pad-card: 14px;
-  --pad-card-header: 12px 14px;
-  --gap-grid: 16px;
-
-  /* motion */
-  --ease: cubic-bezier(.2,.8,.2,1);
-  --t-fast: 120ms;
-  --t-med: 220ms;
+  /* ── Motion ── */
+  --t-1: 120ms;                                  /* hover, focus, chip toggle */
+  --t-2: 260ms;                                  /* modal open, tab slide */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);       /* the one curve */
+  /* backward-compat aliases */
+  --t-fast: var(--t-1);
+  --t-med: var(--t-2);
   --t-slow: 360ms;
 
-  /* z layers */
+  /* ── Radii ── */
+  --r-0: 0px;
+  --r-1: 3px;    /* inputs, badges, KBD pills, KPI tile */
+  --r-2: 6px;    /* cards, modals, settings sections */
+  --r-3: 10px;   /* outer page frame, command palette */
+  --r-pill: 999px;
+  /* backward-compat aliases */
+  --r-sm: var(--r-2);
+  --r-md: var(--r-2);
+  --r-lg: var(--r-2);
+  --r-xl: var(--r-3);
+
+  /* ── Typography ── */
+  --font-sans: "Söhne", ui-sans-serif, system-ui, -apple-system,
+               "Segoe UI", sans-serif;
+  --font-mono: "Berkeley Mono", ui-monospace, "SF Mono",
+               SFMono-Regular, Menlo, monospace;
+  /* font sizes preserved for component compat */
+  --fs-2xs: 10px; --fs-xs: 11px; --fs-sm: 12px; --fs-md: 13px;
+  --fs-lg: 15px;  --fs-xl: 17px; --fs-2xl: 22px; --fs-3xl: 28px; --fs-4xl: 40px;
+
+  /* ── Spacing ── */
+  --s-row: 8px;                          /* vertical gap between card rows */
+  --s-card-pad-x: 20px;                  /* card horizontal padding */
+  --s-card-pad-y: 14px;                  /* card vertical padding */
+  --s-grid-gap: 12px;                    /* dashboard grid gap */
+  --s-section: 24px;                     /* vertical gap between page sections */
+  --s-page-x: clamp(16px, 3vw, 32px);   /* page horizontal padding */
+  /* backward-compat spacing aliases */
+  --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px;
+  --s-5: 20px; --s-6: 24px; --s-7: 32px; --s-8: 40px;
+  --pad-card: var(--s-card-pad-y);
+  --pad-card-header: var(--s-card-pad-y) var(--s-card-pad-x);
+  --gap-grid: var(--s-grid-gap);
+
+  /* ── Z-layers ── */
   --z-toast: 1000;
   --z-modal: 1100;
   --z-palette: 1200;
 }
 
-/* LIGHT (default) */
+/* ==========================================================================
+   LIGHT THEME — default
+   ========================================================================== */
 :root, [data-theme="light"] {
   color-scheme: light;
-  --bg: #F4F6F9;
-  --bg-elev: #FFFFFF;
-  --card: #FFFFFF;
-  --card-alt: #F8FAFC;
-  --card-hover: #F1F5F9;
-  --border: #E5E7EB;
-  --border-strong: #CBD5E1;
-  --border-focus: #2A9D8F;
 
-  --text: #0F172A;
-  --text-muted: #475569;
-  --text-soft: #64748B;
-  --text-inverse: #F8FAFC;
+  /* ── Paper (backgrounds & elevation) ── */
+  --paper-0: #F7F7F4;                    /* page background */
+  --paper-1: #FDFDFB;                    /* card / widget surface */
+  --paper-2: #F2F2EE;                    /* sunken row, hover, KPI tile */
+  --paper-3: #EAEAE5;                    /* header bar, modal backdrop tint */
+  --paper-overlay: rgba(255,255,255,0.75);
 
-  --primary: #0E4C5B;
-  --primary-light: #14657A;
-  --primary-deep: #083440;
-  --accent: #2A9D8F;
-  --accent-hover: #248276;
-  --accent-soft: rgba(42,157,143,.12);
-  --accent-on: #ffffff;
+  /* ── Lines & Hairlines ── */
+  --line-1: #E4E2DA;                     /* default 1px hairline */
+  --line-2: #D2CFC4;                     /* stronger separator */
+  --line-focus: #0F0F10;                 /* 1px focus ring */
 
-  --urgent: #DC2626;     --urgent-bg: #FEE2E2;
-  --warning: #B45309;    --warning-bg: #FEF3C7;
-  --success: #059669;    --success-bg: #D1FAE5;
-  --info: #2563EB;       --info-bg: #DBEAFE;
-  --new: #7C3AED;        --new-bg: #EDE9FE;
+  /* ── Ink (text) ── */
+  --ink-1: #0F0F10;                      /* primary text, big numbers, titles */
+  --ink-2: #3A3A3D;                      /* body / row text */
+  --ink-3: #71706C;                      /* meta, timestamps */
+  --ink-4: #A4A29A;                      /* captions, placeholder */
+  --ink-inverse: #FDFDFB;               /* text on filled signal surface */
 
-  --shadow-1: 0 1px 2px 0 rgba(15,23,42,.04);
-  --shadow-2: 0 1px 3px rgba(15,23,42,.06), 0 1px 2px -1px rgba(15,23,42,.04);
-  --shadow-3: 0 4px 6px -1px rgba(15,23,42,.08), 0 2px 4px -2px rgba(15,23,42,.05);
-  --shadow-4: 0 10px 25px -5px rgba(15,23,42,.10), 0 8px 10px -6px rgba(15,23,42,.06);
-  --shadow-glow: 0 0 0 3px rgba(42,157,143,.18);
+  /* ── Signal (the only colors) ── */
+  --sig-now:   #D14B3D;   /* urgent, now-line, mention stripe */
+  --sig-go:    #1E7A52;   /* connected, success, accepted event */
+  --sig-hold:  #B57A14;   /* warning, draft PR, declined event */
+  --sig-info:  #2B5BD7;   /* info, tentative, linked sources */
+  --sig-focus: #1A1A1B;   /* focus block, primary button fill */
+  --sig-new:   #7A3FCC;   /* "NEW today", first-load highlight */
 
-  --header-grad: linear-gradient(135deg, #0E4C5B 0%, #14657A 55%, #1E8B7A 100%);
-  --header-mesh:
-    radial-gradient(circle at 15% 20%, rgba(255,255,255,.12), transparent 50%),
-    radial-gradient(circle at 85% 80%, rgba(42,157,143,.25), transparent 55%);
+  /* ── Shadows ── */
+  --shadow-0: none;
+  --shadow-edge: inset 0 1px 0 rgba(255,255,255,0.6);
+  --shadow-1: 0 1px 2px rgba(15,15,16,0.04), 0 0 0 1px var(--line-1);
+  --shadow-2: 0 6px 24px -8px rgba(15,15,16,0.18), 0 0 0 1px var(--line-2);
+  --shadow-3: 0 24px 64px -16px rgba(15,15,16,0.30), 0 0 0 1px var(--line-2);
+  --shadow-4: var(--shadow-3);                       /* alias for compat */
+  --shadow-glow: 0 0 0 3px rgba(43,91,215,0.22);    /* sig-info glow */
 
-  --skeleton-from: #EEF2F7;
-  --skeleton-to:   #E2E8F0;
+  /* ── Backward-compat semantic aliases ── */
+  --bg: var(--paper-0);
+  --bg-elev: var(--paper-1);
+  --card: var(--paper-1);
+  --card-alt: var(--paper-2);
+  --card-hover: var(--paper-2);
+  --border: var(--line-1);
+  --border-strong: var(--line-2);
+  --border-focus: var(--line-focus);
+  --text: var(--ink-1);
+  --text-muted: var(--ink-2);
+  --text-soft: var(--ink-3);
+  --text-inverse: var(--ink-inverse);
+  --urgent: var(--sig-now);
+  --urgent-bg: rgba(209,75,61,0.10);
+  --warning: var(--sig-hold);
+  --warning-bg: rgba(181,122,20,0.10);
+  --success: var(--sig-go);
+  --success-bg: rgba(30,122,82,0.10);
+  --info: var(--sig-info);
+  --info-bg: rgba(43,91,215,0.10);
+  --new: var(--sig-new);
+  --new-bg: rgba(122,63,204,0.10);
+  --skeleton-from: var(--paper-2);
+  --skeleton-to: var(--paper-3);
+  /* accent removed — use sig-go/sig-info instead */
+  --accent-soft: rgba(43,91,215,0.08);
 }
 
-/* DARK */
+/* ==========================================================================
+   DARK THEME
+   ========================================================================== */
 [data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0B1117;
-  --bg-elev: #11171F;
-  --card: #131A23;
-  --card-alt: #182230;
-  --card-hover: #1F2A3A;
-  --border: #1F2A3A;
-  --border-strong: #2C3A4F;
-  --border-focus: #34D5C2;
 
-  --text: #E6EDF6;
-  --text-muted: #A8B3C7;
-  --text-soft: #7E8AA1;
-  --text-inverse: #0B1117;
+  /* ── Paper ── */
+  --paper-0: #0B0C0E;
+  --paper-1: #111317;
+  --paper-2: #171A1F;
+  --paper-3: #1F232A;
+  --paper-overlay: rgba(11,12,14,0.78);
 
-  --primary: #14657A;
-  --primary-light: #1E8B7A;
-  --primary-deep: #0A3845;
-  --accent: #34D5C2;
-  --accent-hover: #5AE6D5;
-  --accent-soft: rgba(52,213,194,.14);
-  --accent-on: #0b0d10;
+  /* ── Lines ── */
+  --line-1: #23262C;
+  --line-2: #2D3138;
+  --line-focus: #F2F0E8;
 
-  --urgent: #F87171;     --urgent-bg: rgba(248,113,113,.14);
-  --warning: #FBBF24;    --warning-bg: rgba(251,191,36,.14);
-  --success: #34D399;    --success-bg: rgba(52,211,153,.14);
-  --info:    #60A5FA;    --info-bg:    rgba(96,165,250,.14);
-  --new:     #C4B5FD;    --new-bg:     rgba(196,181,253,.14);
+  /* ── Ink ── */
+  --ink-1: #F4F2EA;
+  --ink-2: #C9C5BA;
+  --ink-3: #8B8780;
+  --ink-4: #5E5C56;
+  --ink-inverse: #0B0C0E;
 
-  --shadow-1: 0 1px 2px rgba(0,0,0,.4);
-  --shadow-2: 0 1px 3px rgba(0,0,0,.5), 0 1px 2px -1px rgba(0,0,0,.3);
-  --shadow-3: 0 4px 8px rgba(0,0,0,.5);
-  --shadow-4: 0 18px 40px rgba(0,0,0,.55);
-  --shadow-glow: 0 0 0 3px rgba(52,213,194,.30);
+  /* ── Signal (dark: +12% lightness for WCAG AA) ── */
+  --sig-now:   #E06055;
+  --sig-go:    #2E9B68;
+  --sig-hold:  #D4921C;
+  --sig-info:  #4B75E8;
+  --sig-focus: #F2F0E8;
+  --sig-new:   #9A62E8;
 
-  --header-grad: linear-gradient(135deg, #0A3845 0%, #14657A 55%, #1E8B7A 100%);
-  --header-mesh:
-    radial-gradient(circle at 15% 20%, rgba(255,255,255,.10), transparent 50%),
-    radial-gradient(circle at 85% 80%, rgba(52,213,194,.30), transparent 55%);
+  /* ── Shadows (lighter alpha on dark surfaces) ── */
+  --shadow-0: none;
+  --shadow-edge: inset 0 1px 0 rgba(255,255,255,0.04);
+  --shadow-1: 0 1px 2px rgba(0,0,0,0.40), 0 0 0 1px var(--line-1);
+  --shadow-2: 0 6px 24px -8px rgba(0,0,0,0.55), 0 0 0 1px var(--line-2);
+  --shadow-3: 0 24px 64px -16px rgba(0,0,0,0.70), 0 0 0 1px var(--line-2);
+  --shadow-4: var(--shadow-3);
+  --shadow-glow: 0 0 0 3px rgba(75,117,232,0.30);
 
-  --skeleton-from: #182230;
-  --skeleton-to:   #243144;
+  /* ── Backward-compat semantic aliases ── */
+  --bg: var(--paper-0);
+  --bg-elev: var(--paper-1);
+  --card: var(--paper-1);
+  --card-alt: var(--paper-2);
+  --card-hover: var(--paper-2);
+  --border: var(--line-1);
+  --border-strong: var(--line-2);
+  --border-focus: var(--line-focus);
+  --text: var(--ink-1);
+  --text-muted: var(--ink-2);
+  --text-soft: var(--ink-3);
+  --text-inverse: var(--ink-inverse);
+  --urgent: var(--sig-now);
+  --urgent-bg: rgba(224,96,85,0.14);
+  --warning: var(--sig-hold);
+  --warning-bg: rgba(212,146,28,0.14);
+  --success: var(--sig-go);
+  --success-bg: rgba(46,155,104,0.14);
+  --info: var(--sig-info);
+  --info-bg: rgba(75,117,232,0.14);
+  --new: var(--sig-new);
+  --new-bg: rgba(154,98,232,0.14);
+  --skeleton-from: var(--paper-2);
+  --skeleton-to: var(--paper-3);
+  --accent-soft: rgba(75,117,232,0.12);
 }
 
 * { box-sizing: border-box; }
-*::selection { background: var(--accent-soft); color: var(--text); }
+*::selection { background: var(--accent-soft); color: var(--ink-1); }
 
 html, body {
   margin: 0; padding: 0;
@@ -141,16 +219,14 @@ html, body {
   font-size: var(--fs-md); line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  font-feature-settings: "cv11", "ss01";
+  /* ss01 + cv05 render Söhne/Berkeley Mono correctly; tnum locks tabular figures */
+  font-feature-settings: "ss01", "cv05", "tnum";
   transition: background-color var(--t-med) var(--ease),
               color var(--t-med) var(--ease);
 }
 
-body { background-image:
-  radial-gradient(1200px 600px at 100% -10%, var(--accent-soft), transparent 70%),
-  radial-gradient(900px 400px at -10% 110%, var(--accent-soft), transparent 70%);
-  background-attachment: fixed;
-}
+/* Quiet Operator: flat paper background — no decorative gradients */
+body { background-attachment: fixed; }
 
 a { color: var(--info); text-decoration: none; }
 a:hover { text-decoration: underline; }
