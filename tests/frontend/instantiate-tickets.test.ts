@@ -5,6 +5,7 @@ const { mockApi, mockIsAuthError, mockGetSetting, mockSaveSetting, mockRenderJir
     mockApi: {
       ticketsMine: vi.fn(),
       settingsPut: vi.fn().mockResolvedValue({}),
+      cloneHistory: vi.fn().mockResolvedValue({ data: {} }),
     },
     mockIsAuthError: vi.fn().mockReturnValue(false),
     mockGetSetting: vi.fn().mockReturnValue(undefined),
@@ -208,5 +209,62 @@ describe("instantiateTickets — instance isolation", () => {
     const ids = (mockApi.ticketsMine as ReturnType<typeof vi.fn>).mock.calls.map(([, id]) => id);
     expect(ids).toContain("conn-A");
     expect(ids).toContain("conn-B");
+  });
+});
+
+// ── applyCloneHistory ─────────────────────────────────────────────────────────
+describe("instantiateTickets — applyCloneHistory", () => {
+  it("replaces clone button with cloned-badge when history entry exists", async () => {
+    mockApi.ticketsMine.mockResolvedValue({
+      ...await okResp(),
+      connectorCloningConfig: { cloningEnabled: true, cloneTargetProject: "P", connectorId: "ci-1" },
+    });
+    mockRenderJiraTicket.mockReturnValue(
+      `<div class="schedule-item"><button class="clone-to-jira-btn" data-clone-url="https://jira/T-1"></button></div>`,
+    );
+    mockApi.cloneHistory.mockResolvedValue({
+      data: { "https://jira/T-1": { key: "DEST-5", url: "https://target/DEST-5", title: "T", clonedAt: 1 } },
+    });
+
+    const c = makeContainer();
+    const inst = instantiateTickets(c, "ci-1", { wsName: "WS", title: "Tickets" });
+    await inst.load();
+    await new Promise(r => setTimeout(r, 10));
+
+    expect(c.querySelector(".clone-to-jira-btn")).toBeNull();
+    const badge = c.querySelector<HTMLAnchorElement>(".cloned-badge");
+    expect(badge).not.toBeNull();
+    expect(badge!.textContent).toBe("DEST-5");
+    expect(badge!.href).toContain("DEST-5");
+  });
+
+  it("skips rows already marked is-cloned", async () => {
+    mockApi.ticketsMine.mockResolvedValue({
+      ...await okResp(),
+      connectorCloningConfig: { cloningEnabled: true, cloneTargetProject: "P", connectorId: "ci-1" },
+    });
+    mockRenderJiraTicket.mockReturnValue(
+      `<div class="schedule-item is-cloned"><button class="clone-to-jira-btn" data-clone-url="https://jira/T-1"></button></div>`,
+    );
+    mockApi.cloneHistory.mockResolvedValue({
+      data: { "https://jira/T-1": { key: "DEST-5", url: "https://target/DEST-5", title: "T", clonedAt: 1 } },
+    });
+
+    const c = makeContainer();
+    const inst = instantiateTickets(c, "ci-1", { wsName: "WS", title: "Tickets" });
+    await inst.load();
+    await new Promise(r => setTimeout(r, 10));
+
+    // Button should remain because the row was already is-cloned
+    expect(c.querySelector(".clone-to-jira-btn")).not.toBeNull();
+  });
+
+  it("does not throw when cloneHistory API call fails", async () => {
+    mockApi.ticketsMine.mockResolvedValue(okResp());
+    mockApi.cloneHistory.mockRejectedValue(new Error("network"));
+
+    const c = makeContainer();
+    const inst = instantiateTickets(c, "ci-1", { wsName: "WS", title: "Tickets" });
+    await expect(inst.load()).resolves.not.toThrow();
   });
 });

@@ -98,6 +98,49 @@ beforeEach(() => {
   mockGetIdentity.mockReturnValue(identityRow());
 });
 
+// ── GET /clone-history ────────────────────────────────────────────────────────
+
+describe("GET /clone-history", () => {
+  it("returns an empty data object when no rows exist", async () => {
+    mockDb.prepare.mockReturnValue({ all: vi.fn().mockReturnValue([]) });
+    const res = await request(app).get("/clone-history");
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual({});
+  });
+
+  it("groups rows by source_url keeping only the most recent per URL", async () => {
+    mockDb.prepare.mockReturnValue({
+      all: vi.fn().mockReturnValue([
+        { source_url: "https://cu/t/1", source_title: "Bug fix", cloned_key: "P-2", cloned_url: "https://jira/P-2", cloned_at: 2000 },
+        { source_url: "https://cu/t/1", source_title: "Bug fix", cloned_key: "P-1", cloned_url: "https://jira/P-1", cloned_at: 1000 },
+        { source_url: "https://cu/t/2", source_title: "Feature", cloned_key: "P-3", cloned_url: "https://jira/P-3", cloned_at: 3000 },
+      ]),
+      run: vi.fn(),
+    });
+    const res = await request(app).get("/clone-history");
+    expect(res.status).toBe(200);
+    // First occurrence wins (rows already ordered DESC by cloned_at)
+    expect(res.body.data["https://cu/t/1"].key).toBe("P-2");
+    expect(res.body.data["https://cu/t/2"].key).toBe("P-3");
+    expect(Object.keys(res.body.data)).toHaveLength(2);
+  });
+
+  it("includes key, url, title, and clonedAt in each entry", async () => {
+    mockDb.prepare.mockReturnValue({
+      all: vi.fn().mockReturnValue([
+        { source_url: "https://cu/t/abc", source_title: "My task", cloned_key: "PROJ-7", cloned_url: "https://jira/PROJ-7", cloned_at: 9999 },
+      ]),
+      run: vi.fn(),
+    });
+    const res = await request(app).get("/clone-history");
+    const entry = res.body.data["https://cu/t/abc"];
+    expect(entry.key).toBe("PROJ-7");
+    expect(entry.url).toBe("https://jira/PROJ-7");
+    expect(entry.title).toBe("My task");
+    expect(entry.clonedAt).toBe(9999);
+  });
+});
+
 // ── GET /projects ─────────────────────────────────────────────────────────────
 
 describe("GET /projects", () => {

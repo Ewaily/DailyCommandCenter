@@ -131,6 +131,25 @@ describe("api.clickupTasks", () => {
   });
 });
 
+describe("api.cloneHistory", () => {
+  it("GETs /api/jira/clone-history", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(okResponse({ data: {} }));
+    vi.stubGlobal("fetch", fetchMock);
+    const res = await api.cloneHistory();
+    expect(res.data).toEqual({});
+    const [url] = fetchMock.mock.calls[0];
+    expect(url).toBe("/api/jira/clone-history");
+  });
+
+  it("appends workspace param when active workspace is set", async () => {
+    (globalThis.localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue("ws-5");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(okResponse({ data: { "https://x": { key: "P-1", url: "u", title: "t", clonedAt: 1 } } })));
+    await api.cloneHistory();
+    const [url] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(url).toContain("workspace=ws-5");
+  });
+});
+
 describe("api.jiraProjects", () => {
   it("GETs /api/jira/projects without connectorId", async () => {
     const fetchMock = vi.fn().mockResolvedValue(okResponse({ data: [] }));

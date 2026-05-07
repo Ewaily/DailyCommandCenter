@@ -282,6 +282,7 @@ export function instantiateClickUp(
       }
       const cc = resp.connectorCloningConfig ?? { cloningEnabled: false, cloneTargetProject: "", connectorId: undefined };
       body.innerHTML = data.map(t => renderTask(t, cc.cloningEnabled, cc.cloneTargetProject, cc.connectorId)).join("");
+      applyCloneHistory(body);
     } catch (err) {
       if (isAuthError(err)) {
         body.innerHTML = renderWorkspaceNotConfigured("ClickUp");

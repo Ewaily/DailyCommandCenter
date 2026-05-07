@@ -334,6 +334,7 @@ export function instantiateTickets(
       }
       const cc = resp.connectorCloningConfig ?? { cloningEnabled: false, cloneTargetProject: "", connectorId: undefined };
       body.innerHTML = data.map(t => renderJiraTicket(t, cc.cloningEnabled, cc.cloneTargetProject, cc.connectorId)).join("");
+      applyCloneHistory(body);
     } catch (err) {
       if (isAuthError(err)) body.innerHTML = renderNotConnected("Jira", "jira");
       else body.innerHTML = `<div class="error">${escapeHtml((err as Error).message)}</div>`;
