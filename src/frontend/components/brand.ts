@@ -9,7 +9,7 @@ export function applyBrand(brand: AppCreds["brand"]): void {
   document.title = name;
 
   const h1 = document.getElementById("brand-name");
-  if (h1) h1.textContent = name.toUpperCase();
+  if (h1) h1.textContent = name;
 
   const subEl = document.getElementById("brand-subtitle");
   const sepEl = document.getElementById("brand-subtitle-sep");

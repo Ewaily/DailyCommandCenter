@@ -18,19 +18,26 @@
 </script>
 </head>
 <body>
-<div class="container">
 
-  <div class="header">
-    <div class="header-title">
-      <h1 id="brand-name">DAILY COMMAND CENTER</h1>
-      <div class="subtitle">
-        <span class="greeting" id="greeting"><span class="pulse"></span>Good morning</span>
-        <span class="subtitle-sep" id="brand-subtitle-sep" hidden>·</span>
-        <span id="brand-subtitle" hidden></span>
-      </div>
-    </div>
-    <div class="header-actions" role="toolbar" aria-label="Dashboard actions">
-      <div class="workspace-switcher" id="workspace-switcher"></div>
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     TOP BAR — 52px, edge-to-edge, navigation only, no gradient
+     ══════════════════════════════════════════════════════════════════════════ -->
+<header class="top-bar">
+  <div class="top-bar-inner">
+
+    <!-- Brand block -->
+    <a class="brand-block" href="/" aria-label="Home">
+      <span class="brand-name" id="brand-name">Daily Command Center</span>
+      <span class="brand-status-dot" id="brand-status-dot" aria-hidden="true"></span>
+    </a>
+    <span class="brand-subtitle-sep" id="brand-subtitle-sep" hidden>·</span>
+    <span class="brand-subtitle" id="brand-subtitle" hidden></span>
+
+    <!-- Workspace switcher -->
+    <div class="workspace-switcher" id="workspace-switcher"></div>
+
+    <!-- Action cluster -->
+    <div class="top-bar-actions" role="toolbar" aria-label="Dashboard actions">
       <button class="header-btn header-kbd" data-action="palette" data-tooltip="Command palette · ⌘K" aria-label="Open command palette (Cmd K)">
         <kbd>⌘</kbd><kbd>K</kbd><span class="header-btn-label">Search</span>
       </button>
@@ -40,26 +47,81 @@
       <button class="header-btn" data-action="toggle-edit-mode" id="customize-btn" data-tooltip="Customize layout · E" aria-label="Customize dashboard layout (E)">
         <span class="header-btn-label" id="customize-btn-label">Customize</span>
       </button>
-      <button class="header-btn icon-only" data-action="toggle-theme" id="theme-btn"  data-tooltip="Toggle theme · T"   aria-label="Toggle light or dark theme (T)"></button>
-      <button class="header-btn icon-only" data-action="toggle-settings" id="settings-btn" data-tooltip="Settings · ,"     aria-label="Open settings (,)"></button>
-      <button class="header-btn icon-only" data-action="toggle-help" id="help-btn"        data-tooltip="Keyboard shortcuts · ?" aria-label="Show keyboard shortcuts (?)"></button>
-    </div>
-    <div class="header-clock" aria-label="Current time and date">
-      <div class="clock-text">
-        <div class="clock-line">
-          <span class="clock" id="clock">--:--</span>
-          <span class="clock-ampm" id="clock-ampm">--</span>
-        </div>
-        <div class="clock-meta">
-          <span class="date" id="header-date">—</span>
-          <span class="clock-tz-pill"><span class="clock-tz-dot" aria-hidden="true"></span><span id="primary-tz-label">—</span></span>
-        </div>
-        <div class="world-clocks" id="world-clocks" aria-label="Other time zones"></div>
-      </div>
+      <button class="header-btn icon-only" data-action="toggle-theme" id="theme-btn" data-tooltip="Toggle theme · T" aria-label="Toggle light or dark theme (T)"></button>
+      <button class="header-btn icon-only" data-action="toggle-settings" id="settings-btn" data-tooltip="Settings · ," aria-label="Open settings (,)"></button>
+      <button class="header-btn icon-only" data-action="toggle-help" id="help-btn" data-tooltip="Keyboard shortcuts · ?" aria-label="Show keyboard shortcuts (?)"></button>
     </div>
   </div>
+</header>
 
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     CONTEXT STRIP — 36px, eyebrow + description (today.ts) + clock/TZ pills
+     ══════════════════════════════════════════════════════════════════════════ -->
+<div class="context-strip" id="context-strip">
+  <!-- Left: eyebrow + desc, rendered by today.ts -->
   <div id="context-banner" class="context-banner"></div>
+
+  <!-- Centre: greeting (subtle, updated by header.ts tick) -->
+  <span class="cs-greeting" id="greeting" aria-live="polite"></span>
+
+  <!-- Right: clock + date + TZ pills -->
+  <div class="cs-clock-block" aria-label="Current time and date">
+    <span class="cs-time-line">
+      <span id="clock" class="cs-clock">--:--</span>
+      <span id="clock-ampm" class="cs-ampm">--</span>
+      <span class="cs-sep" aria-hidden="true">·</span>
+      <span id="header-date" class="cs-date">—</span>
+      <span class="cs-tz-pill">
+        <span class="clock-tz-dot" aria-hidden="true"></span>
+        <span id="primary-tz-label">—</span>
+      </span>
+    </span>
+    <div class="world-clocks" id="world-clocks" aria-label="Other time zones"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     KPI STRIP — 4 hairline instrument cells, 88px, no cards/borders/left-bars
+     ══════════════════════════════════════════════════════════════════════════ -->
+<div class="kpi-strip">
+  <div class="kpi" data-kpi-jump="schedule" data-requires-connector="calendar" tabindex="0" role="button" aria-label="Jump to schedule">
+    <div class="kpi-eyebrow">
+      <span class="kpi-source-label">TODAY · CAL</span>
+      <span class="kpi-icon" data-icon="calendar"></span>
+    </div>
+    <div class="kpi-value" id="kpi-meetings" data-target="0">—</div>
+    <div class="kpi-detail" id="kpi-meetings-detail">Loading…</div>
+  </div>
+  <div class="kpi" data-kpi-jump="mentions" data-requires-connector="slack" data-kpi-actionable="true" tabindex="0" role="button" aria-label="Jump to mentions">
+    <div class="kpi-eyebrow">
+      <span class="kpi-source-label">MENTIONS · SLK</span>
+      <span class="kpi-icon" data-icon="bell"></span>
+    </div>
+    <div class="kpi-value" id="kpi-mentions" data-target="0">—</div>
+    <div class="kpi-detail" id="kpi-mentions-detail">Past 7 days</div>
+  </div>
+  <div class="kpi" data-kpi-jump="tickets" data-requires-connector="jira" tabindex="0" role="button" aria-label="Jump to tickets">
+    <div class="kpi-eyebrow">
+      <span class="kpi-source-label">TICKETS · JRA</span>
+      <span class="kpi-icon" data-icon="ticket"></span>
+    </div>
+    <div class="kpi-value" id="kpi-tickets" data-target="0">—</div>
+    <div class="kpi-detail" id="kpi-tickets-detail">Jira</div>
+  </div>
+  <div class="kpi" data-kpi-jump="prs" data-requires-connector="github" data-kpi-actionable="true" tabindex="0" role="button" aria-label="Jump to PRs">
+    <div class="kpi-eyebrow">
+      <span class="kpi-source-label">PRs · GIT</span>
+      <span class="kpi-icon" data-icon="gitPr"></span>
+    </div>
+    <div class="kpi-value" id="kpi-prs" data-target="0">—</div>
+    <div class="kpi-detail" id="kpi-prs-detail">GitHub</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     PAGE CONTENT — max-width centered, dashboard and widget area
+     ══════════════════════════════════════════════════════════════════════════ -->
+<div class="page-content">
 
   <div id="workspace-empty" class="workspace-empty" hidden>
     <div class="workspace-empty-card">
@@ -71,29 +133,6 @@
       </p>
       <button class="btn-primary" data-action="toggle-settings">Open Settings → Workspaces</button>
       <p class="workspace-empty-hint muted">Press <kbd>,</kbd> to open settings any time.</p>
-    </div>
-  </div>
-
-  <div class="kpi-strip">
-    <div class="kpi info" data-kpi-jump="schedule" data-requires-connector="calendar" tabindex="0" role="button" aria-label="Jump to schedule">
-      <div class="kpi-label"><span class="kpi-source">Calendar</span><span class="kpi-text">Today's meetings</span><span class="kpi-icon" data-icon="calendar"></span></div>
-      <div class="kpi-value" id="kpi-meetings" data-target="0">—</div>
-      <div class="kpi-detail" id="kpi-meetings-detail">Loading…</div>
-    </div>
-    <div class="kpi urgent" data-kpi-jump="mentions" data-requires-connector="slack" tabindex="0" role="button" aria-label="Jump to mentions">
-      <div class="kpi-label"><span class="kpi-source">Slack</span><span class="kpi-text">Mentions &amp; DMs</span><span class="kpi-icon" data-icon="bell"></span></div>
-      <div class="kpi-value" id="kpi-mentions" data-target="0">—</div>
-      <div class="kpi-detail" id="kpi-mentions-detail">Past 7 days</div>
-    </div>
-    <div class="kpi muted" data-kpi-jump="tickets" data-requires-connector="jira" tabindex="0" role="button" aria-label="Jump to tickets">
-      <div class="kpi-label"><span class="kpi-source">Jira</span><span class="kpi-text">My tickets</span><span class="kpi-icon" data-icon="ticket"></span></div>
-      <div class="kpi-value" id="kpi-tickets" data-target="0">—</div>
-      <div class="kpi-detail" id="kpi-tickets-detail">Jira</div>
-    </div>
-    <div class="kpi muted" data-kpi-jump="prs" data-requires-connector="github" tabindex="0" role="button" aria-label="Jump to PRs">
-      <div class="kpi-label"><span class="kpi-source">GitHub</span><span class="kpi-text">PRs to review</span><span class="kpi-icon" data-icon="gitPr"></span></div>
-      <div class="kpi-value" id="kpi-prs" data-target="0">—</div>
-      <div class="kpi-detail" id="kpi-prs-detail">GitHub</div>
     </div>
   </div>
 
@@ -200,7 +239,8 @@
       <div class="card-body short" id="channels-body"></div>
     </div>
   </div>
-</div>
+
+</div><!-- /page-content -->
 
 <!-- UNIVERSAL SIDEBAR (right rail) -->
 <aside id="universal-sidebar" class="universal-sidebar" aria-label="Quick reference rail">

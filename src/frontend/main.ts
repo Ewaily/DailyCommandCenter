@@ -22,6 +22,7 @@ import { init as initDashboard } from "./components/dashboard.js";
 import { loadConnectors, applyConnectorVisibility, hasCapability } from "./connectors.js";
 import { applyTitles, initInlineEditing } from "./components/widget-titles.js";
 import { initOverviewWidgets, clearOverviewWidgets } from "./components/overview-widgets.js";
+import { initKpiSignals } from "./components/kpi-strip.js";
 
 function markLastRefresh() {
   const el = document.getElementById("last-refresh");
@@ -189,6 +190,7 @@ function paintHeaderIcons() {
 async function init() {
   paintHeaderIcons();
   startIconAutoPaint();
+  initKpiSignals();
   initTheme();
   try {
     const app = await api.appSettingsGet();
