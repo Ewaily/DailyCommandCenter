@@ -5,6 +5,7 @@ const { mockApi, mockIsAuthError, mockGetSetting, mockSaveSetting, mockRenderTas
     mockApi: {
       clickupTasks: vi.fn(),
       settingsPut: vi.fn().mockResolvedValue({}),
+      cloneHistory: vi.fn().mockResolvedValue({ data: {} }),
     },
     mockIsAuthError: vi.fn().mockReturnValue(false),
     mockGetSetting: vi.fn().mockReturnValue(undefined),
@@ -179,5 +180,60 @@ describe("instantiateClickUp — instance isolation", () => {
     const ids = (mockApi.clickupTasks as ReturnType<typeof vi.fn>).mock.calls.map(([, id]) => id);
     expect(ids).toContain("conn-A");
     expect(ids).toContain("conn-B");
+  });
+});
+
+// ── applyCloneHistory ─────────────────────────────────────────────────────────
+describe("instantiateClickUp — applyCloneHistory", () => {
+  it("replaces clone button with cloned-badge when history entry exists", async () => {
+    mockApi.clickupTasks.mockResolvedValue({
+      ...await okResp(),
+      connectorCloningConfig: { cloningEnabled: true, cloneTargetProject: "P", connectorId: "ci-1" },
+    });
+    mockRenderTaskRow.mockReturnValue(
+      `<div class="schedule-item"><button class="clone-to-jira-btn" data-clone-url="https://cu/t/1"></button></div>`,
+    );
+    mockApi.cloneHistory.mockResolvedValue({
+      data: { "https://cu/t/1": { key: "DEST-7", url: "https://target/DEST-7", title: "T", clonedAt: 1 } },
+    });
+
+    const c = makeContainer();
+    const inst = instantiateClickUp(c, "ci-1", { wsName: "WS", title: "Tasks" });
+    await inst.load();
+    await new Promise(r => setTimeout(r, 10));
+
+    expect(c.querySelector(".clone-to-jira-btn")).toBeNull();
+    const badge = c.querySelector<HTMLAnchorElement>(".cloned-badge");
+    expect(badge).not.toBeNull();
+    expect(badge!.textContent).toBe("DEST-7");
+    expect(badge!.href).toContain("DEST-7");
+  });
+
+  it("skips rows already marked is-cloned", async () => {
+    mockApi.clickupTasks.mockResolvedValue({
+      ...await okResp(),
+      connectorCloningConfig: { cloningEnabled: true, cloneTargetProject: "P", connectorId: "ci-1" },
+    });
+    mockRenderTaskRow.mockReturnValue(
+      `<div class="schedule-item is-cloned"><button class="clone-to-jira-btn" data-clone-url="https://cu/t/1"></button></div>`,
+    );
+    mockApi.cloneHistory.mockResolvedValue({
+      data: { "https://cu/t/1": { key: "DEST-7", url: "https://target/DEST-7", title: "T", clonedAt: 1 } },
+    });
+
+    const c = makeContainer();
+    const inst = instantiateClickUp(c, "ci-1", { wsName: "WS", title: "Tasks" });
+    await inst.load();
+    await new Promise(r => setTimeout(r, 10));
+
+    expect(c.querySelector(".clone-to-jira-btn")).not.toBeNull();
+  });
+
+  it("does not throw when cloneHistory API call fails", async () => {
+    mockApi.clickupTasks.mockResolvedValue(okResp());
+    mockApi.cloneHistory.mockRejectedValue(new Error("network"));
+    const c = makeContainer();
+    const inst = instantiateClickUp(c, "ci-1", { wsName: "WS", title: "Tasks" });
+    await expect(inst.load()).resolves.not.toThrow();
   });
 });

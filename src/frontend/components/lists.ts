@@ -3,7 +3,7 @@ import { api, isAuthError, type Envelope, type Ticket, type PR } from "../api.js
 import { $, escapeHtml, renderNotConnected, skeletonCompact, animateNumber } from "./util.js";
 import { renderTaskRow } from "./task-row.js";
 
-export function renderJiraTicket(t: Ticket): string {
+export function renderJiraTicket(t: Ticket, cloningEnabled = false, targetProject = "", connectorId = ""): string {
   return renderTaskRow({
     key: t.key || "",
     keyTitle: t.project || undefined,
@@ -14,9 +14,11 @@ export function renderJiraTicket(t: Ticket): string {
     statusBucket: t.statusBucket,
     priority: t.priority,
     assignees: t.assignee ? [{ name: t.assignee.name, avatar: t.assignee.avatar }] : [],
-    // Project name doubles as the "list" pill — same affordance ClickUp uses.
     listLabel: t.project,
     dueDate: t.dueDate,
+    cloneSource: cloningEnabled ? "jira" : undefined,
+    cloneTargetProject: cloningEnabled ? targetProject : undefined,
+    cloneConnectorId: cloningEnabled ? connectorId : undefined,
   });
 }
 

@@ -633,6 +633,7 @@ body.dashboard-editing .card-header .tab:active { cursor: grabbing; }
   border-radius: var(--r-sm);
   margin: 0 -6px; padding-left: 6px; padding-right: 6px;
 }
+.schedule-item--cloneable { grid-template-columns: 70px 1fr auto; align-items: center; }
 .schedule-item:last-child { border-bottom: none; }
 .schedule-item:hover { background: var(--card-alt); }
 
@@ -3115,3 +3116,117 @@ body.has-dynamic-overview [data-ov-hidden="1"] {
 @media (max-width: 720px) {
   .swatch-grid { grid-template-columns: repeat(6, 1fr); max-width: 100%; }
 }
+
+/* ── Clone confirm / error modals ───────────────────────────────────────── */
+.clone-confirm-body { font-size: var(--fs-md); margin: 0 0 4px; line-height: 1.5; }
+.clone-confirm-body strong { font-weight: 600; display: block; margin-bottom: 4px; }
+.clone-confirm-body code { padding: 1px 5px; border-radius: 4px; background: rgba(0,0,0,.06); font-size: var(--fs-sm); }
+.clone-error-pre {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 10px 12px;
+  font-family: var(--font-mono); font-size: 11px; line-height: 1.55;
+  white-space: pre-wrap; word-break: break-all;
+  max-height: 220px; overflow-y: auto; margin: 0;
+  color: var(--error);
+}
+
+/* ── Clone success modal ─────────────────────────────────────────────────── */
+.clone-success-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 48px; height: 48px; border-radius: 50%;
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  color: var(--success); font-size: 22px; font-weight: 700;
+  margin: 0 auto 2px;
+}
+.clone-success-key {
+  display: inline-block;
+  padding: 4px 14px; border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary); font-weight: 700; font-size: var(--fs-lg);
+  letter-spacing: 0.03em; margin-bottom: 8px;
+}
+.clone-success-url {
+  display: block; font-size: var(--fs-sm); color: var(--text-muted);
+  word-break: break-all; text-decoration: none;
+  padding: 6px 10px; border-radius: var(--r-sm);
+  border: 1px solid var(--border); background: var(--surface-2);
+}
+.clone-success-url:hover { color: var(--primary); border-color: var(--primary); }
+.clone-success-close {
+  position: absolute; top: 12px; right: 14px;
+  background: none; border: none; cursor: pointer;
+  font-size: 16px; color: var(--text-muted); padding: 4px;
+  line-height: 1;
+}
+.clone-success-close:hover { color: var(--text); }
+.clone-success-modal { position: relative; }
+
+/* ── Already-cloned badge & row state ────────────────────────────────────── */
+.cloned-badge {
+  display: inline-flex; align-items: center; height: 26px; padding: 0 10px;
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  color: var(--success);
+  border: 1px solid color-mix(in srgb, var(--success) 30%, transparent);
+  border-radius: 999px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+  text-decoration: none; white-space: nowrap; flex-shrink: 0;
+}
+.cloned-badge:hover {
+  background: var(--success); color: #fff; border-color: var(--success);
+}
+.schedule-item.is-cloned { opacity: 0.7; }
+.schedule-item.is-cloned:hover { opacity: 1; }
+
+/* ── 1-Click Clone to Jira ───────────────────────────────────────────────── */
+.clone-to-jira-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  height: 26px; padding: 0 10px;
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary);
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, transparent);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+  white-space: nowrap;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
+  flex-shrink: 0;
+  align-self: center;
+}
+.clone-to-jira-btn::after { content: "Clone"; }
+
+/* Cloning settings banner */
+.clone-status-banner {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  font-size: 13px; line-height: 1.45;
+  margin: 0 0 6px;
+}
+.clone-status-banner code { padding: 1px 6px; border-radius: 4px; background: rgba(0,0,0,0.06); font-size: 12px; }
+.clone-status-banner strong { font-weight: 600; }
+.clone-status--ok   { background: color-mix(in srgb, var(--success) 12%, transparent); color: var(--success); border: 1px solid color-mix(in srgb, var(--success) 30%, transparent); }
+.clone-status--warn { background: color-mix(in srgb, var(--warning) 14%, transparent); color: var(--warning); border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent); }
+.clone-status--off  { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
+.clone-status-icon { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; }
+.clone-project-row { display: flex; align-items: center; gap: 8px; }
+.clone-project-row .pref-input,
+.clone-project-row .pref-select { flex: 1; min-width: 0; }
+.clone-to-jira-btn:hover {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--primary) 35%, transparent);
+}
+.clone-to-jira-btn:active { transform: translateY(0); box-shadow: none; }
+.clone-to-jira-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Ticket Workflows settings toggle */
+.settings-toggle-label {
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
+  font-size: var(--fs-md);
+}
+.settings-toggle-label input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }

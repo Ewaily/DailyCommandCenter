@@ -1,34 +1,43 @@
 import { Router } from "express";
 import * as clickup from "../integrations/clickup.js";
 import { getActiveWorkspaceId } from "../lib/request-context.js";
-import { listConnectorsForOverview, listConnectorsForWorkspace } from "../lib/workspace-config.js";
+import { listConnectorsForOverview, listConnectorsForWorkspace, type ConnectorInstance } from "../lib/workspace-config.js";
+import { extractCloningConfig, type ConnectorCloningConfig } from "./tickets.js";
 
 export const clickupRouter = Router();
 
-// Resolve which workspace ids to fan-out across for ClickUp:
-//   - Workspace selected → just that workspace
-//   - Overview           → every owner of an overview-enabled clickup connector
-// scopeId: if set, only include that specific connector instance's workspace.
-function clickupTargetWorkspaceIds(scopeId?: string): (string | undefined)[] {
+type ResolvedClickUp = {
+  workspaceId: string | undefined;
+  instance: ConnectorInstance;
+};
+
+function resolveClickUp(scopeId?: string): ResolvedClickUp[] {
   const wsId = getActiveWorkspaceId();
-  if (wsId) return [wsId];
-  const all = listConnectorsForOverview();
-  const owners = new Set<string>();
+  const all = wsId ? listConnectorsForWorkspace(wsId) : listConnectorsForOverview();
+  const result: ResolvedClickUp[] = [];
   for (const c of all) {
-    if (c.type !== "clickup" || !c.workspaceId) continue;
+    if (c.type !== "clickup" || !c.enabled) continue;
     if (scopeId && c.id !== scopeId) continue;
-    owners.add(c.workspaceId);
+    if (!clickup.isConfigured(c.workspaceId ?? undefined)) continue;
+    result.push({ workspaceId: c.workspaceId ?? undefined, instance: c });
   }
-  return owners.size ? [...owners] : [];
+  return result;
+}
+
+export function pickClickUpCloningConfig(resolved: ResolvedClickUp[], scopeId?: string): ConnectorCloningConfig {
+  const primary = (scopeId ? resolved.find(r => r.instance.id === scopeId) : resolved[0]);
+  if (!primary) return { cloningEnabled: false, cloneTargetProject: "" };
+  return { ...extractCloningConfig(primary.instance.config), connectorId: primary.instance.id };
 }
 
 clickupRouter.get("/tasks", async (req, res) => {
   const scopeId = typeof req.query.connectorId === "string" ? req.query.connectorId : undefined;
-  const targets = clickupTargetWorkspaceIds(scopeId);
-  const usable = targets.filter(t => clickup.isConfigured(t));
-  if (!usable.length) return res.json({ data: [], notConfigured: true, buckets: [], counts: {} });
+  const resolved = resolveClickUp(scopeId);
+  if (!resolved.length) return res.json({ data: [], notConfigured: true, buckets: [], counts: {} });
 
   try {
+    const usable = resolved.map(r => r.workspaceId);
+
     // Union of watched users across every target workspace, de-duped by id.
     const seenWatched = new Set<string>();
     const watched: ReturnType<typeof clickup.getWatchedUsers> = [];
@@ -74,7 +83,13 @@ clickupRouter.get("/tasks", async (req, res) => {
       counts[id] = allLists[i].length;
     });
 
-    res.json({ data: merged[bucket] ?? [], bucket, counts, buckets: watched });
+    res.json({
+      data: merged[bucket] ?? [],
+      bucket,
+      counts,
+      buckets: watched,
+      connectorCloningConfig: pickClickUpCloningConfig(resolved, scopeId),
+    });
   } catch (err: any) {
     res.status(502).json({ error: err.message || "ClickUp API error" });
   }

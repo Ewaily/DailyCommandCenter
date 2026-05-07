@@ -4,6 +4,26 @@ These are **strict, non-negotiable directives** that Claude must follow on every
 
 ---
 
+## 🚨 CRITICAL RULE: ZERO-TOLERANCE TEST COVERAGE
+
+- EVERY single line of new or modified code MUST be accompanied by comprehensive unit tests in the same commit.
+- You are strictly forbidden from opening a PR or claiming a task is complete if the patch coverage drops below 100%.
+- Codecov failures are considered catastrophic task failures. Always run full test suites locally before pushing.
+
+### TESTING PHILOSOPHY: BEHAVIOR OVER IMPLEMENTATION
+
+- **NEVER export private/internal helper functions just to write tests for them.** This is an anti-pattern that creates brittle tests.
+- **Test the Public Interface:** Coverage MUST be achieved organically by testing the public API of the module or by writing behavioral DOM tests (e.g., rendering a component, clicking a button, asserting the output).
+- Internal helpers must be covered indirectly through these component-level integration tests.
+
+### LOCAL OVERALL VS. CODECOV PATCH COVERAGE (MANDATORY DISTINCTION)
+
+- **Overall local thresholds are NOT enough.** Passing the local `c8` or `vitest` overall function threshold (e.g., >52.6%) does NOT mean the PR is ready.
+- **100% Patch Coverage is Mandatory:** Remote Codecov requires 100% coverage on the *exact lines of code* newly added or modified in your specific Pull Request.
+- **Pre-PR Checklist:** Before committing, you MUST check the coverage report specifically for the files you just edited. If any file you touched has missing lines in the coverage report, you are forbidden from opening a PR until those specific lines are tested.
+
+---
+
 ## OPEN SOURCE RULE
 
 Before modifying any code, Claude **must** read the existing documentation

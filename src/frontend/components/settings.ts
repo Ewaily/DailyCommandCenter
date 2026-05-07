@@ -169,8 +169,41 @@ async function renderWorkspaces(): Promise<string> {
 
   const detailsArr = await Promise.all(wss.map(ws => api.workspace(ws.id)));
 
+  // Pre-fetch Jira project lists per-connector so the clone config dropdowns are populated.
+  const allConnectors = detailsArr.flatMap(d => d.data.connectors);
+  const jiraConns     = allConnectors.filter(c => c.type === "jira" && c.enabled && c.identity?.hasToken);
+
+  // For each connector that has saved clone-target credentials, fetch that
+  // target instance's project list — these are the projects we want to show
+  // in the "Target Jira Project Key" dropdown, not the source connector's own projects.
+  const cloneTargetProjectMap = new Map<string, import("../api.js").JiraProject[]>();
+  const cloneCandidates = allConnectors.filter(c =>
+    (c.type === "jira" || c.type === "clickup") && c.identity?.hasToken
+  );
+  await Promise.all(cloneCandidates.map(async c => {
+    const cfg = c.config as { cloneTargetUrl?: string; cloneTargetEmail?: string; cloneTargetToken?: string };
+    const { cloneTargetUrl: u, cloneTargetEmail: e, cloneTargetToken: t } = cfg;
+    if (!u || !e || !t) return;
+    try {
+      const pRes = await api.jiraProjectsFromCreds(u, e, t);
+      if (!pRes.notConfigured) cloneTargetProjectMap.set(c.id, pRes.data ?? []);
+    } catch { /* target unreachable — leave empty so UI shows text fallback */ }
+  }));
+
+  const jiraProjectMap = new Map<string, import("../api.js").JiraProject[]>();
+  await Promise.all(jiraConns.map(async c => {
+    try {
+      const pRes = await api.jiraProjects(c.id);
+      if (!pRes.notConfigured) jiraProjectMap.set(c.id, pRes.data ?? []);
+    } catch { /* connector unreachable — leave map empty for this id */ }
+  }));
+  // Flat de-duped project list for ClickUp connectors (they clone into any Jira project).
+  const allJiraProjects = [...new Map(
+    jiraConns.flatMap(c => jiraProjectMap.get(c.id) ?? []).map(p => [p.key, p]),
+  ).values()];
+
   const sections = wss.map((ws, i) =>
-    wsSection(ws, detailsArr[i].data.connectors, ws.id === wsRes.data.defaultWorkspaceId, appCreds),
+    wsSection(ws, detailsArr[i].data.connectors, ws.id === wsRes.data.defaultWorkspaceId, appCreds, jiraProjectMap, allJiraProjects, cloneTargetProjectMap),
   );
 
   return `
@@ -258,7 +291,7 @@ function typeDefs(appCreds: AppCreds): ConnectorTypeDef[] {
   ];
 }
 
-function wsSection(ws: Workspace, connectors: ConnectorInstance[], isDefault: boolean, appCreds: AppCreds): string {
+function wsSection(ws: Workspace, connectors: ConnectorInstance[], isDefault: boolean, appCreds: AppCreds, jiraProjectMap: Map<string, import("../api.js").JiraProject[]>, allJiraProjects: import("../api.js").JiraProject[], cloneTargetProjectMap = new Map<string, import("../api.js").JiraProject[]>()): string {
   const color = ws.color || "var(--accent)";
   const def   = isDefault ? `<span class="settings-chip">default</span>` : "";
 
@@ -293,7 +326,7 @@ function wsSection(ws: Workspace, connectors: ConnectorInstance[], isDefault: bo
       </summary>
       <div data-slot="ws-form-${escapeHtml(ws.id)}"></div>
       <div class="ws-section-connectors">
-        ${typeDefs(appCreds).map(td => connectorTypeGroup(ws, td, connectors)).join("")}
+        ${typeDefs(appCreds).map(td => connectorTypeGroup(ws, td, connectors, jiraProjectMap, allJiraProjects, cloneTargetProjectMap)).join("")}
       </div>
     </details>
   `;
@@ -313,7 +346,7 @@ function behaviorHint(type: string): string {
 // Renders one connector type as a single block with three clearly-separated
 // regions: shared-from-others (with prominent ON/OFF toggle), owned (with
 // credentials + share toggle), and a "Connect another" footer.
-function connectorTypeGroup(ws: Workspace, td: ConnectorTypeDef, allConnectors: ConnectorInstance[]): string {
+function connectorTypeGroup(ws: Workspace, td: ConnectorTypeDef, allConnectors: ConnectorInstance[], jiraProjectMap: Map<string, import("../api.js").JiraProject[]>, allJiraProjects: import("../api.js").JiraProject[], cloneTargetProjectMap = new Map<string, import("../api.js").JiraProject[]>()): string {
   const ofType = allConnectors.filter(c => c.type === td.type);
   const owned  = ofType.filter(c => (c.source ?? (c.workspaceId === ws.id ? "owned" : "shared")) === "owned");
   const shared = ofType.filter(c => (c.source ?? (c.workspaceId === ws.id ? "owned" : "shared")) === "shared");
@@ -337,7 +370,15 @@ function connectorTypeGroup(ws: Workspace, td: ConnectorTypeDef, allConnectors: 
   }
 
   const sharedCards = shared.map(c => renderSharedFromOtherInstance(ws, td, c, ownedConnected.length > 0)).join("");
-  const ownedCards  = owned.map(c => renderOwnedInstance(ws, td, c)).join("");
+  const ownedCards  = owned.map(c => {
+    // Prefer projects fetched from the saved target Jira credentials; fall back
+    // to the workspace's own Jira connector list when no target is configured yet.
+    const cloneProjects = cloneTargetProjectMap.get(c.id)
+      ?? (td.type === "jira"    ? (jiraProjectMap.get(c.id) ?? [])
+        : td.type === "clickup" ? allJiraProjects
+        : []);
+    return renderOwnedInstance(ws, td, c, cloneProjects);
+  }).join("");
   const addAnother  = renderAddAnother(ws, td, owned);
 
   const hasAnything = shared.length > 0 || owned.length > 0;
@@ -370,7 +411,7 @@ function connectorTypeGroup(ws: Workspace, td: ConnectorTypeDef, allConnectors: 
   return connectorBlock(td.title, td.color, body, summaryStatus, summaryClass, `conn-${ws.id}-${td.type}`);
 }
 
-function renderOwnedInstance(ws: Workspace, td: ConnectorTypeDef, c: ConnectorInstance): string {
+function renderOwnedInstance(ws: Workspace, td: ConnectorTypeDef, c: ConnectorInstance, cloneProjects: import("../api.js").JiraProject[] = []): string {
   const connected = !!c.identity?.hasToken;
   const account   = c.identity?.account || c.identity?.label || td.title;
 
@@ -430,9 +471,12 @@ function renderOwnedInstance(ws: Workspace, td: ConnectorTypeDef, c: ConnectorIn
   }
 
   // API-key instance.
-  const extras = td.type === "jira" ? renderJiraWatchedUsersEditor(c)
-    : td.type === "clickup" ? renderClickUpWatchedUsersEditor(c)
+  const cloneEditor = (td.type === "jira" || td.type === "clickup") && c.identity?.hasToken
+    ? renderConnectorCloneEditor(c, cloneProjects, td.type === "clickup")
     : "";
+  const extras = (td.type === "jira"    ? renderJiraWatchedUsersEditor(c)
+    : td.type === "clickup" ? renderClickUpWatchedUsersEditor(c)
+    : "") + cloneEditor;
   return `
     <div class="connector-instance owned">
       <div class="connector-instance-head">
@@ -536,6 +580,119 @@ function renderClickUpWatchedUsersEditor(c: ConnectorInstance): string {
     `Each row becomes a tab in the Tasks card. The "Mine" tab is always shown.`,
     false,
   );
+}
+
+export function renderConnectorCloneEditor(c: ConnectorInstance, projects: import("../api.js").JiraProject[], isClickUp: boolean): string {
+  const cfg = c.config as {
+    cloningEnabled?:    boolean;
+    cloneTargetUrl?:    string;
+    cloneTargetEmail?:  string;
+    cloneTargetToken?:  string;
+    cloneTargetProject?: string;
+  };
+  const enabled  = !!cfg.cloningEnabled;
+  const url      = cfg.cloneTargetUrl   || "";
+  const email    = cfg.cloneTargetEmail || "";
+  const token    = cfg.cloneTargetToken || "";
+  const current  = cfg.cloneTargetProject || "";
+  const sourceLabel = isClickUp ? "ClickUp tasks" : "Jira tickets";
+  const credsComplete = !!(url && email && token && current);
+
+  // Status banner — tells the user exactly what state they're in. Solves the
+  // "I filled in the fields but the clone button isn't showing" footgun.
+  const banner = enabled && credsComplete
+    ? `<div class="clone-status-banner clone-status--ok">
+         <span data-icon="check" class="clone-status-icon"></span>
+         <div>
+           <strong>Active.</strong> Hover any row in the ${escapeHtml(sourceLabel)} card and a clone icon
+           appears on the right edge — click it to push that ${isClickUp ? "task" : "ticket"} into
+           ${escapeHtml(url || "the destination Jira")} → <code>${escapeHtml(current)}</code>.
+         </div>
+       </div>`
+    : enabled && !credsComplete
+    ? `<div class="clone-status-banner clone-status--warn">
+         <strong>Enabled but missing credentials.</strong> Fill in all four fields below — saving will refuse
+         until you do.
+       </div>`
+    : credsComplete
+    ? `<div class="clone-status-banner clone-status--off">
+         <strong>Credentials saved, but cloning is OFF.</strong> Flip the toggle below to <em>Enabled</em>
+         and save to start showing the clone icon on each row.
+       </div>`
+    : `<div class="clone-status-banner clone-status--off">
+         <strong>Cloning is off.</strong> Flip the toggle below, fill in the four target fields, and save.
+       </div>`;
+
+  // Project control: dropdown from target credentials if available, otherwise
+  // free-text. A "↻ Refresh" button lets users reload after entering new creds.
+  const projectSelect = projects.length
+    ? `<select name="cloneTargetProject" class="pref-input pref-select" id="cloneTargetProject-${escapeHtml(c.id)}">
+        <option value="">— select a project —</option>
+        ${projects.map(p => `<option value="${escapeHtml(p.key)}" ${p.key === current ? "selected" : ""}>${escapeHtml(p.name)} (${escapeHtml(p.key)})</option>`).join("")}
+       </select>`
+    : `<input name="cloneTargetProject" class="pref-input" type="text"
+         id="cloneTargetProject-${escapeHtml(c.id)}"
+         placeholder="e.g. PROJ"
+         value="${escapeHtml(current)}" />`;
+  const projectControl = `
+    <div class="clone-project-row">
+      ${projectSelect}
+      <button type="button" class="btn-ghost btn-sm" data-action="clone-refresh-projects" data-ci="${escapeHtml(c.id)}" title="Load projects from the target Jira using the credentials above">↻ Refresh</button>
+    </div>`;
+
+  return `
+    <div class="watched-users-editor">
+      <div class="watched-users-head">
+        <span class="watched-users-title">1-Click Cloning to Jira</span>
+        <span class="muted">Clone ${escapeHtml(sourceLabel)} into ANY Jira instance — even one in a different workspace — using its own credentials below.</span>
+      </div>
+      <form class="watched-users-list" data-form="connector-clone-save" data-ci="${escapeHtml(c.id)}">
+        ${banner}
+        <div class="settings-pref-row" style="padding:8px 0 8px">
+          <label class="settings-toggle-label">
+            <input type="checkbox" name="cloningEnabled" ${enabled ? "checked" : ""} />
+            <span>1-Click Cloning is <strong>${enabled ? "Enabled" : "Disabled"}</strong></span>
+          </label>
+        </div>
+        <div class="settings-pref-row" style="padding:0 0 8px">
+          <label class="connector-field-label">Target Base URL
+            <input name="cloneTargetUrl" class="pref-input" type="url"
+              placeholder="https://target.atlassian.net"
+              value="${escapeHtml(url)}" autocomplete="off" />
+            <span class="form-help">Full base URL of the destination Jira instance — no trailing slash.</span>
+          </label>
+        </div>
+        <div class="settings-pref-row" style="padding:0 0 8px">
+          <label class="connector-field-label">Target Email
+            <input name="cloneTargetEmail" class="pref-input" type="email"
+              placeholder="you@example.com"
+              value="${escapeHtml(email)}" autocomplete="off" />
+            <span class="form-help">Email of the Atlassian account whose API token authorizes the clone.</span>
+          </label>
+        </div>
+        <div class="settings-pref-row" style="padding:0 0 8px">
+          <label class="connector-field-label">Target API Token
+            <div class="pw-wrap">
+              <input name="cloneTargetToken" type="password"
+                placeholder="ATATT3xFfGF0..."
+                value="${escapeHtml(token)}" autocomplete="off" spellcheck="false" />
+              <button type="button" class="pw-toggle" data-action="pw-toggle" title="Show/hide">👁</button>
+            </div>
+            <span class="form-help">Create at id.atlassian.com → Security → API tokens. Stored encrypted in this workspace's database.</span>
+          </label>
+        </div>
+        <div class="settings-pref-row" style="padding:0 0 8px">
+          <label class="connector-field-label">Target Jira Project Key
+            ${projectControl}
+            <span class="form-help">Cloned tickets land here. Fill in the URL, email, and token above then click ↻ Refresh to load this instance's projects.</span>
+          </label>
+        </div>
+        <div class="watched-users-actions">
+          <button type="submit" class="header-btn primary">Save cloning settings</button>
+        </div>
+      </form>
+    </div>
+  `;
 }
 
 function renderApiKeyInput(f: FieldDef, c: ConnectorInstance | undefined): string {
@@ -1240,6 +1397,47 @@ async function onSettingsClick(e: Event) {
     return;
   }
 
+  if (action === "clone-refresh-projects") {
+    const ciId = btn?.dataset.ci;
+    if (!ciId) return;
+    const form = btn?.closest("form");
+    const urlVal   = (form?.querySelector<HTMLInputElement>('[name="cloneTargetUrl"]')?.value   || "").trim().replace(/\/+$/, "");
+    const emailVal = (form?.querySelector<HTMLInputElement>('[name="cloneTargetEmail"]')?.value || "").trim();
+    const tokenVal = (form?.querySelector<HTMLInputElement>('[name="cloneTargetToken"]')?.value || "").trim();
+    if (!urlVal || !emailVal || !tokenVal) {
+      alert("Fill in the Target Base URL, Target Email, and Target API Token first, then click Refresh.");
+      return;
+    }
+    const origText = btn!.textContent!;
+    btn!.textContent = "Loading…";
+    btn!.setAttribute("disabled", "true");
+    try {
+      const pRes = await api.jiraProjectsFromCreds(urlVal, emailVal, tokenVal);
+      const projects = pRes.data ?? [];
+      const ctrl = document.getElementById(`cloneTargetProject-${ciId}`);
+      if (!ctrl) return;
+      const curVal = (ctrl as HTMLSelectElement | HTMLInputElement).value;
+      if (projects.length) {
+        const select = document.createElement("select");
+        select.name  = "cloneTargetProject";
+        select.id    = `cloneTargetProject-${ciId}`;
+        select.className = "pref-input pref-select";
+        select.innerHTML = `<option value="">— select a project —</option>` +
+          projects.map(p => `<option value="${escapeHtml(p.key)}" ${p.key === curVal ? "selected" : ""}>${escapeHtml(p.name)} (${escapeHtml(p.key)})</option>`).join("");
+        ctrl.replaceWith(select);
+        btn!.textContent = `✓ ${projects.length} projects`;
+      } else {
+        btn!.textContent = "No projects found";
+      }
+    } catch (err: any) {
+      alert(`Could not reach target Jira: ${err.message}`);
+      btn!.textContent = origText;
+    } finally {
+      btn!.removeAttribute("disabled");
+    }
+    return;
+  }
+
   try {
     switch (action) {
       case "ws-new": {
@@ -1457,6 +1655,36 @@ async function onSettingsSubmit(e: Event) {
         }
         // Notify the rest of the app so connector visibility refreshes.
         window.dispatchEvent(new CustomEvent("workspace-changed", { detail: { workspaceId: wsId } }));
+        break;
+      }
+
+      case "connector-clone-save": {
+        const ciId = form.dataset.ci;
+        if (!ciId) return;
+        const cloningEnabled     = fd.get("cloningEnabled") === "on";
+        const cloneTargetUrl     = String(fd.get("cloneTargetUrl")     || "").trim().replace(/\/+$/, "");
+        const cloneTargetEmail   = String(fd.get("cloneTargetEmail")   || "").trim();
+        const cloneTargetToken   = String(fd.get("cloneTargetToken")   || "").trim();
+        const cloneTargetProject = String(fd.get("cloneTargetProject") || "").trim();
+        // Hard validation: an "enabled" config without complete creds would be a
+        // foot-gun (the click would fail at runtime). Refuse here.
+        if (cloningEnabled && (!cloneTargetUrl || !cloneTargetEmail || !cloneTargetToken || !cloneTargetProject)) {
+          alert("To enable 1-Click Cloning, fill in all four fields: Target Base URL, Target Email, Target API Token, and Target Jira Project Key.");
+          return;
+        }
+        const allConns = await api.connectors();
+        const cur = allConns.data.find(c => c.id === ciId);
+        if (!cur) return;
+        const newConfig = {
+          ...cur.config,
+          cloningEnabled,
+          cloneTargetUrl,
+          cloneTargetEmail,
+          cloneTargetToken,
+          cloneTargetProject,
+        };
+        await api.connectorUpdate(ciId, { config: newConfig });
+        window.dispatchEvent(new CustomEvent("workspace-changed"));
         break;
       }
 

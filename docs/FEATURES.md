@@ -48,6 +48,7 @@
 - **Dynamic watched-teammate tabs**: "Mine" is always shown; every other tab is configured per-connector in Settings → Workspaces → Jira → Watched teammates. Each entry takes a tab label, a Jira identifier (display name, email, or accountId), an optional status filter, and a **Hide closed** toggle.
 - **Result limit**: fetches all matching tickets from Jira, paginated 100 per API call, ordered by last-updated descending.
 - Rows show: issue key · assignee avatar · project pill · status chip (tinted with Jira's `statusCategory` color) · priority badge · due date.
+- **1-Click Clone to Jira**: when cloning is enabled on the Jira connector (Settings → Workspaces → expand the Jira connector card → "1-Click Cloning to Jira"), hovering a row reveals a clone icon. Clicking immediately creates a copy in the connector's configured default Jira project, shows a pending toast, then a success toast with a clickable link to the new issue. No dialog required.
 - Powered by: **Jira**.
 
 </details>
@@ -59,6 +60,7 @@
 - Rows show: task id (custom_id when set) · assignee avatars · list · status chip (ClickUp's own status color) · priority badge · due date.
 - Watched-teammate tabs respect the **Hide closed** toggle per entry.
 - Fetched via `/api/clickup/tasks`, scoped to the connector's Team ID.
+- **1-Click Clone to Jira**: same hover-icon mechanic as the Tickets widget. Enable on the ClickUp connector itself (Settings → Workspaces → expand the ClickUp connector card → "1-Click Cloning to Jira"); clicking clones the ClickUp task into the configured default Jira project for that connector.
 - Powered by: **ClickUp**.
 
 </details>
@@ -247,6 +249,27 @@ Reusable credentials shared across workspaces.
 
 - **API-key types** (GitHub PAT, Jira API token, Notion token, ClickUp personal token): add/edit/delete via Settings UI — no `.env` required.
 - **OAuth types** (Google, Slack, Microsoft): connected per-workspace via the Workspaces tab connect buttons.
+
+</details>
+
+<details>
+<summary><strong>Per-connector 1-Click Cloning (Workspaces tab)</strong></summary>
+
+Each Jira and ClickUp connector instance owns its own cloning config — including the destination Jira's full credentials — so a clone can land in ANY Jira instance, even one in a different workspace. Open the connector's card in the Workspaces tab and configure:
+
+- **Enable 1-Click Cloning to Jira** — per-connector toggle that shows/hides the clone icon on rows from this specific connector.
+- **Target Base URL** — full base URL of the destination Jira (e.g. `https://target.atlassian.net`).
+- **Target Email** — Atlassian account email whose API token authorizes the clone.
+- **Target API Token** — created at id.atlassian.com → Security → API tokens. Stored in this workspace's database alongside the connector's other config; never sent in list-response envelopes.
+- **Target Jira Project Key** — dropdown populated from the workspace's Jira connector(s) when one is connected (so you can pick from a list); falls back to a free-text input if not — useful when the destination Jira isn't a connected source-connector here.
+
+Cloning rules (V1):
+1. Title is copied exactly.
+2. Description is prefixed with `> 🔄 Cloned from [Source]({originalLink})`.
+3. Issue type is `Task`; status defaults to the destination project's backlog default.
+4. Attachments are not copied.
+
+The form refuses to save an "enabled" config without all four fields filled in. The backend `POST /api/jira/clone-ticket` route looks up the source connector by id, reads its stored target credentials, and calls Jira's REST API directly with those credentials — never falling back to the host workspace's primary Jira creds. Settings are stored on the connector instance as `config.cloningEnabled` / `config.cloneTargetUrl` / `config.cloneTargetEmail` / `config.cloneTargetToken` / `config.cloneTargetProject` inside the `connector_instances.config` JSON.
 
 </details>
 

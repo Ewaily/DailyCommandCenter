@@ -19,6 +19,9 @@ export type TaskRow = {
   assignees: RowAssignee[];
   listLabel: string | null;           // ClickUp list, Jira project — tinted pill
   dueDate: string | null;
+  cloneSource?: "jira" | "clickup";   // when set, renders a 1-click clone-to-Jira button
+  cloneTargetProject?: string;        // target Jira project key, encoded into the button
+  cloneConnectorId?: string;          // source connector id; backend uses it to look up clone creds
 };
 
 const prioPalette = (p: string | null) =>
@@ -90,8 +93,17 @@ export function renderTaskRow(row: TaskRow): string {
     ? `<div class="schedule-meta">${meta.join('<span class="meta-sep">·</span>')}</div>`
     : "";
   const keyTitle = row.keyTitle ? ` title="${escapeHtml(row.keyTitle)}"` : "";
+  const cloneBtn = row.cloneSource
+    ? `<button class="clone-to-jira-btn"
+         data-clone-title="${escapeHtml(row.title)}"
+         data-clone-url="${escapeHtml(row.url)}"
+         data-clone-source="${escapeHtml(row.cloneSource)}"
+         data-target-project="${escapeHtml(row.cloneTargetProject || "")}"
+         data-connector-id="${escapeHtml(row.cloneConnectorId || "")}"
+         aria-label="Clone to Jira"></button>`
+    : "";
   return `
-    <div class="schedule-item">
+    <div class="schedule-item${row.cloneSource ? " schedule-item--cloneable" : ""}">
       <div class="schedule-time item-key"${keyTitle}>${escapeHtml(row.key)}</div>
       <div class="schedule-content">
         <div class="schedule-title-row">
@@ -100,5 +112,6 @@ export function renderTaskRow(row: TaskRow): string {
         </div>
         ${metaRow}
       </div>
+      ${cloneBtn}
     </div>`;
 }

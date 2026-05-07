@@ -1,17 +1,70 @@
 import { api, isAuthError, type Ticket, type WatchedUser } from "../api.js";
-import { $, escapeHtml, renderNotConnected, skeletonCompact, animateNumber } from "./util.js";
+import { $, escapeHtml, renderNotConnected, skeletonCompact, animateNumber, toast, confirmModal, errorModal, cloneSuccessModal } from "./util.js";
 import { saveSetting, getSetting } from "../state.js";
 import { renderJiraTicket } from "./lists.js";
 
 const MINE = "mine";
+
+async function handleClone(btn: HTMLElement): Promise<void> {
+  try {
+    const connectorId = btn.dataset.connectorId || "";
+    const project     = btn.dataset.targetProject || "";
+    if (!connectorId || !project) {
+      errorModal({
+        title: "Cloning not configured",
+        detail: "Go to Settings → Workspaces → expand this Jira connector card → '1-Click Cloning to Jira' and fill in Target Base URL, Email, API Token, and Project.",
+      });
+      return;
+    }
+    const title  = btn.dataset.cloneTitle || "(untitled)";
+    const url    = btn.dataset.cloneUrl   || "";
+    const source = (btn.dataset.cloneSource || "jira") as "jira" | "clickup";
+
+    const truncated = title.length > 60 ? title.slice(0, 57) + "…" : title;
+    const confirmed = await confirmModal({
+      title: "Clone to Jira?",
+      body: `<strong>${escapeHtml(truncated)}</strong><br><span style="font-size:var(--fs-sm);color:var(--text-muted)">will be created as a new Task in project <code>${escapeHtml(project)}</code></span>`,
+      confirmLabel: "Clone",
+    });
+    if (!confirmed) return;
+
+    const dismiss = toast("Cloning…", { type: "info", duration: 20_000 });
+    try {
+      const resp = await api.cloneTicket({ sourceProvider: source, title, originalLink: url, connectorId });
+      dismiss?.();
+      cloneSuccessModal({ key: resp.data.key, url: resp.data.url });
+      markClonedRow(url, resp.data.key, resp.data.url);
+    } catch (apiErr: any) {
+      dismiss?.();
+      errorModal({ title: "Clone failed", detail: apiErr.message ?? String(apiErr) });
+    }
+  } catch (unexpected: any) {
+    errorModal({ title: "Unexpected error", detail: unexpected?.message ?? String(unexpected) });
+  }
+}
+
+/** After a clone, immediately mark the source row in the DOM without a reload. */
+function markClonedRow(sourceUrl: string, clonedKey: string, clonedUrl: string) {
+  document.querySelectorAll<HTMLElement>(`[data-clone-url="${CSS.escape(sourceUrl)}"]`).forEach(btn => {
+    const row = btn.closest<HTMLElement>(".schedule-item");
+    if (!row) return;
+    btn.remove();
+    const badge = document.createElement("a");
+    badge.className = "cloned-badge";
+    badge.href = clonedUrl;
+    badge.target = "_blank";
+    badge.rel = "noopener";
+    badge.textContent = clonedKey;
+    row.appendChild(badge);
+    row.classList.add("is-cloned");
+  });
+}
 
 // The visible tabs are always [Mine, ...watchedUsers] for the active workspace.
 // `watchedUsers` arrives from the server (per-connector config) so the user can
 // add or remove tracked teammates without touching code.
 let watchedUsers: WatchedUser[] = [];
 let active: string = getSetting<string>("jiraTab") || MINE;
-
-const renderTicket = (t: Ticket): string => renderJiraTicket(t);
 
 function bucketIds(): string[] {
   return [MINE, ...watchedUsers.map(w => w.id)];
@@ -122,16 +175,47 @@ export async function loadTickets(silent = false) {
       </div>`;
       return;
     }
-    body.innerHTML = data.map(renderTicket).join("");
+    const cc = resp.connectorCloningConfig ?? { cloningEnabled: false, cloneTargetProject: "", connectorId: undefined };
+    body.innerHTML = data.map(t => renderJiraTicket(t, cc.cloningEnabled, cc.cloneTargetProject, cc.connectorId)).join("");
+    applyCloneHistory(body);
   } catch (err) {
     if (isAuthError(err)) { body.innerHTML = renderNotConnected("Jira", "jira"); resetCounts(); }
     else body.innerHTML = `<div class="error">${escapeHtml((err as Error).message)}</div>`;
   }
 }
 
+/** Fetches clone history and swaps Clone buttons to "already cloned" badges. */
+async function applyCloneHistory(container: HTMLElement) {
+  try {
+    const resp = await api.cloneHistory();
+    const history = resp.data ?? {};
+    for (const [sourceUrl, info] of Object.entries(history)) {
+      container.querySelectorAll<HTMLElement>(`[data-clone-url="${CSS.escape(sourceUrl)}"]`).forEach(btn => {
+        const row = btn.closest<HTMLElement>(".schedule-item");
+        if (!row || row.classList.contains("is-cloned")) return;
+        btn.remove();
+        const badge = document.createElement("a");
+        badge.className = "cloned-badge";
+        badge.href = info.url;
+        badge.target = "_blank";
+        badge.rel = "noopener";
+        badge.textContent = info.key;
+        badge.title = `Previously cloned as ${info.key}`;
+        row.appendChild(badge);
+        row.classList.add("is-cloned");
+      });
+    }
+  } catch { /* history is best-effort */ }
+}
+
 export function bindTicketTabs() {
-  // Initial render with just "Mine" — server response then expands the list.
   renderTabs();
+
+  const body = $("#my-tickets-body");
+  body?.addEventListener("click", (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>(".clone-to-jira-btn");
+    if (btn) { e.preventDefault(); handleClone(btn).catch(err => errorModal({ title: "Unexpected error", detail: String(err) })); }
+  });
 }
 
 // Team Board still lives in lists.ts (no spec change for it).
@@ -205,6 +289,11 @@ export function instantiateTickets(
 
   renderTabsLocal();
 
+  body.addEventListener("click", (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>(".clone-to-jira-btn");
+    if (btn) { e.preventDefault(); handleClone(btn).catch(err => errorModal({ title: "Unexpected error", detail: String(err) })); }
+  });
+
   async function load(silent = false): Promise<void> {
     if (!body) return;
     if (!silent) body.innerHTML = skeletonCompact(3);
@@ -243,7 +332,9 @@ export function instantiateTickets(
         </div>`;
         return;
       }
-      body.innerHTML = data.map(renderTicket).join("");
+      const cc = resp.connectorCloningConfig ?? { cloningEnabled: false, cloneTargetProject: "", connectorId: undefined };
+      body.innerHTML = data.map(t => renderJiraTicket(t, cc.cloningEnabled, cc.cloneTargetProject, cc.connectorId)).join("");
+      applyCloneHistory(body);
     } catch (err) {
       if (isAuthError(err)) body.innerHTML = renderNotConnected("Jira", "jira");
       else body.innerHTML = `<div class="error">${escapeHtml((err as Error).message)}</div>`;

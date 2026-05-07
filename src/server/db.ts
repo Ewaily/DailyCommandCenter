@@ -144,6 +144,19 @@ function migrate(db: Database.Database) {
     ).run(fallbackOwnerRow.id);
   }
 
+  // Clone history — permanent log, never deleted.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS clone_history (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      source_url   TEXT NOT NULL,
+      source_title TEXT NOT NULL DEFAULT '',
+      cloned_key   TEXT NOT NULL,
+      cloned_url   TEXT NOT NULL,
+      cloned_at    INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_clone_history_source ON clone_history(source_url);
+  `);
+
   // Materialize per-workspace enrollment for existing shared connectors so their
   // historical "available everywhere" behavior is preserved as explicit opt-ins.
   // After this, new workspaces are NOT auto-added — they default to opt-out and

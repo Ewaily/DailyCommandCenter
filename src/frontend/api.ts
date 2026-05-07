@@ -116,6 +116,8 @@ export type ConnectorInstance = {
 };
 
 export type SecondaryTz = { tz: string; label: string };
+export type JiraProject = { id: string; key: string; name: string };
+export type ConnectorCloningConfig = { cloningEnabled: boolean; cloneTargetProject: string; connectorId?: string };
 export type AppCreds = {
   brand:     { name: string; subtitle: string };
   prefs:     { primaryTz: string; secondaryTzs: SecondaryTz[] };
@@ -157,14 +159,14 @@ export const api = {
 
   ticketsMine: (bucket: string = "mine", connectorId?: string) =>
     req<Ticket[]>(withWs(`/tickets/mine?bucket=${encodeURIComponent(bucket)}${connectorId ? `&connectorId=${encodeURIComponent(connectorId)}` : ""}`)) as Promise<
-      Envelope<Ticket[]> & { counts?: Record<string, number>; bucket?: string; buckets?: WatchedUser[] }
+      Envelope<Ticket[]> & { counts?: Record<string, number>; bucket?: string; buckets?: WatchedUser[]; connectorCloningConfig?: ConnectorCloningConfig }
     >,
   ticketsTeam: (project?: string, connectorId?: string) => req<Ticket[]>(withWs(`/tickets/team${project ? `?project=${encodeURIComponent(project)}` : ""}${connectorId ? `${project ? "&" : "?"}connectorId=${encodeURIComponent(connectorId)}` : ""}`)),
   prs: (bucket: "review" | "mine" | "all" | "closed" = "review", connectorId?: string) =>
     req<PR[]>(withWs(`/prs/queue?bucket=${bucket}${connectorId ? `&connectorId=${encodeURIComponent(connectorId)}` : ""}`)) as Promise<Envelope<PR[]> & { counts?: Record<string, number> }>,
   clickupTasks: (bucket = "mine", connectorId?: string) =>
     req<ClickUpTask[]>(withWs(`/clickup/tasks?bucket=${encodeURIComponent(bucket)}${connectorId ? `&connectorId=${encodeURIComponent(connectorId)}` : ""}`)) as Promise<
-      Envelope<ClickUpTask[]> & { counts?: Record<string, number>; bucket?: string; buckets?: WatchedUser[] }
+      Envelope<ClickUpTask[]> & { counts?: Record<string, number>; bucket?: string; buckets?: WatchedUser[]; connectorCloningConfig?: ConnectorCloningConfig }
     >,
 
   todos: () => req<Todo[]>("/todos"),
@@ -200,6 +202,25 @@ export const api = {
   appSettingsGet: () => req<AppCreds>("/app-settings"),
   appSettingsPut: (patch: Record<string, unknown>) =>
     req<AppCreds>("/app-settings", { method: "PUT", body: JSON.stringify(patch) }),
+
+  jiraProjects: (connectorId?: string) =>
+    req<JiraProject[]>(withWs(`/jira/projects${connectorId ? `?connectorId=${encodeURIComponent(connectorId)}` : ""}`)) as Promise<
+      Envelope<JiraProject[]> & { notConfigured?: boolean }
+    >,
+  jiraProjectsFromCreds: (url: string, email: string, token: string) => {
+    const p = new URLSearchParams({ url, email, token });
+    return req<JiraProject[]>(withWs(`/jira/projects?${p.toString()}`)) as Promise<
+      Envelope<JiraProject[]> & { notConfigured?: boolean }
+    >;
+  },
+  cloneTicket: (payload: {
+    sourceProvider: "jira" | "clickup";
+    title: string;
+    originalLink: string;
+    connectorId: string;
+  }) => req<{ key: string; id: string; url: string }>(withWs("/jira/clone-ticket"), { method: "POST", body: JSON.stringify(payload) }),
+  cloneHistory: () =>
+    req<Record<string, { key: string; url: string; title: string; clonedAt: number }>>(withWs("/jira/clone-history")),
 
   workspaceConnect: (wsId: string, body: { type: string; token: string; account?: string; label?: string; config?: Record<string, unknown>; connectorId?: string; addAnother?: boolean }) =>
     req<{ ok: boolean }>(`/workspaces/${wsId}/connect`, { method: "POST", body: JSON.stringify(body) }),

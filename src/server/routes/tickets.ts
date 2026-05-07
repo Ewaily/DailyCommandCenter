@@ -10,11 +10,50 @@ import {
 
 export const ticketsRouter = Router();
 
+// Public response shape — what the client receives in /tickets and /clickup envelopes.
+// We deliberately do NOT expose the target Jira credentials here; the token never
+// leaves the server outside the authenticated `/connectors` settings response.
+export type ConnectorCloningConfig = {
+  cloningEnabled:     boolean;
+  cloneTargetProject: string;
+  // The source connector id — the click-to-clone button needs it so the
+  // backend can look up the stored target creds for THIS specific connector.
+  connectorId?:       string;
+};
+
 type ResolvedJira = {
   id: string;
   creds: jira.JiraCreds;
   watchedUsers: WatchedUser[];
+  cloningConfig: ConnectorCloningConfig;
 };
+
+export function extractCloningConfig(cfg: Record<string, unknown>): ConnectorCloningConfig {
+  return {
+    cloningEnabled:     !!(cfg.cloningEnabled),
+    cloneTargetProject: typeof cfg.cloneTargetProject === "string" ? cfg.cloneTargetProject : "",
+  };
+}
+
+// Server-internal — full credentials needed to actually create the cloned issue.
+// Pulled directly from the source connector's config; never sent to the client
+// outside the settings response.
+export type CloneCredentials = {
+  baseUrl:    string;
+  email:      string;
+  apiToken:   string;
+  projectKey: string;
+};
+
+export function extractCloneCredentials(cfg: Record<string, unknown>): CloneCredentials | null {
+  if (!cfg.cloningEnabled) return null;
+  const baseUrl    = typeof cfg.cloneTargetUrl     === "string" ? cfg.cloneTargetUrl.trim()     : "";
+  const email      = typeof cfg.cloneTargetEmail   === "string" ? cfg.cloneTargetEmail.trim()   : "";
+  const apiToken   = typeof cfg.cloneTargetToken   === "string" ? cfg.cloneTargetToken.trim()   : "";
+  const projectKey = typeof cfg.cloneTargetProject === "string" ? cfg.cloneTargetProject.trim() : "";
+  if (!baseUrl || !email || !apiToken || !projectKey) return null;
+  return { baseUrl, email, apiToken, projectKey };
+}
 
 function resolveJira(scopeId?: string): ResolvedJira[] {
   const wsId = getActiveWorkspaceId();
@@ -34,6 +73,7 @@ function resolveJira(scopeId?: string): ResolvedJira[] {
       id: c.id,
       creds: { baseUrl, email, apiToken },
       watchedUsers: Array.isArray(cfg.watchedUsers) ? cfg.watchedUsers : [],
+      cloningConfig: extractCloningConfig(c.config),
     });
   }
   return result;
@@ -94,11 +134,21 @@ ticketsRouter.get("/mine", async (req, res) => {
     counts[id] = deduped.length;
   });
 
+  // Use the scoped connector's config when connectorId is set; else the first resolved.
+  // resolved is guaranteed non-empty here (early return above) and resolveJira already
+  // filtered by scopeId, so the lookup never misses.
+  const primary = scopeId ? resolved.find(r => r.id === scopeId)! : resolved[0];
+  const primaryConfig: ConnectorCloningConfig = {
+    ...primary.cloningConfig,
+    connectorId: primary.id,
+  };
+
   res.json({
     data: merged[bucket] ?? [],
     bucket,
     counts,
-    buckets: watched, // "mine" is implicit in the client
+    buckets: watched,
+    connectorCloningConfig: primaryConfig,
   });
 });
 

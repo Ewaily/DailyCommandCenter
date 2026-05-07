@@ -221,6 +221,246 @@ export async function listTeamIssuesWith(creds: JiraCreds, project?: string) {
   });
 }
 
+export type JiraProject = { id: string; key: string; name: string };
+
+/**
+ * Builds the ADF description for a cloned issue.
+ * - header: blockquote "🔄 Cloned from <Provider>" linked to the original
+ * - body: appended as-is when it is already an ADF doc; converted to ADF
+ *   paragraphs when it is a plain string (ClickUp / fallback text).
+ */
+/** Convert an inline Markdown string into ADF inline nodes (text + marks). */
+function inlineToAdfNodes(line: string): unknown[] {
+  const nodes: unknown[] = [];
+  // Split on **bold**, *italic*, `code`, [text](url) — handle each token
+  const tokenRe = /(\*\*(.+?)\*\*|\*(.+?)\*|`([^`]+)`|\[([^\]]+)\]\(([^)]+)\))/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = tokenRe.exec(line)) !== null) {
+    if (m.index > last) nodes.push({ type: "text", text: line.slice(last, m.index) });
+    if (m[2] !== undefined) {
+      nodes.push({ type: "text", text: m[2], marks: [{ type: "strong" }] });
+    } else if (m[3] !== undefined) {
+      nodes.push({ type: "text", text: m[3], marks: [{ type: "em" }] });
+    } else if (m[4] !== undefined) {
+      nodes.push({ type: "text", text: m[4], marks: [{ type: "code" }] });
+    } else if (m[5] !== undefined) {
+      nodes.push({ type: "text", text: m[5], marks: [{ type: "link", attrs: { href: m[6] } }] });
+    }
+    last = m.index + m[0].length;
+  }
+  if (last < line.length) nodes.push({ type: "text", text: line.slice(last) });
+  return nodes.length ? nodes : [{ type: "text", text: line }];
+}
+
+/** Best-effort conversion of Markdown text into top-level ADF nodes. */
+function markdownToAdfNodes(md: string): unknown[] {
+  const nodes: unknown[] = [];
+  const lines = md.split("\n");
+  let codeBlock: string[] | null = null;
+  let codeLang = "";
+  let listItems: unknown[] = [];
+
+  const flushList = () => {
+    if (!listItems.length) return;
+    nodes.push({ type: "bulletList", content: listItems });
+    listItems = [];
+  };
+
+  for (const raw of lines) {
+    // Fenced code block
+    if (raw.startsWith("```")) {
+      if (codeBlock === null) {
+        flushList();
+        codeBlock = [];
+        codeLang = raw.slice(3).trim();
+      } else {
+        nodes.push({ type: "codeBlock", attrs: { language: codeLang || null }, content: [{ type: "text", text: codeBlock.join("\n") }] });
+        codeBlock = null;
+        codeLang = "";
+      }
+      continue;
+    }
+    if (codeBlock !== null) { codeBlock.push(raw); continue; }
+
+    // Heading
+    const hm = raw.match(/^(#{1,6})\s+(.*)/);
+    if (hm) {
+      flushList();
+      const level = Math.min(hm[1].length, 6);
+      nodes.push({ type: "heading", attrs: { level }, content: inlineToAdfNodes(hm[2]) });
+      continue;
+    }
+
+    // Horizontal rule
+    if (/^[-*_]{3,}$/.test(raw.trim())) { flushList(); nodes.push({ type: "rule" }); continue; }
+
+    // Bullet list item
+    const lm = raw.match(/^[-*+]\s+(.*)/);
+    if (lm) {
+      listItems.push({ type: "listItem", content: [{ type: "paragraph", content: inlineToAdfNodes(lm[1]) }] });
+      continue;
+    }
+
+    // Numbered list item
+    const nm = raw.match(/^\d+\.\s+(.*)/);
+    if (nm) {
+      listItems.push({ type: "listItem", content: [{ type: "paragraph", content: inlineToAdfNodes(nm[1]) }] });
+      continue;
+    }
+
+    flushList();
+
+    // Blank line → separator (skip, ADF paragraphs implicitly separate)
+    if (!raw.trim()) continue;
+
+    // Blockquote
+    if (raw.startsWith("> ")) {
+      nodes.push({ type: "blockquote", content: [{ type: "paragraph", content: inlineToAdfNodes(raw.slice(2)) }] });
+      continue;
+    }
+
+    nodes.push({ type: "paragraph", content: inlineToAdfNodes(raw) });
+  }
+  flushList();
+  if (codeBlock !== null) nodes.push({ type: "codeBlock", attrs: { language: codeLang || null }, content: [{ type: "text", text: codeBlock.join("\n") }] });
+  return nodes;
+}
+
+export function buildCloneAdf(
+  providerLabel: string,
+  originalLink: string,
+  body: unknown,   // ADF doc object | plain string | "" | null
+) {
+  const header = {
+    type: "blockquote",
+    content: [{
+      type: "paragraph",
+      content: [{
+        type: "text",
+        text: `🔄 Cloned from ${providerLabel}`,
+        marks: [{ type: "link", attrs: { href: originalLink } }],
+      }],
+    }],
+  };
+
+  const content: unknown[] = [header];
+
+  if (body && typeof body === "object" && (body as any).type === "doc") {
+    // Jira ADF doc — splice its top-level content nodes directly
+    const nodes: unknown[] = (body as any).content ?? [];
+    content.push(...nodes);
+  } else if (typeof body === "string" && body.trim()) {
+    content.push(...markdownToAdfNodes(body));
+  }
+
+  return { type: "doc", version: 1, content };
+}
+
+export async function createIssue(creds: JiraCreds, opts: {
+  projectKey: string;
+  summary: string;
+  descriptionAdf: unknown;
+}) {
+  const data: any = await jiraPost(creds, "/rest/api/3/issue", {
+    fields: {
+      project: { key: opts.projectKey },
+      summary: opts.summary,
+      description: opts.descriptionAdf,
+      issuetype: { name: "Task" },
+    },
+  });
+  return { key: data.key as string, id: data.id as string };
+}
+
+export type AttachmentInfo = {
+  filename: string;
+  url: string;
+  mimeType: string;
+  size: number;
+};
+
+const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024; // 25 MB hard cap per file
+
+export type IssueDetails = {
+  description: unknown | null;
+  attachments: AttachmentInfo[];
+};
+
+/** Fetches description (ADF) + image/video attachments for a Jira issue in one API call. */
+export async function getIssueDetails(creds: JiraCreds, issueKey: string): Promise<IssueDetails> {
+  try {
+    const data: any = await jiraGet(creds, `/rest/api/3/issue/${encodeURIComponent(issueKey)}?fields=description,attachment`);
+    const description = data?.fields?.description ?? null;
+    const raw: any[] = data?.fields?.attachment ?? [];
+    const attachments = raw
+      .filter(a => /^(image|video)\//.test(a.mimeType ?? ""))
+      .map(a => ({ filename: a.filename, url: a.content, mimeType: a.mimeType, size: a.size ?? 0 }));
+    return { description, attachments };
+  } catch {
+    return { description: null, attachments: [] };
+  }
+}
+
+/** @deprecated Use getIssueDetails — kept for test compatibility */
+export async function getIssueDescription(creds: JiraCreds, issueKey: string): Promise<unknown | null> {
+  return (await getIssueDetails(creds, issueKey)).description;
+}
+
+/** @deprecated Use getIssueDetails — kept for test compatibility */
+export async function getIssueAttachments(creds: JiraCreds, issueKey: string): Promise<AttachmentInfo[]> {
+  return (await getIssueDetails(creds, issueKey)).attachments;
+}
+
+/** Downloads a Jira attachment using the connector's credentials. Returns null on any failure or oversize. */
+export async function downloadJiraFile(creds: JiraCreds, url: string): Promise<{ buffer: Buffer; mimeType: string } | null> {
+  try {
+    const res = await fetch(url, { headers: { Authorization: authHeader(creds) } });
+    if (!res.ok) return null;
+    const cl = parseInt(res.headers.get("content-length") ?? "0", 10);
+    if (cl > MAX_ATTACHMENT_BYTES) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.byteLength > MAX_ATTACHMENT_BYTES) return null;
+    const mimeType = (res.headers.get("content-type") ?? "application/octet-stream").split(";")[0].trim();
+    return { buffer: buf, mimeType };
+  } catch {
+    return null;
+  }
+}
+
+/** Uploads a file to a Jira issue as an attachment. Throws on API error. */
+export async function uploadAttachment(
+  creds: JiraCreds,
+  issueKey: string,
+  filename: string,
+  data: Buffer,
+  mimeType: string,
+): Promise<void> {
+  const form = new FormData();
+  form.append("file", new Blob([new Uint8Array(data)], { type: mimeType }), filename);
+  const res = await fetch(`${creds.baseUrl}/rest/api/2/issue/${encodeURIComponent(issueKey)}/attachments`, {
+    method: "POST",
+    headers: {
+      Authorization: authHeader(creds),
+      "X-Atlassian-Token": "no-check",
+    },
+    body: form,
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`attachment upload ${filename}: ${res.status} ${text.slice(0, 120)}`);
+  }
+}
+
+export async function listProjectsWith(creds: JiraCreds): Promise<JiraProject[]> {
+  const data: any = await jiraGet(creds, "/rest/api/3/project/search?maxResults=50&orderBy=name");
+  return (data.values || []).map((p: any) => ({
+    id: p.id as string,
+    key: p.key as string,
+    name: p.name as string,
+  }));
+}
+
 /** Issues with a due date in the next `days` days, assigned to Ewaily. */
 export async function listDeadlines(days = 7) {
   const creds = effective();

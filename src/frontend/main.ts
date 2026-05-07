@@ -7,7 +7,7 @@ import { loadChannels, initChannelDigestConfig } from "./components/channel-dige
 import { loadMentions, bindMentionsTabs, navMentions } from "./components/mentions.js";
 import { loadTickets, bindTicketTabs } from "./components/tickets.js";
 import { loadPRs, bindPrTabs } from "./components/prs.js";
-import { loadClickUp } from "./components/clickup.js";
+import { loadClickUp, bindClickUpClone } from "./components/clickup.js";
 import { hydrateSettingsFromServer, getSetting } from "./state.js";
 import { toast } from "./components/util.js";
 import { initTheme, toggleTheme } from "./components/theme.js";
@@ -216,6 +216,7 @@ async function init() {
   initScheduleChips();
   bindMentionsTabs();
   bindTicketTabs();
+  bindClickUpClone();
   bindPrTabs();
   bindHeaderActions();
   bindPalette();
