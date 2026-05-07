@@ -172,6 +172,24 @@ async function renderWorkspaces(): Promise<string> {
   // Pre-fetch Jira project lists per-connector so the clone config dropdowns are populated.
   const allConnectors = detailsArr.flatMap(d => d.data.connectors);
   const jiraConns     = allConnectors.filter(c => c.type === "jira" && c.enabled && c.identity?.hasToken);
+
+  // For each connector that has saved clone-target credentials, fetch that
+  // target instance's project list — these are the projects we want to show
+  // in the "Target Jira Project Key" dropdown, not the source connector's own projects.
+  const cloneTargetProjectMap = new Map<string, import("../api.js").JiraProject[]>();
+  const cloneCandidates = allConnectors.filter(c =>
+    (c.type === "jira" || c.type === "clickup") && c.identity?.hasToken
+  );
+  await Promise.all(cloneCandidates.map(async c => {
+    const cfg = c.config as { cloneTargetUrl?: string; cloneTargetEmail?: string; cloneTargetToken?: string };
+    const { cloneTargetUrl: u, cloneTargetEmail: e, cloneTargetToken: t } = cfg;
+    if (!u || !e || !t) return;
+    try {
+      const pRes = await api.jiraProjectsFromCreds(u, e, t);
+      if (!pRes.notConfigured) cloneTargetProjectMap.set(c.id, pRes.data ?? []);
+    } catch { /* target unreachable — leave empty so UI shows text fallback */ }
+  }));
+
   const jiraProjectMap = new Map<string, import("../api.js").JiraProject[]>();
   await Promise.all(jiraConns.map(async c => {
     try {
@@ -185,7 +203,7 @@ async function renderWorkspaces(): Promise<string> {
   ).values()];
 
   const sections = wss.map((ws, i) =>
-    wsSection(ws, detailsArr[i].data.connectors, ws.id === wsRes.data.defaultWorkspaceId, appCreds, jiraProjectMap, allJiraProjects),
+    wsSection(ws, detailsArr[i].data.connectors, ws.id === wsRes.data.defaultWorkspaceId, appCreds, jiraProjectMap, allJiraProjects, cloneTargetProjectMap),
   );
 
   return `
@@ -273,7 +291,7 @@ function typeDefs(appCreds: AppCreds): ConnectorTypeDef[] {
   ];
 }
 
-function wsSection(ws: Workspace, connectors: ConnectorInstance[], isDefault: boolean, appCreds: AppCreds, jiraProjectMap: Map<string, import("../api.js").JiraProject[]>, allJiraProjects: import("../api.js").JiraProject[]): string {
+function wsSection(ws: Workspace, connectors: ConnectorInstance[], isDefault: boolean, appCreds: AppCreds, jiraProjectMap: Map<string, import("../api.js").JiraProject[]>, allJiraProjects: import("../api.js").JiraProject[], cloneTargetProjectMap = new Map<string, import("../api.js").JiraProject[]>()): string {
   const color = ws.color || "var(--accent)";
   const def   = isDefault ? `<span class="settings-chip">default</span>` : "";
 
@@ -308,7 +326,7 @@ function wsSection(ws: Workspace, connectors: ConnectorInstance[], isDefault: bo
       </summary>
       <div data-slot="ws-form-${escapeHtml(ws.id)}"></div>
       <div class="ws-section-connectors">
-        ${typeDefs(appCreds).map(td => connectorTypeGroup(ws, td, connectors, jiraProjectMap, allJiraProjects)).join("")}
+        ${typeDefs(appCreds).map(td => connectorTypeGroup(ws, td, connectors, jiraProjectMap, allJiraProjects, cloneTargetProjectMap)).join("")}
       </div>
     </details>
   `;
@@ -328,7 +346,7 @@ function behaviorHint(type: string): string {
 // Renders one connector type as a single block with three clearly-separated
 // regions: shared-from-others (with prominent ON/OFF toggle), owned (with
 // credentials + share toggle), and a "Connect another" footer.
-function connectorTypeGroup(ws: Workspace, td: ConnectorTypeDef, allConnectors: ConnectorInstance[], jiraProjectMap: Map<string, import("../api.js").JiraProject[]>, allJiraProjects: import("../api.js").JiraProject[]): string {
+function connectorTypeGroup(ws: Workspace, td: ConnectorTypeDef, allConnectors: ConnectorInstance[], jiraProjectMap: Map<string, import("../api.js").JiraProject[]>, allJiraProjects: import("../api.js").JiraProject[], cloneTargetProjectMap = new Map<string, import("../api.js").JiraProject[]>()): string {
   const ofType = allConnectors.filter(c => c.type === td.type);
   const owned  = ofType.filter(c => (c.source ?? (c.workspaceId === ws.id ? "owned" : "shared")) === "owned");
   const shared = ofType.filter(c => (c.source ?? (c.workspaceId === ws.id ? "owned" : "shared")) === "shared");
@@ -353,9 +371,12 @@ function connectorTypeGroup(ws: Workspace, td: ConnectorTypeDef, allConnectors: 
 
   const sharedCards = shared.map(c => renderSharedFromOtherInstance(ws, td, c, ownedConnected.length > 0)).join("");
   const ownedCards  = owned.map(c => {
-    const cloneProjects = td.type === "jira"    ? (jiraProjectMap.get(c.id) ?? [])
-                        : td.type === "clickup" ? allJiraProjects
-                        : [];
+    // Prefer projects fetched from the saved target Jira credentials; fall back
+    // to the workspace's own Jira connector list when no target is configured yet.
+    const cloneProjects = cloneTargetProjectMap.get(c.id)
+      ?? (td.type === "jira"    ? (jiraProjectMap.get(c.id) ?? [])
+        : td.type === "clickup" ? allJiraProjects
+        : []);
     return renderOwnedInstance(ws, td, c, cloneProjects);
   }).join("");
   const addAnother  = renderAddAnother(ws, td, owned);
@@ -602,19 +623,22 @@ export function renderConnectorCloneEditor(c: ConnectorInstance, projects: impor
          <strong>Cloning is off.</strong> Flip the toggle below, fill in the four target fields, and save.
        </div>`;
 
-  // Project control: a dropdown when the host workspace's Jira connectors return
-  // a project list. Falls back to a free-text input if none — useful when the
-  // TARGET Jira instance is in a different workspace and not currently connected
-  // here, so we can't enumerate projects.
-  const projectControl = projects.length
-    ? `<select name="cloneTargetProject" class="pref-input pref-select">
+  // Project control: dropdown from target credentials if available, otherwise
+  // free-text. A "↻ Refresh" button lets users reload after entering new creds.
+  const projectSelect = projects.length
+    ? `<select name="cloneTargetProject" class="pref-input pref-select" id="cloneTargetProject-${escapeHtml(c.id)}">
         <option value="">— select a project —</option>
         ${projects.map(p => `<option value="${escapeHtml(p.key)}" ${p.key === current ? "selected" : ""}>${escapeHtml(p.name)} (${escapeHtml(p.key)})</option>`).join("")}
        </select>`
     : `<input name="cloneTargetProject" class="pref-input" type="text"
+         id="cloneTargetProject-${escapeHtml(c.id)}"
          placeholder="e.g. PROJ"
-         value="${escapeHtml(current)}"
-         title="Enter the Jira project key for the destination instance." />`;
+         value="${escapeHtml(current)}" />`;
+  const projectControl = `
+    <div class="clone-project-row">
+      ${projectSelect}
+      <button type="button" class="btn-ghost btn-sm" data-action="clone-refresh-projects" data-ci="${escapeHtml(c.id)}" title="Load projects from the target Jira using the credentials above">↻ Refresh</button>
+    </div>`;
 
   return `
     <div class="watched-users-editor">
@@ -660,7 +684,7 @@ export function renderConnectorCloneEditor(c: ConnectorInstance, projects: impor
         <div class="settings-pref-row" style="padding:0 0 8px">
           <label class="connector-field-label">Target Jira Project Key
             ${projectControl}
-            <span class="form-help">Cloned tickets land here. ${projects.length ? "" : "No Jira connector active in this workspace — type the project key directly."}</span>
+            <span class="form-help">Cloned tickets land here. Fill in the URL, email, and token above then click ↻ Refresh to load this instance's projects.</span>
           </label>
         </div>
         <div class="watched-users-actions">
@@ -1369,6 +1393,47 @@ async function onSettingsClick(e: Event) {
     if (input) {
       input.type      = input.type === "password" ? "text" : "password";
       btn!.textContent = input.type === "password" ? "👁" : "🙈";
+    }
+    return;
+  }
+
+  if (action === "clone-refresh-projects") {
+    const ciId = btn?.dataset.ci;
+    if (!ciId) return;
+    const form = btn?.closest("form");
+    const urlVal   = (form?.querySelector<HTMLInputElement>('[name="cloneTargetUrl"]')?.value   || "").trim().replace(/\/+$/, "");
+    const emailVal = (form?.querySelector<HTMLInputElement>('[name="cloneTargetEmail"]')?.value || "").trim();
+    const tokenVal = (form?.querySelector<HTMLInputElement>('[name="cloneTargetToken"]')?.value || "").trim();
+    if (!urlVal || !emailVal || !tokenVal) {
+      alert("Fill in the Target Base URL, Target Email, and Target API Token first, then click Refresh.");
+      return;
+    }
+    const origText = btn!.textContent!;
+    btn!.textContent = "Loading…";
+    btn!.setAttribute("disabled", "true");
+    try {
+      const pRes = await api.jiraProjectsFromCreds(urlVal, emailVal, tokenVal);
+      const projects = pRes.data ?? [];
+      const ctrl = document.getElementById(`cloneTargetProject-${ciId}`);
+      if (!ctrl) return;
+      const curVal = (ctrl as HTMLSelectElement | HTMLInputElement).value;
+      if (projects.length) {
+        const select = document.createElement("select");
+        select.name  = "cloneTargetProject";
+        select.id    = `cloneTargetProject-${ciId}`;
+        select.className = "pref-input pref-select";
+        select.innerHTML = `<option value="">— select a project —</option>` +
+          projects.map(p => `<option value="${escapeHtml(p.key)}" ${p.key === curVal ? "selected" : ""}>${escapeHtml(p.name)} (${escapeHtml(p.key)})</option>`).join("");
+        ctrl.replaceWith(select);
+        btn!.textContent = `✓ ${projects.length} projects`;
+      } else {
+        btn!.textContent = "No projects found";
+      }
+    } catch (err: any) {
+      alert(`Could not reach target Jira: ${err.message}`);
+      btn!.textContent = origText;
+    } finally {
+      btn!.removeAttribute("disabled");
     }
     return;
   }

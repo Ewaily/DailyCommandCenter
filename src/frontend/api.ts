@@ -207,6 +207,12 @@ export const api = {
     req<JiraProject[]>(withWs(`/jira/projects${connectorId ? `?connectorId=${encodeURIComponent(connectorId)}` : ""}`)) as Promise<
       Envelope<JiraProject[]> & { notConfigured?: boolean }
     >,
+  jiraProjectsFromCreds: (url: string, email: string, token: string) => {
+    const p = new URLSearchParams({ url, email, token });
+    return req<JiraProject[]>(withWs(`/jira/projects?${p.toString()}`)) as Promise<
+      Envelope<JiraProject[]> & { notConfigured?: boolean }
+    >;
+  },
   cloneTicket: (payload: {
     sourceProvider: "jira" | "clickup";
     title: string;

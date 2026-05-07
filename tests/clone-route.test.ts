@@ -222,6 +222,25 @@ describe("GET /projects", () => {
     const res = await request(app).get("/projects");
     expect(res.body.notConfigured).toBe(true);
   });
+
+  it("uses ?url/email/token directly without consulting workspace connectors", async () => {
+    mockJira.listProjectsWith.mockResolvedValue([{ id: "20000", key: "TGT", name: "Target Project" }]);
+    const res = await request(app)
+      .get("/projects?url=https%3A%2F%2Ftarget.atlassian.net&email=me%40example.com&token=secret");
+    expect(res.status).toBe(200);
+    expect(res.body.data[0].key).toBe("TGT");
+    const [calledCreds] = mockJira.listProjectsWith.mock.calls.at(-1)!;
+    expect(calledCreds.baseUrl).toBe("https://target.atlassian.net");
+    expect(calledCreds.email).toBe("me@example.com");
+    expect(calledCreds.apiToken).toBe("secret");
+    expect(mockListConnectorsForWorkspace).not.toHaveBeenCalled();
+  });
+
+  it("returns notConfigured when only some of url/email/token are provided", async () => {
+    mockListConnectorsForWorkspace.mockReturnValue([]);
+    const res = await request(app).get("/projects?url=https%3A%2F%2Ftarget.atlassian.net&email=me%40example.com");
+    expect(res.body.notConfigured).toBe(true);
+  });
 });
 
 // ── POST /clone-ticket ────────────────────────────────────────────────────────

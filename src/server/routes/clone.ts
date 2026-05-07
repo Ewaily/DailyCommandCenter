@@ -39,11 +39,20 @@ function clickupIdFromUrl(url: string): string | null {
 }
 
 cloneRouter.get("/projects", async (req, res) => {
-  const scopeId  = typeof req.query.connectorId === "string" ? req.query.connectorId : undefined;
-  const resolved = resolveFirstJira(scopeId);
-  if (!resolved) return res.json({ data: [], notConfigured: true });
+  const q = req.query as Record<string, string | undefined>;
+  // When the caller supplies target credentials directly, use them — this is
+  // how the settings UI populates the dropdown from the saved clone-target
+  // instance rather than from the workspace's own Jira connectors.
+  const creds: jira.JiraCreds | null =
+    q.url && q.email && q.token
+      ? { baseUrl: q.url, email: q.email, apiToken: q.token }
+      : (() => {
+          const r = resolveFirstJira(q.connectorId);
+          return r ? r.creds : null;
+        })();
+  if (!creds) return res.json({ data: [], notConfigured: true });
   try {
-    const projects = await jira.listProjectsWith(resolved.creds);
+    const projects = await jira.listProjectsWith(creds);
     res.json({ data: projects });
   } catch (err: any) {
     res.status(502).json({ error: err.message });

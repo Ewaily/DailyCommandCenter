@@ -3208,6 +3208,9 @@ body.has-dynamic-overview [data-ov-hidden="1"] {
 .clone-status--warn { background: color-mix(in srgb, var(--warning) 14%, transparent); color: var(--warning); border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent); }
 .clone-status--off  { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
 .clone-status-icon { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; }
+.clone-project-row { display: flex; align-items: center; gap: 8px; }
+.clone-project-row .pref-input,
+.clone-project-row .pref-select { flex: 1; min-width: 0; }
 .clone-to-jira-btn:hover {
   background: var(--primary);
   color: #fff;

@@ -184,3 +184,24 @@ describe("api.jiraProjects", () => {
     expect(res.notConfigured).toBe(true);
   });
 });
+
+describe("api.jiraProjectsFromCreds", () => {
+  it("GETs /jira/projects with url, email, token query params", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(okResponse({ data: [{ id: "1", key: "TGT", name: "Target" }] }));
+    vi.stubGlobal("fetch", fetchMock);
+    const res = await api.jiraProjectsFromCreds("https://target.atlassian.net", "me@example.com", "tok123");
+    expect(res.data).toHaveLength(1);
+    const [url] = fetchMock.mock.calls[0];
+    expect(url).toContain("url=https");
+    expect(url).toContain("email=me%40example.com");
+    expect(url).toContain("token=tok123");
+  });
+
+  it("appends workspace param when active workspace is set", async () => {
+    (globalThis.localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue("ws-9");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(okResponse({ data: [] })));
+    await api.jiraProjectsFromCreds("https://t.atlassian.net", "a@b.com", "t");
+    const [url] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(url).toContain("workspace=ws-9");
+  });
+});
