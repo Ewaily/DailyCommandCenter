@@ -14,6 +14,10 @@
    strategy; Inter is kept as a web-safe fallback during the font migration. */
 @import url("https://rsms.me/inter/inter.css");
 
+/* Premium dark theme font stack — Instrument Serif for display/stats,
+   IBM Plex Sans for body, IBM Plex Mono for keys/IDs/timestamps.
+   Loaded via <link> in index.html. */
+
 /* ==========================================================================
    BASE TOKENS — theme-independent, never override per [data-theme]
    ========================================================================== */
@@ -66,6 +70,62 @@
   --z-toast: 1000;
   --z-modal: 1100;
   --z-palette: 1200;
+
+  /* ── Premium typography — display / body / mono faces ── */
+  --font-display: "Instrument Serif", Georgia, serif;
+  --font-body: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono-2: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* ── Premium surface tokens (obsidian dark scale, theme-independent names) ──
+     These alias into the existing --paper-* / --line-* / --ink-* system so both
+     old component selectors and new utility classes work without naming conflicts. */
+  --surface-0: var(--paper-0);
+  --surface-1: var(--paper-1);
+  --surface-2: var(--paper-2);
+  --surface-3: var(--paper-3);
+  --surface-4: var(--paper-3);
+  --surface-5: var(--line-1);
+  --hairline:   var(--line-1);
+  --hairline-2: var(--line-2);
+
+  /* ── Premium semantic text tokens ── */
+  --txt:      var(--text);
+  --txt-mute: var(--text-muted);
+  --txt-soft: var(--text-soft);
+
+  /* ── Premium accent (emerald) ── */
+  --accent:       #2A9D8F;
+  --accent-2:     #3ABDB0;
+  --accent-light: rgba(42,157,143,.18);
+
+  /* ── Semantic signal tokens (reference-design names) ── */
+  --gold:      #D4A24A;
+  --ref-urgent: var(--urgent);
+  --ref-info:   var(--info);
+  --ref-warn:   var(--warning);
+  --ref-new:    var(--new);
+  --ref-focus:  var(--focus);
+  --ref-rose:   #E8709A;
+
+  /* ── Badge fill tokens ── */
+  --badge-success-bg: rgba(42,157,143,.14);
+  --badge-success-fg: var(--sig-go);
+  --badge-urgent-bg:  rgba(209,75,61,.14);
+  --badge-urgent-fg:  var(--sig-now);
+  --badge-info-bg:    rgba(43,91,215,.14);
+  --badge-info-fg:    var(--sig-info);
+  --badge-warn-bg:    rgba(181,122,20,.14);
+  --badge-warn-fg:    var(--sig-hold);
+  --badge-new-bg:     rgba(122,63,204,.14);
+  --badge-new-fg:     var(--sig-new);
+  --badge-focus-bg:   rgba(26,26,27,.10);
+  --badge-focus-fg:   var(--ink-3);
+  --badge-muted-bg:   var(--paper-2);
+  --badge-muted-fg:   var(--ink-3);
+  --badge-gold-bg:    rgba(212,162,74,.14);
+  --badge-gold-fg:    var(--gold);
+  --badge-rose-bg:    rgba(232,112,154,.14);
+  --badge-rose-fg:    var(--ref-rose);
 }
 
 /* ==========================================================================
@@ -140,46 +200,46 @@
 }
 
 /* ==========================================================================
-   DARK THEME
+   DARK THEME — Premium Obsidian Palette
    ========================================================================== */
 [data-theme="dark"] {
   color-scheme: dark;
 
-  /* ── Paper ── */
-  --paper-0: #0B0C0E;
-  --paper-1: #111317;
-  --paper-2: #171A1F;
-  --paper-3: #1F232A;
-  --paper-overlay: rgba(11,12,14,0.78);
+  /* ── Paper (obsidian surfaces) ── */
+  --paper-0: #070A0C;
+  --paper-1: #0B1014;
+  --paper-2: #10161B;
+  --paper-3: #161E25;
+  --paper-overlay: rgba(7,10,12,0.88);
 
   /* ── Lines ── */
-  --line-1: #23262C;
-  --line-2: #2D3138;
-  --line-focus: #F2F0E8;
+  --line-1: #1F2A33;
+  --line-2: #2A3742;
+  --line-focus: #5EEACB;
 
-  /* ── Ink ── */
-  --ink-1: #F4F2EA;
-  --ink-2: #C9C5BA;
-  --ink-3: #8B8780;
-  --ink-4: #5E5C56;
-  --ink-inverse: #0B0C0E;
+  /* ── Ink (text) ── */
+  --ink-1: #E8EEF2;
+  --ink-2: #C2CDD6;
+  --ink-3: #94A3AE;
+  --ink-4: #6A7681;
+  --ink-inverse: #070A0C;
 
-  /* ── Signal (dark: +12% lightness for WCAG AA) ── */
-  --sig-now:   #E06055;
-  --sig-go:    #2E9B68;
-  --sig-hold:  #D4921C;
-  --sig-info:  #4B75E8;
-  --sig-focus: #F2F0E8;
-  --sig-new:   #9A62E8;
+  /* ── Signal — calibrated for WCAG AA on obsidian ── */
+  --sig-now:   #FF6E6E;
+  --sig-go:    #37D8B0;
+  --sig-hold:  #F0B86E;
+  --sig-info:  #74B6FF;
+  --sig-focus: #E8EEF2;
+  --sig-new:   #B197FF;
 
-  /* ── Shadows (lighter alpha on dark surfaces) ── */
+  /* ── Shadows ── */
   --shadow-0: none;
   --shadow-edge: inset 0 1px 0 rgba(255,255,255,0.04);
-  --shadow-1: 0 1px 2px rgba(0,0,0,0.40), 0 0 0 1px var(--line-1);
-  --shadow-2: 0 6px 24px -8px rgba(0,0,0,0.55), 0 0 0 1px var(--line-2);
-  --shadow-3: 0 24px 64px -16px rgba(0,0,0,0.70), 0 0 0 1px var(--line-2);
+  --shadow-1: 0 1px 2px rgba(0,0,0,0.50), 0 0 0 1px var(--line-1);
+  --shadow-2: 0 6px 24px -8px rgba(0,0,0,0.65), 0 0 0 1px var(--line-2);
+  --shadow-3: 0 24px 64px -16px rgba(0,0,0,0.80), 0 0 0 1px var(--line-2);
   --shadow-4: var(--shadow-3);
-  --shadow-glow: 0 0 0 3px rgba(75,117,232,0.30);
+  --shadow-glow: 0 0 0 3px rgba(55,216,176,0.22);
 
   /* ── Backward-compat semantic aliases ── */
   --bg: var(--paper-0);
@@ -195,18 +255,50 @@
   --text-soft: var(--ink-3);
   --text-inverse: var(--ink-inverse);
   --urgent: var(--sig-now);
-  --urgent-bg: rgba(224,96,85,0.14);
+  --urgent-bg: rgba(255,110,110,0.14);
   --warning: var(--sig-hold);
-  --warning-bg: rgba(212,146,28,0.14);
+  --warning-bg: rgba(240,184,110,0.14);
   --success: var(--sig-go);
-  --success-bg: rgba(46,155,104,0.14);
+  --success-bg: rgba(55,216,176,0.14);
   --info: var(--sig-info);
-  --info-bg: rgba(75,117,232,0.14);
+  --info-bg: rgba(116,182,255,0.14);
   --new: var(--sig-new);
-  --new-bg: rgba(154,98,232,0.14);
+  --new-bg: rgba(177,151,255,0.14);
   --skeleton-from: var(--paper-2);
   --skeleton-to: var(--paper-3);
-  --accent-soft: rgba(75,117,232,0.12);
+  --accent-soft: rgba(55,216,176,0.12);
+
+  /* ── Premium dark overrides ── */
+  --accent:       #37D8B0;
+  --accent-2:     #5EEACB;
+  --accent-light: rgba(55,216,176,.18);
+  --gold:         #D9B26A;
+  --ref-rose:     #F0739E;
+  --ref-urgent:   #FF6E6E;
+  --ref-info:     #74B6FF;
+  --ref-warn:     #F0B86E;
+  --ref-new:      #B197FF;
+  --ref-focus:    #5EC8E5;
+
+  /* ── Dark badge tokens ── */
+  --badge-success-bg: rgba(55,216,176,.14);
+  --badge-success-fg: var(--sig-go);
+  --badge-urgent-bg:  rgba(255,110,110,.14);
+  --badge-urgent-fg:  var(--sig-now);
+  --badge-info-bg:    rgba(116,182,255,.14);
+  --badge-info-fg:    var(--sig-info);
+  --badge-warn-bg:    rgba(240,184,110,.14);
+  --badge-warn-fg:    var(--sig-hold);
+  --badge-new-bg:     rgba(177,151,255,.14);
+  --badge-new-fg:     var(--sig-new);
+  --badge-focus-bg:   rgba(94,200,229,.10);
+  --badge-focus-fg:   var(--ref-focus);
+  --badge-muted-bg:   var(--paper-3);
+  --badge-muted-fg:   var(--ink-3);
+  --badge-gold-bg:    rgba(217,178,106,.14);
+  --badge-gold-fg:    var(--gold);
+  --badge-rose-bg:    rgba(240,115,158,.14);
+  --badge-rose-fg:    var(--ref-rose);
 }
 
 * { box-sizing: border-box; }
@@ -227,6 +319,328 @@ html, body {
 
 /* Quiet Operator: flat paper background — no decorative gradients */
 body { background-attachment: fixed; }
+
+/* ==========================================================================
+   PREMIUM DARK THEME — UTILITY CLASSES
+   New classes from the reference design. All existing selectors are preserved;
+   these are additive. Source-of-truth: /DailyCommandCenter.html token block.
+   ========================================================================== */
+
+/* ── Micro label — 10px uppercase IBM Plex Mono eyebrow ── */
+.micro {
+  font-family: var(--font-mono-2, var(--font-mono));
+  font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .18em;
+  color: var(--txt-soft, var(--ink-3));
+  line-height: 1;
+}
+
+/* ── Stat number — Instrument Serif 64px for KPI tiles ── */
+.stat-num {
+  font-family: var(--font-display, var(--font-sans));
+  font-size: 64px; font-weight: 400; line-height: .95;
+  letter-spacing: -.02em;
+  color: var(--ink-1);
+}
+
+/* ── Hairline border utilities ── */
+.hairline   { border: 1px solid var(--hairline, var(--line-1)); }
+.hairline-t { border-top:    1px solid var(--hairline, var(--line-1)); }
+.hairline-b { border-bottom: 1px solid var(--hairline, var(--line-1)); }
+.hairline-l { border-left:   1px solid var(--hairline, var(--line-1)); }
+.hairline-r { border-right:  1px solid var(--hairline, var(--line-1)); }
+
+/* ── KBD pill ── */
+.k {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 20px; padding: 0 5px;
+  background: var(--surface-3, var(--paper-3));
+  border: 1px solid var(--hairline-2, var(--line-2));
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  font-family: var(--font-mono-2, var(--font-mono));
+  font-size: 10px; font-weight: 600;
+  color: var(--ink-2);
+  line-height: 1;
+}
+
+/* ── Segmented control (.seg) ── */
+.seg {
+  display: inline-flex;
+  background: var(--surface-3, var(--paper-3));
+  border: 1px solid var(--hairline, var(--line-1));
+  border-radius: var(--r-pill);
+  padding: 2px; gap: 1px;
+  overflow: hidden;
+}
+.seg > button {
+  background: transparent; border: none; border-radius: var(--r-pill);
+  padding: 4px 12px;
+  font-family: var(--font-body, var(--font-sans));
+  font-size: var(--fs-xs); font-weight: 500; color: var(--ink-3);
+  cursor: pointer; white-space: nowrap; user-select: none;
+  transition: background var(--t-1) var(--ease), color var(--t-1) var(--ease);
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.seg > button:hover { color: var(--ink-1); }
+.seg > button.active {
+  background: var(--surface-1, var(--paper-1));
+  color: var(--accent, var(--sig-go));
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0,0,0,.20);
+}
+.seg > button .count {
+  font-family: var(--font-mono-2, var(--font-mono));
+  font-size: 9px; font-weight: 700; letter-spacing: .02em;
+  background: var(--surface-2, var(--paper-2));
+  padding: 1px 5px; border-radius: var(--r-pill);
+  color: var(--ink-3); line-height: 1.4;
+  min-width: 16px; text-align: center;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.seg > button.active .count {
+  background: var(--accent, var(--sig-go));
+  color: var(--surface-0, var(--paper-0));
+}
+
+/* ── Badge semantic variants (.b-*) — additive, existing .badge-* still work ── */
+.badge.b-success {
+  background: var(--badge-success-bg); color: var(--badge-success-fg);
+  border: 1px solid color-mix(in srgb, var(--badge-success-fg) 35%, transparent);
+}
+.badge.b-urgent {
+  background: var(--badge-urgent-bg); color: var(--badge-urgent-fg);
+  border: 1px solid color-mix(in srgb, var(--badge-urgent-fg) 35%, transparent);
+}
+.badge.b-info {
+  background: var(--badge-info-bg); color: var(--badge-info-fg);
+  border: 1px solid color-mix(in srgb, var(--badge-info-fg) 35%, transparent);
+}
+.badge.b-warn {
+  background: var(--badge-warn-bg); color: var(--badge-warn-fg);
+  border: 1px solid color-mix(in srgb, var(--badge-warn-fg) 35%, transparent);
+}
+.badge.b-new {
+  background: var(--badge-new-bg); color: var(--badge-new-fg);
+  border: 1px solid color-mix(in srgb, var(--badge-new-fg) 35%, transparent);
+}
+.badge.b-focus {
+  background: var(--badge-focus-bg); color: var(--badge-focus-fg);
+  border: 1px solid color-mix(in srgb, var(--badge-focus-fg) 35%, transparent);
+}
+.badge.b-muted {
+  background: var(--badge-muted-bg); color: var(--badge-muted-fg);
+  border: 1px solid var(--hairline, var(--line-1));
+}
+.badge.b-gold {
+  background: var(--badge-gold-bg); color: var(--badge-gold-fg);
+  border: 1px solid color-mix(in srgb, var(--badge-gold-fg) 35%, transparent);
+}
+.badge.b-rose {
+  background: var(--badge-rose-bg); color: var(--badge-rose-fg);
+  border: 1px solid color-mix(in srgb, var(--badge-rose-fg) 35%, transparent);
+}
+
+/* ── Toggle visual control ── */
+.toggle {
+  position: relative;
+  display: inline-flex; align-items: center;
+  width: 36px; height: 20px; flex-shrink: 0;
+  background: var(--surface-3, var(--paper-3));
+  border: 1px solid var(--hairline-2, var(--line-2));
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  transition: background var(--t-1) var(--ease), border-color var(--t-1) var(--ease);
+}
+.toggle::after {
+  content: "";
+  position: absolute; left: 2px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--ink-3);
+  transition: transform var(--t-1) var(--ease), background var(--t-1) var(--ease);
+}
+.toggle.on {
+  background: var(--accent, var(--sig-go));
+  border-color: var(--accent, var(--sig-go));
+}
+.toggle.on::after {
+  transform: translateX(16px);
+  background: var(--surface-0, var(--paper-0));
+}
+
+/* ── Input utility ── */
+.input {
+  height: 36px; padding: 0 10px;
+  background: var(--surface-2, var(--paper-2));
+  border: 1px solid var(--hairline-2, var(--line-2));
+  border-radius: 6px;
+  color: var(--ink-1); font-family: var(--font-body, var(--font-sans));
+  font-size: var(--fs-md);
+  transition: border-color var(--t-1) var(--ease), box-shadow var(--t-1) var(--ease);
+}
+.input:hover { border-color: var(--ink-3); }
+.input:focus {
+  outline: none;
+  border-color: var(--accent, var(--line-focus));
+  box-shadow: 0 0 0 2px var(--accent-soft, var(--accent-light));
+}
+.input-mono { font-family: var(--font-mono-2, var(--font-mono)); }
+
+/* ── Timeline row (.tick) — schedule rows with vertical rail ── */
+.tick {
+  position: relative;
+  padding: 8px 0 8px 20px;
+  margin-left: 4px;
+}
+.tick::before {
+  content: "";
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 1px;
+  background: var(--hairline, var(--line-1));
+}
+.tick::after {
+  content: "";
+  position: absolute; left: -3px; top: 14px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--surface-3, var(--paper-3));
+  border: 1px solid var(--hairline-2, var(--line-2));
+}
+.tick.is-now::after {
+  background: var(--accent, var(--sig-go));
+  border-color: var(--accent, var(--sig-go));
+  box-shadow: 0 0 0 3px var(--accent-soft, var(--accent-light));
+}
+.tick.is-past {
+  opacity: .55;
+}
+.tick.is-past::after { background: var(--ink-4); border-color: var(--ink-4); }
+.tick.is-focus::after { background: var(--ref-focus, var(--sig-focus)); border-color: var(--ref-focus, var(--sig-focus)); }
+
+/* ── Now-line — current time indicator ── */
+.now-pill {
+  display: inline-flex; align-items: center;
+  background: var(--accent, var(--sig-go));
+  color: var(--surface-0, var(--paper-0));
+  font-family: var(--font-mono-2, var(--font-mono));
+  font-size: 10px; font-weight: 700; letter-spacing: .08em;
+  padding: 2px 9px; border-radius: var(--r-pill);
+  white-space: nowrap;
+}
+
+/* ── Tile bar — 2px left accent on KPI cards ── */
+.tile-bar {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; border-radius: 0;
+  pointer-events: none;
+}
+
+/* ── Dot strip — 9-cell bitmap count for KPI ── */
+.dot-strip {
+  display: grid;
+  grid-template-columns: repeat(9, 6px);
+  gap: 3px; margin-top: 6px;
+}
+.dot-strip > span {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--surface-3, var(--paper-3));
+  border: 1px solid var(--hairline, var(--line-1));
+}
+.dot-strip > span.filled {
+  background: var(--accent, var(--sig-go));
+  border-color: var(--accent, var(--sig-go));
+}
+
+/* ── WS dot (inline colored dot beside connector names) ── */
+.ws-dot-sm {
+  display: inline-block; width: 8px; height: 8px;
+  border-radius: 50%; flex-shrink: 0;
+}
+
+/* ── Source stripe — workspace accent on schedule rows ── */
+.src-stripe {
+  border-inline-start: 2px solid var(--ws-color, var(--hairline, var(--line-1)));
+  padding-inline-start: 10px;
+}
+
+/* ── Header gradient background ── */
+.header-bg {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -20%, rgba(55,216,176,.07) 0%, transparent 70%),
+    linear-gradient(to bottom, var(--surface-1, var(--paper-1)), var(--surface-0, var(--paper-0)));
+  position: relative;
+}
+.header-bg::before {
+  content: "";
+  position: absolute; inset-x: 0; top: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(55,216,176,.35), transparent);
+  pointer-events: none;
+}
+
+/* ── Grid background texture (edit mode / empty states) ── */
+.grid-bg {
+  background-image:
+    linear-gradient(to right, var(--hairline, var(--line-1)) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--hairline, var(--line-1)) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* ── Menu shell (WS switcher, palette result sections) ── */
+.menu {
+  background: var(--surface-2, var(--paper-2));
+  border: 1px solid var(--hairline, var(--line-1));
+  border-radius: 12px;
+  box-shadow: var(--shadow-3);
+  overflow: hidden;
+}
+.menu-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px; cursor: pointer; color: var(--ink-1);
+  font-size: var(--fs-md); font-family: var(--font-body, var(--font-sans));
+  transition: background var(--t-1) var(--ease);
+  border: none; background: transparent; text-align: left; width: 100%;
+}
+.menu-item:hover { background: var(--surface-3, var(--paper-3)); }
+.menu-item.active {
+  background: color-mix(in srgb, var(--accent, var(--sig-go)) 10%, transparent);
+  font-weight: 600;
+}
+
+/* ── Row hover helper ── */
+.row-hover {
+  transition: background var(--t-1) var(--ease);
+  border-radius: var(--r-1);
+}
+.row-hover:hover { background: var(--surface-3, var(--paper-3)); }
+
+/* ── Corner cross handle (edit mode) ── */
+.corner-cross {
+  position: absolute;
+  width: 10px; height: 10px;
+  background:
+    linear-gradient(var(--accent, var(--sig-go)), var(--accent, var(--sig-go))) center/2px 100% no-repeat,
+    linear-gradient(var(--accent, var(--sig-go)), var(--accent, var(--sig-go))) center/100% 2px no-repeat;
+}
+
+/* ── Accent text utility ── */
+.accent-text { color: var(--accent, var(--sig-go)); }
+.accent-text:hover { text-decoration: underline; }
+
+/* ── Gold text utility ── */
+.gold-text { color: var(--gold, #D4A24A); }
+
+/* ── Pulse dot (animated status indicator) ── */
+.pulse-dot {
+  display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--sig-go);
+  animation: pulse 2s var(--ease) infinite; flex-shrink: 0;
+}
+
+/* ── Swatch active state (complement to existing .swatch.is-selected) ── */
+.swatch.active {
+  outline: 2px solid var(--accent, var(--ink-1));
+  outline-offset: 2px;
+  transform: scale(1.08);
+}
 
 a { color: var(--info); text-decoration: none; }
 a:hover { text-decoration: underline; }
@@ -3372,3 +3786,503 @@ body.has-dynamic-overview [data-ov-hidden="1"] {
   font-size: var(--fs-md);
 }
 .settings-toggle-label input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+
+/* ==========================================================================
+   PREMIUM DARK THEME — COMPONENT OVERRIDES  (PRs 3–7)
+   Scoped entirely to [data-theme="dark"] — zero light-mode impact.
+   All existing DOM IDs, data-* attrs, and test selectors are untouched.
+   ========================================================================== */
+
+/* ── PR 3: Top bar ─────────────────────────────────────────────────────────
+   Replace the flat --paper-3 fill with the radial-emerald gradient from the
+   reference design (.header-bg). Add the hairline glow at the top edge.    */
+[data-theme="dark"] .top-bar {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -20%, rgba(55,216,176,.07) 0%, transparent 70%),
+    linear-gradient(to bottom, var(--paper-2), var(--paper-1));
+  border-bottom-color: var(--line-1);
+  position: relative;
+}
+[data-theme="dark"] .top-bar::after {
+  content: "";
+  position: absolute; inset-x: 0; top: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(55,216,176,.28), transparent);
+  pointer-events: none;
+}
+
+/* Brand name → Instrument Serif in dark */
+[data-theme="dark"] .brand-name {
+  font-family: var(--font-display);
+  font-weight: 400; letter-spacing: -.02em;
+}
+
+/* Context strip — slightly more elevated than page bg */
+[data-theme="dark"] .context-strip {
+  background: var(--paper-1);
+  border-bottom-color: var(--line-1);
+}
+
+/* Clock — IBM Plex Mono */
+[data-theme="dark"] .cs-clock-block {
+  font-family: var(--font-mono-2);
+}
+[data-theme="dark"] .cs-clock { color: var(--ink-2); }
+
+/* ── PR 3: KPI strip ───────────────────────────────────────────────────────
+   Elevation matches the context strip; the value gets Instrument Serif.    */
+[data-theme="dark"] .kpi-strip {
+  background: var(--paper-1);
+  border-bottom-color: var(--line-1);
+}
+[data-theme="dark"] .kpi {
+  border-right-color: var(--line-1);
+}
+[data-theme="dark"] .kpi:hover { background: var(--paper-2); }
+
+/* KPI source label → micro style (IBM Plex Mono, uppercase) */
+[data-theme="dark"] .kpi-source-label {
+  font-family: var(--font-mono-2);
+  font-size: 10px; letter-spacing: .15em;
+  color: var(--ink-3);
+}
+
+/* KPI value → Instrument Serif big number */
+[data-theme="dark"] .kpi-value {
+  font-family: var(--font-display);
+  font-size: 40px; font-weight: 400;
+  letter-spacing: -.03em; line-height: .95;
+}
+[data-theme="dark"] .kpi-value.kpi-value--signal { color: var(--sig-now); }
+
+/* ── PR 4: Cards ───────────────────────────────────────────────────────────
+   Card shell: subtle gradient from paper-2 → paper-1 (reference .card rule). */
+[data-theme="dark"] .card {
+  background: linear-gradient(180deg, var(--paper-2), var(--paper-1));
+  border-color: var(--line-1);
+}
+[data-theme="dark"] .card:hover {
+  border-color: var(--line-2);
+  box-shadow: var(--shadow-2);
+}
+
+/* Card header — slightly darker tray */
+[data-theme="dark"] .card-header {
+  background: var(--paper-3);
+  border-bottom-color: var(--line-1);
+}
+
+/* Active tab → accent underline (emerald) */
+[data-theme="dark"] .card-header .tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+[data-theme="dark"] .card-header .tab.active .tab-count {
+  background: var(--accent);
+  color: var(--paper-0);
+  border-color: var(--accent);
+}
+[data-theme="dark"] .card-header .tab:hover { color: var(--ink-1); }
+
+/* Title icon */
+[data-theme="dark"] .card-header .title-icon {
+  background: var(--paper-2);
+}
+
+/* Filter chips — accent active state */
+[data-theme="dark"] .chip {
+  background: transparent;
+  border-color: var(--line-1);
+  color: var(--ink-3);
+}
+[data-theme="dark"] .chip:hover {
+  background: var(--paper-3);
+  border-color: var(--line-2);
+  color: var(--ink-1);
+}
+[data-theme="dark"] .chip.active {
+  background: var(--accent-soft);
+  border-color: rgba(55,216,176,.35);
+  color: var(--accent-2);
+}
+
+/* Schedule items */
+[data-theme="dark"] .schedule-item:hover { background: var(--paper-3); }
+[data-theme="dark"] .schedule-item.is-now {
+  background: color-mix(in srgb, var(--sig-now) 7%, transparent);
+}
+
+/* Mention items */
+[data-theme="dark"] .mention-item:hover {
+  background: var(--paper-3);
+}
+
+/* Slack digest channel cells */
+[data-theme="dark"] .dg-channel {
+  background: var(--paper-2);
+  border-color: var(--line-1);
+}
+[data-theme="dark"] .dg-channel:hover {
+  background: var(--paper-3);
+  border-color: var(--line-2);
+}
+[data-theme="dark"] .dg-channel.is-open {
+  background: var(--paper-1);
+  border-color: var(--line-2);
+}
+
+/* ── PR 5: Command palette ─────────────────────────────────────────────────
+   Deeper obsidian backdrop; frosted-glass palette shell.                   */
+[data-theme="dark"] .palette-backdrop {
+  background: rgba(7,10,12,.82);
+}
+[data-theme="dark"] .palette {
+  background: rgba(11,16,20,.92);
+  border-color: var(--line-2);
+  box-shadow:
+    0 0 0 1px var(--line-2),
+    0 32px 96px -16px rgba(0,0,0,.90),
+    0 0 60px -20px rgba(55,216,176,.08);
+}
+[data-theme="dark"] .palette-input { color: var(--ink-1); }
+[data-theme="dark"] .palette-input::placeholder { color: var(--ink-4); }
+[data-theme="dark"] .palette-item:hover,
+[data-theme="dark"] .palette-item.active {
+  background: var(--paper-3);
+}
+[data-theme="dark"] .palette-item.active {
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+[data-theme="dark"] .palette-section { color: var(--ink-3); border-top-color: var(--line-1); }
+[data-theme="dark"] .palette-footer {
+  background: var(--paper-3);
+  border-top-color: var(--line-1);
+}
+[data-theme="dark"] .palette-input-row { border-bottom-color: var(--line-1); }
+
+/* ── PR 5: Workspace switcher menu ─────────────────────────────────────── */
+[data-theme="dark"] .ws-switcher-menu {
+  background: var(--paper-2);
+  border-color: var(--line-1);
+  box-shadow: var(--shadow-3);
+}
+[data-theme="dark"] .ws-menu-item {
+  color: var(--ink-1);
+}
+[data-theme="dark"] .ws-menu-item:hover { background: var(--paper-3); }
+[data-theme="dark"] .ws-menu-item.active {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+}
+[data-theme="dark"] .ws-menu-divider { background: var(--line-1); }
+
+/* Workspace switcher pill in dark header */
+[data-theme="dark"] .ws-switcher-btn,
+[data-theme="dark"] .ws-switcher-pill {
+  background: color-mix(in srgb, var(--accent) 12%, var(--paper-3));
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line-1));
+  color: var(--ink-1);
+}
+[data-theme="dark"] .ws-switcher-btn:hover {
+  background: color-mix(in srgb, var(--accent) 20%, var(--paper-3));
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line-2));
+}
+[data-theme="dark"] .ws-switcher-btn.is-overview {
+  background: color-mix(in srgb, var(--sig-new) 12%, var(--paper-3));
+  border-color: color-mix(in srgb, var(--sig-new) 35%, var(--line-1));
+}
+[data-theme="dark"] .ws-switcher-btn.is-overview .ws-switcher-label {
+  color: var(--sig-new);
+}
+[data-theme="dark"] .ws-switcher-label { color: var(--ink-1); }
+
+/* ── PR 5: Help modal ──────────────────────────────────────────────────── */
+[data-theme="dark"] .modal {
+  background: var(--paper-2);
+  border-color: var(--line-1);
+  box-shadow: var(--shadow-3);
+}
+[data-theme="dark"] .modal-backdrop {
+  background: rgba(7,10,12,.72);
+}
+[data-theme="dark"] .shortcut-row { border-bottom-color: var(--line-1); }
+[data-theme="dark"] kbd {
+  background: var(--paper-3);
+  border-color: var(--line-2);
+  color: var(--ink-2);
+}
+
+/* ── PR 5: Toasts ──────────────────────────────────────────────────────── */
+[data-theme="dark"] .toast {
+  background: var(--paper-3);
+  color: var(--ink-1);
+  border: 1px solid var(--line-2);
+  box-shadow: var(--shadow-3);
+}
+[data-theme="dark"] .toast.success {
+  background: color-mix(in srgb, var(--sig-go) 18%, var(--paper-3));
+  border-color: color-mix(in srgb, var(--sig-go) 35%, var(--line-2));
+  color: var(--sig-go);
+}
+[data-theme="dark"] .toast.error {
+  background: color-mix(in srgb, var(--sig-now) 15%, var(--paper-3));
+  border-color: color-mix(in srgb, var(--sig-now) 35%, var(--line-2));
+  color: var(--sig-now);
+}
+
+/* ── PR 5: Confirm / error / clone-success modals ─────────────────────── */
+[data-theme="dark"] .clone-error-pre {
+  background: var(--paper-3);
+  border-color: var(--line-2);
+  color: var(--sig-now);
+}
+[data-theme="dark"] .clone-success-icon {
+  background: color-mix(in srgb, var(--sig-go) 15%, transparent);
+  color: var(--sig-go);
+}
+[data-theme="dark"] .clone-success-key {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+[data-theme="dark"] .clone-success-url {
+  background: var(--paper-3);
+  border-color: var(--line-1);
+  color: var(--ink-3);
+}
+[data-theme="dark"] .clone-success-url:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ── PR 6: Settings modal shell ────────────────────────────────────────── */
+[data-theme="dark"] .modal.modal-lg {
+  background: var(--paper-1);
+  border-color: var(--line-1);
+  box-shadow: var(--shadow-3);
+}
+[data-theme="dark"] .settings-header {
+  background: var(--paper-3);
+  border-bottom-color: var(--line-1);
+}
+[data-theme="dark"] .settings-tab { color: var(--ink-3); }
+[data-theme="dark"] .settings-tab:hover { color: var(--ink-2); }
+[data-theme="dark"] .settings-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+[data-theme="dark"] .settings-body h3 { color: var(--ink-3); }
+[data-theme="dark"] .settings-footer { border-top-color: var(--line-1); }
+
+/* Settings cards */
+[data-theme="dark"] .settings-card {
+  border-color: var(--line-1);
+}
+[data-theme="dark"] .settings-card-head {
+  background: var(--paper-3);
+  border-bottom-color: var(--line-1);
+}
+[data-theme="dark"] .settings-section-head {
+  background: var(--paper-1);
+  border-bottom-color: var(--line-1);
+}
+
+/* Workspace section heads */
+[data-theme="dark"] .ws-section {
+  border-color: var(--line-1);
+  background: var(--paper-1);
+}
+[data-theme="dark"] .ws-section[open] {
+  border-color: var(--ws-color, var(--line-2));
+}
+[data-theme="dark"] .ws-section[open] > .ws-section-head {
+  background: var(--paper-2);
+  border-bottom-color: var(--line-1);
+}
+[data-theme="dark"] .ws-section[open] > .ws-section-head::before {
+  background: var(--paper-2);
+}
+[data-theme="dark"] .ws-section-head:hover {
+  background: color-mix(in srgb, var(--ink-1) 4%, var(--paper-2));
+}
+
+/* Connector blocks */
+[data-theme="dark"] .connector-instance {
+  background: var(--paper-2);
+  border-color: var(--line-1);
+}
+[data-theme="dark"] .connector-enroll {
+  background: var(--paper-3);
+  border-color: var(--line-1);
+}
+
+/* Preferences tab */
+[data-theme="dark"] .pref-group {
+  background: var(--paper-2);
+  border-color: var(--line-1);
+}
+[data-theme="dark"] .pref-group-head {
+  background: var(--paper-3);
+}
+[data-theme="dark"] .pref-group[open] > .pref-group-head {
+  border-bottom-color: var(--line-1);
+}
+[data-theme="dark"] .pref-group-head:hover {
+  background: color-mix(in srgb, var(--ink-1) 4%, var(--paper-3));
+}
+[data-theme="dark"] .pref-group-icon {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+[data-theme="dark"] .settings-pref-row { border-bottom-color: var(--line-1); }
+
+/* Segmented pref control */
+[data-theme="dark"] .pref-segmented {
+  background: var(--paper-3);
+  border-color: var(--line-1);
+}
+[data-theme="dark"] .pref-toggle.active {
+  background: var(--paper-1);
+  border-color: var(--line-2);
+  color: var(--ink-1);
+}
+
+/* Logo preview card */
+[data-theme="dark"] .ws-logo-preview-card {
+  background: var(--paper-3);
+  border-color: var(--line-2);
+}
+[data-theme="dark"] .ws-logo-preview-frame {
+  background: var(--paper-2);
+}
+
+/* Swatch active state in dark */
+[data-theme="dark"] .swatch.is-selected,
+[data-theme="dark"] .swatch.active {
+  outline-color: var(--accent);
+}
+
+/* ── PR 7: Workspace empty state ───────────────────────────────────────── */
+[data-theme="dark"] .workspace-empty-icon {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+[data-theme="dark"] .workspace-empty--overview .workspace-empty-icon {
+  border-color: var(--sig-new);
+  color: var(--sig-new);
+}
+[data-theme="dark"] .workspace-empty-connect-list {
+  border-color: var(--line-1);
+}
+[data-theme="dark"] .workspace-empty-connect-eyebrow {
+  background: var(--paper-3);
+  border-bottom-color: var(--line-1);
+}
+[data-theme="dark"] .workspace-empty-connect-list li {
+  border-bottom-color: var(--line-1);
+}
+
+/* ── PR 7: Edit-mode toolbar ────────────────────────────────────────────
+   Reference: subtle emerald tint on obsidian — more refined than the
+   opaque accent-soft used in light mode.                                  */
+[data-theme="dark"] .dashboard-edit-toolbar {
+  background: color-mix(in srgb, var(--accent) 8%, var(--paper-2));
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line-2));
+  color: var(--ink-2);
+}
+[data-theme="dark"] .dashboard-edit-toolbar .det-title {
+  color: var(--accent);
+}
+[data-theme="dark"] .dashboard-grid.is-editing {
+  background-image:
+    linear-gradient(to right,  var(--line-1) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--line-1) 1px, transparent 1px);
+  outline-color: var(--line-2);
+}
+[data-theme="dark"] .dashboard-grid.is-editing .dashboard-item {
+  outline-color: var(--line-2);
+}
+[data-theme="dark"] .dash-ghost {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-color: var(--accent);
+}
+
+/* ── PR 7: Universal sidebar ────────────────────────────────────────────── */
+[data-theme="dark"] .universal-sidebar {
+  background: var(--paper-2);
+  border-left-color: var(--line-1);
+}
+[data-theme="dark"] .sidebar-head { border-bottom-color: var(--line-1); }
+[data-theme="dark"] .sidebar-event { color: var(--ink-2); }
+[data-theme="dark"] .sidebar-event:hover { background: var(--paper-3); }
+[data-theme="dark"] .sidebar-mention { color: var(--ink-2); }
+[data-theme="dark"] .sidebar-mention:hover { background: var(--paper-3); }
+[data-theme="dark"] .sidebar-section h4 { color: var(--ink-3); }
+
+/* ── PR 7: Body font → IBM Plex Sans in dark ────────────────────────────── */
+[data-theme="dark"] body {
+  font-family: var(--font-body);
+}
+[data-theme="dark"] .card-header { font-family: var(--font-body); }
+
+/* ── Dark scrollbars ─────────────────────────────────────────────────────── */
+[data-theme="dark"] .card-body::-webkit-scrollbar-thumb {
+  background: var(--line-2);
+}
+[data-theme="dark"] .card-body::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-4);
+}
+
+/* ── Primary / ghost / danger buttons in dark ───────────────────────────── */
+[data-theme="dark"] .btn-primary {
+  background: var(--accent);
+  color: var(--paper-0);
+  border-color: var(--accent);
+}
+[data-theme="dark"] .btn-primary:hover {
+  background: var(--accent-2);
+  border-color: var(--accent-2);
+}
+[data-theme="dark"] .not-connected-cta {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--paper-0) !important;
+}
+[data-theme="dark"] .not-connected-cta:hover {
+  background: var(--accent-2);
+}
+
+/* ── Tooltip dark theme ──────────────────────────────────────────────────── */
+[data-theme="dark"] [data-tooltip]::after {
+  background: var(--paper-3);
+  color: var(--ink-1);
+  border-color: var(--line-2);
+}
+
+/* ── Header buttons dark ─────────────────────────────────────────────────── */
+[data-theme="dark"] .header-btn {
+  background: var(--paper-2);
+  border-color: var(--line-1);
+  color: var(--ink-2);
+}
+[data-theme="dark"] .header-btn:hover {
+  background: var(--paper-3);
+  border-color: var(--line-2);
+  color: var(--ink-1);
+}
+[data-theme="dark"] .header-btn kbd {
+  background: var(--paper-3);
+  border-color: var(--line-2);
+  color: var(--ink-2);
+}
+
+/* ── Focus ring in dark ──────────────────────────────────────────────────── */
+[data-theme="dark"] :focus-visible {
+  outline-color: var(--accent);
+}
+
+/* ── Accent-text active glyph color ─────────────────────────────────────── */
+[data-theme="dark"] #customize-btn.active {
+  background: color-mix(in srgb, var(--accent) 18%, var(--paper-2));
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line-2));
+}
