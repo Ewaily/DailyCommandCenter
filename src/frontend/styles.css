@@ -1747,6 +1747,7 @@ a.schedule-title:hover { text-decoration: underline; text-decoration-color: var(
 .toast.success { background: var(--success); color: #fff; }
 .toast.error   { background: var(--urgent); color: #fff; }
 .toast.info    { background: var(--primary); color: #fff; }
+.toast.update  { background: linear-gradient(135deg, var(--primary), var(--accent)); color: #fff; }
 .toast button {
   background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.25);
   color: #fff; padding: 3px 10px; border-radius: 4px;
