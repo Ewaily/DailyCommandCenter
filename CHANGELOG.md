@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [v1.0.2] — 2026-05-09
+
+### 🔧 Chores
+
+- Sync `package-lock.json` with `v1.0.1` version bump ([#25](https://github.com/Ewaily/DailyCommandCenter/pull/25))
+
+---
+
 ## [v1.0.1] — 2026-05-09
 
 ### 🐛 Bug Fixes
