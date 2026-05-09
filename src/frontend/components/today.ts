@@ -55,12 +55,11 @@ function render() {
     el.innerHTML = `<div class="context-banner-ws"><span class="cb-tag">WORKSPACE</span><span class="cb-msg">${escapeHtml(active)}</span></div>`;
     return;
   }
-  const dot = ws.color ? `<span class="ws-dot" style="--c:${ws.color}"></span>` : "";
   const icon = ws.icon ? `<span>${escapeHtml(ws.icon)}</span>` : "";
   const scope = buildScope();
   el.innerHTML = `
     <div class="context-banner-ws">
-      ${dot}${icon}<span class="cb-tag">WORKSPACE</span>
+      ${icon}<span class="cb-tag">WORKSPACE</span>
       <span class="cb-msg"><strong>${escapeHtml(ws.name)}</strong>${scope ? ` — <span class="cb-scope">${escapeHtml(scope)}</span>` : ""}</span>
     </div>
   `;

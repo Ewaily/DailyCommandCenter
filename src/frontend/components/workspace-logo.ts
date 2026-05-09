@@ -100,7 +100,7 @@ export function renderWorkspaceBadge(ws: WsLite, size: number = 24, opts: { titl
   const candidates = ws.logoUrl
     ? [ws.logoUrl, ...buildLogoCandidates(ws.website)]
     : buildLogoCandidates(ws.website);
-  const monogram = monogramDataUrl(ws.name, ws.color, Math.max(48, size * 2));
+  const monogram = monogramDataUrl(ws.name, null, Math.max(48, size * 2));
   const all = [...candidates.filter(Boolean), monogram];
 
   // Build a small JS chain on the <img>: on error, replace src with the next
@@ -109,7 +109,7 @@ export function renderWorkspaceBadge(ws: WsLite, size: number = 24, opts: { titl
   const onerr = `(function(img){var a=[${stages}];var i=img.dataset.stage?+img.dataset.stage:0;img.dataset.stage=String(i+1);if(i+1<a.length){img.src=a[i+1];}else{img.onerror=null;}})(this)`;
 
   const title = opts.title === false ? "" : ` title="${escapeHtml(ws.name)}"`;
-  return `<span class="ws-logo" style="--ws-size:${size}px;--ws-color:${ws.color || "var(--accent)"}"${title}>
+  return `<span class="ws-logo" style="--ws-size:${size}px;--ws-color:var(--accent)"${title}>
     <img src="${escapeHtml(all[0])}" alt="${escapeHtml(ws.name)} logo" data-stage="0" onerror='${onerr}' loading="lazy" />
   </span>`;
 }

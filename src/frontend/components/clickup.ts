@@ -1,7 +1,8 @@
 import { api, isAuthError, type ClickUpTask, type WatchedUser } from "../api.js";
-import { $, escapeHtml, renderWorkspaceNotConfigured, skeletonCompact, toast, confirmModal, errorModal, cloneSuccessModal } from "./util.js";
+import { $, escapeHtml, renderWorkspaceNotConfigured, skeletonCompact, toast, confirmModal, errorModal, cloneSuccessModal, animateNumber } from "./util.js";
 import { saveSetting, getSetting } from "../state.js";
 import { renderTaskRow } from "./task-row.js";
+import { hasCapability } from "../connectors.js";
 
 export interface ClickUpInstance {
   load(silent?: boolean): Promise<void>;
@@ -135,6 +136,10 @@ export async function loadClickUp(silent = false) {
     const resp = await api.clickupTasks(active);
     if (resp.notConfigured) {
       body.innerHTML = renderWorkspaceNotConfigured("ClickUp");
+      if (!hasCapability("jira")) {
+        const k = $("#kpi-tickets"); if (k) k.textContent = "—";
+        const d = $("#kpi-tickets-detail"); if (d) d.textContent = "Not connected";
+      }
       return;
     }
 
@@ -148,6 +153,18 @@ export async function loadClickUp(silent = false) {
 
     renderTabs(resp.counts);
     syncTabUI();
+
+    // Write the ticket KPI only when Jira isn't present — Jira owns it when both are active.
+    if (!hasCapability("jira")) {
+      const mineCount = resp.counts?.[MINE] ?? 0;
+      animateNumber($("#kpi-tickets"), mineCount);
+      const detail = $("#kpi-tickets-detail");
+      if (detail) {
+        const parts: string[] = [`${mineCount} mine`];
+        for (const w of watchedUsers) parts.push(`${resp.counts?.[w.id] ?? 0} ${w.label}`);
+        detail.textContent = parts.join(" · ");
+      }
+    }
 
     const data = resp.data || [];
     if (!data.length) {

@@ -22,7 +22,7 @@ import { init as initDashboard } from "./components/dashboard.js";
 import { loadConnectors, applyConnectorVisibility, hasCapability } from "./connectors.js";
 import { applyTitles, initInlineEditing } from "./components/widget-titles.js";
 import { initOverviewWidgets, clearOverviewWidgets } from "./components/overview-widgets.js";
-import { initKpiSignals } from "./components/kpi-strip.js";
+import { initKpiSignals, initKpiLabels } from "./components/kpi-strip.js";
 
 function markLastRefresh() {
   const el = document.getElementById("last-refresh");
@@ -76,6 +76,7 @@ async function onWorkspaceChanged() {
   applyCardCollapse();
   await loadConnectors();
   applyConnectorVisibility();
+  initKpiLabels();
   await initOverviewWidgets();
   applySidebarEmptyState();
   applyTitles(activeWorkspaceName());
@@ -208,6 +209,7 @@ async function init() {
   // and no skeleton loaders flash for tools that aren't connected.
   await loadConnectors();
   applyConnectorVisibility();
+  initKpiLabels();
   await initOverviewWidgets();
   applySidebarEmptyState();
 
@@ -243,6 +245,7 @@ async function init() {
       clearOverviewWidgets();
       await loadConnectors();
       applyConnectorVisibility();
+      initKpiLabels();
       await initOverviewWidgets();
       applySidebarEmptyState();
       applyTitles(activeWorkspaceName());

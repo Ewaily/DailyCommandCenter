@@ -2,24 +2,6 @@
 import { api, type Workspace, type ConnectorInstance, type AppCreds } from "../api.js";
 import { escapeHtml } from "./util.js";
 
-// ── Curated accent palette ────────────────────────────────────────────────────
-// Every color satisfies WCAG AA (≥ 4.5:1) against white text.
-// Amber is the borderline case (4.7:1) but still passes.
-export const ACCENT_PALETTE: { hex: string; name: string }[] = [
-  { hex: "#0066CC", name: "Royal Blue"   },
-  { hex: "#2563EB", name: "Indigo"       },
-  { hex: "#0369A1", name: "Ocean"        },
-  { hex: "#0E7490", name: "Cyan"         },
-  { hex: "#2A9D8F", name: "Teal"         },
-  { hex: "#15803D", name: "Emerald"      },
-  { hex: "#A16207", name: "Amber"        },
-  { hex: "#C2410C", name: "Burnt Orange" },
-  { hex: "#DC2626", name: "Crimson"      },
-  { hex: "#BE185D", name: "Rose"         },
-  { hex: "#7C3AED", name: "Violet"       },
-  { hex: "#334155", name: "Slate"        },
-];
-const PALETTE_HEXES = new Set(ACCENT_PALETTE.map(p => p.hex.toLowerCase()));
 import { refreshActiveWorkspace } from "./workspace-switcher.js";
 import { getSetting, saveSetting } from "../state.js";
 import { applyBrand, DEFAULT_BRAND_NAME } from "./brand.js";
@@ -292,7 +274,6 @@ function typeDefs(appCreds: AppCreds): ConnectorTypeDef[] {
 }
 
 function wsSection(ws: Workspace, connectors: ConnectorInstance[], isDefault: boolean, appCreds: AppCreds, jiraProjectMap: Map<string, import("../api.js").JiraProject[]>, allJiraProjects: import("../api.js").JiraProject[], cloneTargetProjectMap = new Map<string, import("../api.js").JiraProject[]>()): string {
-  const color = ws.color || "var(--accent)";
   const def   = isDefault ? `<span class="settings-chip">default</span>` : "";
 
   const ownedActive = connectors.filter(c =>
@@ -308,7 +289,7 @@ function wsSection(ws: Workspace, connectors: ConnectorInstance[], isDefault: bo
 
   return `
     <details class="ws-section" data-ws-id="${escapeHtml(ws.id)}" data-collapse-key="ws-${escapeHtml(ws.id)}" ${isOpen(`ws-${ws.id}`) ? "open" : ""}>
-      <summary class="ws-section-head" style="--ws-color:${color}">
+      <summary class="ws-section-head">
         <span class="ws-chevron">▸</span>
         <span class="ws-section-icon">${renderWorkspaceBadge(ws, 26, { title: false })}</span>
         <span class="ws-section-name">${escapeHtml(ws.name)}${ws.website ? `<span class="ws-section-domain muted">${escapeHtml(ws.website)}</span>` : ""}</span>
@@ -969,17 +950,13 @@ function connectorBlock(
 
 function wsForm(initial?: Workspace): string {
   const isEdit = !!initial;
-  // Normalize stored color against the palette; fall back to Teal default.
-  const rawColor = initial?.color || "#2A9D8F";
-  const initialColor = PALETTE_HEXES.has(rawColor.toLowerCase()) ? rawColor : "#2A9D8F";
   const initialName  = initial?.name || "";
   const initialWeb   = initial?.website || "";
   const initialLogo  = initial?.logoUrl || "";
   return `
     <form class="settings-form ws-form-smart" data-form="${isEdit ? "ws-edit" : "ws-new"}"
           ${isEdit ? `data-id="${escapeHtml(initial!.id)}"` : ""}
-          data-ws-name="${escapeHtml(initialName)}"
-          data-ws-color="${escapeHtml(initialColor)}">
+          data-ws-name="${escapeHtml(initialName)}">
       <div class="ws-form-grid">
         <div class="ws-form-fields">
           <label>
@@ -997,25 +974,6 @@ function wsForm(initial?: Workspace): string {
             <input name="icon" maxlength="4" value="${initial?.icon ? escapeHtml(initial.icon) : ""}" placeholder="🚀" />
             <span class="form-help">Short emoji shown when no logo is available.</span>
           </label>
-          <div class="form-field">
-            <span class="form-label-text">Accent color</span>
-            <input name="color" type="hidden" value="${initialColor}" data-ws-input="color" />
-            <div class="swatch-grid" role="radiogroup" aria-label="Accent color" data-ws-swatch-grid>
-              ${ACCENT_PALETTE.map(p => `
-                <button
-                  type="button"
-                  class="swatch ${p.hex.toLowerCase() === initialColor.toLowerCase() ? "is-selected" : ""}"
-                  role="radio"
-                  aria-checked="${p.hex.toLowerCase() === initialColor.toLowerCase() ? "true" : "false"}"
-                  aria-label="${escapeHtml(p.name)}"
-                  title="${escapeHtml(p.name)}"
-                  data-ws-swatch="${escapeHtml(p.hex)}"
-                  style="--swatch:${escapeHtml(p.hex)}"
-                ></button>
-              `).join("")}
-            </div>
-            <span class="form-help">Drives the monogram fallback and the workspace's accent stripe.</span>
-          </div>
         </div>
         <div class="ws-logo-preview-card" data-ws-logo-preview>
           <div class="ws-logo-preview-frame" data-ws-logo-frame>
@@ -1051,7 +1009,6 @@ function wsForm(initial?: Workspace): string {
 function bindLogoPreview(form: HTMLFormElement): void {
   const nameInput  = form.querySelector<HTMLInputElement>('[data-ws-input="name"]')!;
   const webInput   = form.querySelector<HTMLInputElement>('[data-ws-input="website"]')!;
-  const colorInput = form.querySelector<HTMLInputElement>('[data-ws-input="color"]')!;
   const logoHidden = form.querySelector<HTMLInputElement>('[data-ws-input="logoUrl"]')!;
   const forceFlag  = form.querySelector<HTMLInputElement>('[data-ws-input="forceMonogram"]')!;
   const frame      = form.querySelector<HTMLElement>('[data-ws-logo-frame]')!;
@@ -1064,7 +1021,7 @@ function bindLogoPreview(form: HTMLFormElement): void {
   let probeId = 0;
 
   function showMonogram(reason: string) {
-    const mono = monogramDataUrl(nameInput.value || "Workspace", colorInput.value || null, 128);
+    const mono = monogramDataUrl(nameInput.value || "Workspace", null, 128);
     img.src = mono;
     img.classList.add("is-monogram");
     logoHidden.value = ""; // empty → app uses monogram everywhere.
@@ -1126,20 +1083,6 @@ function bindLogoPreview(form: HTMLFormElement): void {
     timer = window.setTimeout(refresh, 350);
   });
   nameInput.addEventListener("input",  () => { if (forceFlag.value === "1" || !logoHidden.value) refresh(); });
-  const swatchGrid = form.querySelector<HTMLElement>('[data-ws-swatch-grid]');
-  swatchGrid?.addEventListener("click", (e) => {
-    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-ws-swatch]');
-    if (!btn) return;
-    const hex = btn.dataset.wsSwatch || "";
-    if (!hex) return;
-    colorInput.value = hex;
-    swatchGrid.querySelectorAll<HTMLElement>('[data-ws-swatch]').forEach(s => {
-      const on = s === btn;
-      s.classList.toggle("is-selected", on);
-      s.setAttribute("aria-checked", on ? "true" : "false");
-    });
-    if (forceFlag.value === "1" || !logoHidden.value) refresh();
-  });
   toggleBtn.addEventListener("click", () => {
     if (forceFlag.value === "1") {
       forceFlag.value = "";
@@ -1567,7 +1510,6 @@ async function onSettingsSubmit(e: Event) {
         await api.workspaceCreate({
           name:      String(fd.get("name") || ""),
           icon:      (fd.get("icon") as string) || null,
-          color:     (fd.get("color") as string) || null,
           website:   ((fd.get("website") as string) || "").trim() || null,
           logoUrl:   ((fd.get("logoUrl") as string) || "").trim() || null,
           isDefault: fd.get("isDefault") === "on",
@@ -1580,7 +1522,6 @@ async function onSettingsSubmit(e: Event) {
         await api.workspaceUpdate(id, {
           name:    String(fd.get("name") || ""),
           icon:    (fd.get("icon") as string) || null,
-          color:   (fd.get("color") as string) || null,
           website: ((fd.get("website") as string) || "").trim() || null,
           logoUrl: ((fd.get("logoUrl") as string) || "").trim() || null,
         });
