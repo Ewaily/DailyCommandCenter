@@ -3,7 +3,7 @@ import { toast } from "./components/util.js";
 const RELEASES_API  = "https://api.github.com/repos/Ewaily/DailyCommandCenter/releases/latest";
 const RELEASES_PAGE = "https://github.com/Ewaily/DailyCommandCenter/releases/latest";
 
-export const APP_VERSION = "v1.0.1";
+export const APP_VERSION = "v1.0.2";
 
 /** Parse a semver tag (with or without leading "v") into [major, minor, patch]. */
 export function parseSemver(tag: string): [number, number, number] {
