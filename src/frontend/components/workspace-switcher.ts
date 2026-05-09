@@ -119,8 +119,10 @@ function render() {
     ${workspaces.map(w => `
       <button class="ws-menu-item ${active === w.id ? "active" : ""}" data-ws-id="${escapeHtml(w.id)}">
         ${renderWorkspaceBadge(w, 22, { title: false })}
-        <span class="ws-menu-item-name">${escapeHtml(w.name)}</span>
-        ${w.website ? `<span class="ws-menu-item-domain muted">${escapeHtml(w.website)}</span>` : ""}
+        <span class="ws-menu-item-label">
+          <span class="ws-menu-item-name">${escapeHtml(w.name)}</span>
+          ${w.website ? `<span class="ws-menu-item-domain" title="${escapeHtml(w.website)}">${escapeHtml(w.website)}</span>` : ""}
+        </span>
       </button>
     `).join("")}
   `;

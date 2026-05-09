@@ -1843,7 +1843,7 @@ kbd {
 .ws-switcher-label { font-weight: 500; }
 .ws-switcher-menu {
   position: fixed;
-  width: 280px; z-index: 9999;
+  width: 340px; z-index: 9999;
   background: var(--paper-1); border: 1px solid var(--line-1);
   border-radius: var(--r-2); box-shadow: var(--shadow-2);
   padding: 4px; display: flex; flex-direction: column;
@@ -4692,8 +4692,15 @@ body.has-dynamic-overview [data-ov-hidden="1"] {
   background: color-mix(in srgb, var(--sig-info) 8%, var(--paper-1));
   font-weight: 600;
 }
+.ws-menu-item .ws-menu-item-label {
+  display: flex; flex-direction: column; gap: 1px;
+  min-width: 0; flex: 1;
+}
 .ws-menu-item-name { font-weight: 600; color: var(--ink-1); }
-.ws-menu-item-domain { font-size: 11px; color: var(--ink-3); }
+.ws-menu-item-domain {
+  font-size: 11px; color: var(--ink-3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .ws-menu-divider { height: 1px; background: var(--line-1); margin: 4px 2px; }
 
 /* Overview entry */
