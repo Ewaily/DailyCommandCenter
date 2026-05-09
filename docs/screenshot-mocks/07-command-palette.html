@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ewaily's Daily Command Center — Mock · Command Palette</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap">
+<link rel="stylesheet" href="./_styles.css">
+<style>
+  /* Mock-only: force palette open and blur background */
+  .palette-backdrop.mock-open { display: flex !important; }
+  .blur { filter: blur(3px) brightness(.55); position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+  .bg-card { background: var(--paper-1); border: 1px solid var(--line-1); border-radius: var(--r-2); min-height: 200px; }
+  /* Fuzzy-match highlight */
+  .hi { color: var(--sig-go); font-weight: 700; }
+  /* Palette-footer hint row spacing */
+  .pf-divider { width: 1px; height: 12px; background: var(--line-1); }
+</style>
+</head>
+<body>
+
+<!-- blurred dashboard background -->
+<div class="blur">
+  <header class="top-bar">
+    <div class="top-bar-inner">
+      <a class="brand-block" href="#"><span class="brand-name">Ewaily's Daily Command Center</span><span class="brand-status-dot" style="background:var(--sig-go)"></span></a>
+      <span class="brand-subtitle-sep">·</span>
+      <span class="brand-subtitle">Ewaily</span>
+      <div class="workspace-switcher">
+        <button class="ws-switcher-btn"><span class="ws-switcher-label">Acme Corp · Work</span><span class="ws-switcher-caret">▾</span></button>
+      </div>
+      <div class="top-bar-actions" role="toolbar">
+        <button class="header-btn header-kbd"><kbd>⌘</kbd><kbd>K</kbd><span class="header-btn-label">Search</span></button>
+        <button class="header-btn icon-only"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8"/><path d="M21 3v5h-5"/></svg></button>
+        <span class="header-divider"></span>
+        <button class="header-btn"><span class="header-btn-label">Customize</span></button>
+        <button class="header-btn icon-only"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg></button>
+      </div>
+    </div>
+  </header>
+  <div class="context-strip">
+    <div class="cs-left">
+      <span class="cs-greeting">Good morning, Ewaily.</span>
+      <div class="cs-sub-row"><span class="cs-eyebrow-date">FRIDAY · 09 MAY 2025</span></div>
+    </div>
+    <div class="cs-clock-block">
+      <div class="cs-clock-main"><span class="cs-clock">09:14</span><span class="cs-ampm">AM</span></div>
+    </div>
+  </div>
+  <div class="kpi-strip">
+    <div class="kpi"><div class="kpi-eyebrow"><span class="kpi-source-label">TODAY · CAL</span></div><div class="kpi-value">3</div><div class="kpi-detail">3 meetings</div></div>
+    <div class="kpi"><div class="kpi-eyebrow"><span class="kpi-source-label">MENTIONS · SLK</span></div><div class="kpi-value kpi-value--signal">7</div><div class="kpi-detail">past 7 days</div></div>
+    <div class="kpi"><div class="kpi-eyebrow"><span class="kpi-source-label">TICKETS · JRA</span></div><div class="kpi-value">12</div><div class="kpi-detail">open</div></div>
+    <div class="kpi"><div class="kpi-eyebrow"><span class="kpi-source-label">PRs · GIT</span></div><div class="kpi-value kpi-value--signal">4</div><div class="kpi-detail">needs review</div></div>
+  </div>
+  <div class="page-content">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+      <div class="bg-card"></div>
+      <div class="bg-card"></div>
+      <div class="bg-card"></div>
+    </div>
+  </div>
+</div>
+
+<!-- command palette overlay -->
+<div class="palette-backdrop mock-open">
+  <div class="palette" role="dialog" aria-label="Command palette">
+
+    <!-- search input — "dark" typed -->
+    <div class="palette-input-row">
+      <span class="pi-icon">⌕</span>
+      <input class="palette-input" value="dark" placeholder="Search commands, settings, integrations…" readonly>
+      <kbd>esc</kbd>
+    </div>
+
+    <!-- results -->
+    <div class="palette-results">
+
+      <div class="palette-section">Actions</div>
+
+      <!-- active / highlighted result -->
+      <div class="palette-item active">
+        <span class="pi-glyph">◑</span>
+        <div>
+          <div class="pi-title">Toggle <span class="hi">dark</span> mode</div>
+          <div class="pi-meta">Switch between light and <span class="hi">dark</span> themes</div>
+        </div>
+        <kbd>T</kbd>
+      </div>
+
+      <div class="palette-item">
+        <span class="pi-glyph">⚙</span>
+        <div>
+          <div class="pi-title">Open Settings</div>
+          <div class="pi-meta">Manage workspaces, connectors, and preferences</div>
+        </div>
+        <kbd>,</kbd>
+      </div>
+
+      <div class="palette-section">Navigation</div>
+
+      <div class="palette-item">
+        <span class="pi-glyph">🎨</span>
+        <div>
+          <div class="pi-title">Settings → Preferences</div>
+          <div class="pi-meta">Branding, time zones, <span class="hi">dark</span>-mode defaults</div>
+        </div>
+        <span style="display:flex;gap:3px"><kbd>G</kbd><kbd>P</kbd></span>
+      </div>
+
+      <div class="palette-section">Recent</div>
+
+      <div class="palette-item">
+        <span class="pi-glyph">↻</span>
+        <div>
+          <div class="pi-title">Refresh all</div>
+          <div class="pi-meta">Reload all connected integrations</div>
+        </div>
+        <kbd>R</kbd>
+      </div>
+
+      <div class="palette-item">
+        <span class="pi-glyph">⊞</span>
+        <div>
+          <div class="pi-title">Toggle edit mode</div>
+          <div class="pi-meta">Resize and reorder dashboard cards</div>
+        </div>
+        <kbd>E</kbd>
+      </div>
+
+    </div>
+
+    <!-- footer hints -->
+    <div class="palette-footer">
+      <div class="pf-row"><kbd>↑</kbd><kbd>↓</kbd>&nbsp;navigate</div>
+      <span class="pf-divider"></span>
+      <div class="pf-row"><kbd>↵</kbd>&nbsp;select</div>
+      <span class="pf-divider"></span>
+      <div class="pf-row"><kbd>esc</kbd>&nbsp;close</div>
+      <div style="flex:1"></div>
+      <div class="pf-row" style="color:var(--ink-3)">3 results for "<span style="color:var(--sig-go);font-weight:700">dark</span>"</div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

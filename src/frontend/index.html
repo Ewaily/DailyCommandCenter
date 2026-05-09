@@ -58,29 +58,32 @@
 </header>
 
 <!-- ═══════════════════════════════════════════════════════════════════════════
-     CONTEXT STRIP — 36px, eyebrow + description (today.ts) + clock/TZ pills
+     CONTEXT STRIP — cinematic 80px: large display-serif greeting + date
+     eyebrow on the left; large mono clock + world clock columns on the right.
+     The greeting name is pulled from brand.subtitle ("Good morning, {subtitle}.")
+     so it's configurable from Settings → Preferences with no new preference.
      ══════════════════════════════════════════════════════════════════════════ -->
 <div class="context-strip" id="context-strip">
-  <!-- Left: eyebrow + desc, rendered by today.ts -->
-  <div id="context-banner" class="context-banner"></div>
+  <!-- LEFT: greeting (display serif) + eyebrow row (date + workspace context) -->
+  <div class="cs-left">
+    <span class="cs-greeting" id="greeting" aria-live="polite">—</span>
+    <div class="cs-sub-row">
+      <span id="header-date" class="cs-eyebrow-date">—</span>
+      <span id="context-banner" class="context-banner"></span>
+    </div>
+  </div>
 
-  <!-- Centre: greeting (subtle, updated by header.ts tick) -->
-  <span class="cs-greeting" id="greeting" aria-live="polite"></span>
-
-  <!-- Right: clock + date + TZ pills -->
+  <!-- RIGHT: large clock + world clocks rendered as columns -->
   <div class="cs-clock-block" aria-label="Current time and date">
-    <span class="cs-time-line">
+    <div class="cs-clock-main">
       <span id="clock" class="cs-clock">--:--</span>
       <span id="clock-ampm" class="cs-ampm">--</span>
-      <span class="cs-sep" aria-hidden="true">·</span>
-      <span id="header-date" class="cs-date">—</span>
-      <span class="cs-tz-pill">
-        <span class="clock-tz-dot" aria-hidden="true"></span>
-        <span id="primary-tz-label">—</span>
-      </span>
-    </span>
+    </div>
     <div class="world-clocks" id="world-clocks" aria-label="Other time zones"></div>
   </div>
+
+  <!-- Hidden — preserved so legacy code paths that read this still work. -->
+  <span id="primary-tz-label" hidden></span>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════════════════

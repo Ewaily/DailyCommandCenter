@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ewaily's Daily Command Center — Mock · Settings · Workspaces</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap">
+<link rel="stylesheet" href="./_styles.css">
+<style>
+  /* Mock-only: force the settings modal open on top of a blurred dashboard backdrop */
+  .modal-backdrop.mock-open { display: flex !important; align-items: stretch; justify-content: center; opacity: 1; }
+  .bg-card { background: var(--paper-1); border: 1px solid var(--line-1); border-radius: var(--r-2); min-height: 200px; }
+  .blur { filter: blur(3px) brightness(.55); }
+  /* Force details open for screenshot without JS */
+  details.ws-section[open] > summary.ws-section-head .ws-chevron { transform: rotate(90deg); }
+  details.connector-block[open] > summary.connector-block-head .connector-chevron { transform: rotate(90deg); }
+</style>
+</head>
+<body>
+
+<!-- backdrop dashboard (blurred) -->
+<div class="blur">
+  <header class="top-bar">
+    <div class="top-bar-inner">
+      <a class="brand-block" href="/"><span class="brand-name">Ewaily's Daily Command Center</span><span class="brand-status-dot" style="background:var(--ink-4)"></span></a>
+      <span class="brand-subtitle-sep">·</span>
+      <span class="brand-subtitle">Ewaily</span>
+    </div>
+  </header>
+  <div class="kpi-strip">
+    <div class="kpi"><div class="kpi-eyebrow"><span class="kpi-source-label">TODAY · CAL</span></div><div class="kpi-value">3</div></div>
+    <div class="kpi"><div class="kpi-eyebrow"><span class="kpi-source-label">MENTIONS · SLK</span></div><div class="kpi-value kpi-value--signal">7</div></div>
+    <div class="kpi"><div class="kpi-eyebrow"><span class="kpi-source-label">TICKETS · JRA</span></div><div class="kpi-value">12</div></div>
+    <div class="kpi"><div class="kpi-eyebrow"><span class="kpi-source-label">PRs · GIT</span></div><div class="kpi-value kpi-value--signal">4</div></div>
+  </div>
+  <div class="page-content">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+      <div class="bg-card"></div>
+      <div class="bg-card"></div>
+      <div class="bg-card"></div>
+    </div>
+  </div>
+</div>
+
+<!-- settings modal -->
+<div class="modal-backdrop mock-open" id="settings-modal">
+  <div class="modal modal-lg" role="dialog" style="position:relative;margin:auto">
+
+    <div class="settings-header">
+      <h2>Settings</h2>
+      <div class="settings-tabs" role="tablist">
+        <button class="settings-tab active" data-settings-tab="workspaces">Workspaces</button>
+        <button class="settings-tab" data-settings-tab="preferences">Preferences</button>
+      </div>
+    </div>
+
+    <div class="settings-body">
+
+      <!-- ── Toolbar ──────────────────────────────────────────────────────── -->
+      <div class="ws-toolbar">
+        <div class="ws-toolbar-info">
+          <strong>2 workspaces</strong>
+          <span class="muted"> · each workspace keeps its own connectors</span>
+        </div>
+        <button type="button" class="btn-primary btn-with-icon" data-action="ws-new">
+          <span class="btn-icon">+</span>Add workspace
+        </button>
+      </div>
+
+      <!-- ── Workspace 1 — Acme Corp · Work (expanded) ────────────────────── -->
+      <details class="ws-section" open>
+        <summary class="ws-section-head">
+          <span class="ws-chevron">▸</span>
+          <span class="ws-section-icon">
+            <span class="ws-logo" style="--ws-size:26px;--ws-color:rgba(66,133,244,.25)">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'%3E%3Crect width='96' height='96' fill='%234285F4' rx='20'/%3E%3Ctext x='48' y='64' font-family='system-ui' font-size='42' font-weight='700' fill='white' text-anchor='middle'%3EAC%3C/text%3E%3C/svg%3E" alt="Acme Corp logo" loading="lazy" />
+            </span>
+          </span>
+          <span class="ws-section-name">Acme Corp · Work</span>
+          <span class="settings-chip">default</span>
+          <span class="ws-section-summary">2 owned</span>
+          <span class="ws-section-actions">
+            <button class="btn-ghost btn-sm" type="button">
+              <span class="btn-icon">✎</span>Edit
+            </button>
+            <button class="btn-danger btn-sm" type="button">
+              <span class="btn-icon">🗑</span>Delete
+            </button>
+          </span>
+        </summary>
+
+        <div class="ws-section-connectors">
+
+          <!-- ── ClickUp — connected, form open ─────────────────────────── -->
+          <details class="connector-block" open>
+            <summary class="connector-block-head">
+              <span class="connector-dot" style="background:#7B68EE"></span>
+              <span class="connector-block-title">ClickUp</span>
+              <span class="connector-summary-status ok">Connected</span>
+              <span class="connector-chevron">▸</span>
+            </summary>
+            <div class="connector-block-body">
+              <div class="connector-instance owned">
+                <div class="connector-instance-head">
+                  <span class="settings-status ok">Connected · alex@acme.com</span>
+                  <span class="connector-instance-actions">
+                    <button type="button" class="link-btn danger">Disconnect</button>
+                  </span>
+                </div>
+                <form class="connector-apikey-form" data-form="apikey-connect" data-type="clickup">
+                  <!-- Setup guide accordion (collapsed) -->
+                  <details class="setup-guide">
+                    <summary class="setup-guide-summary">
+                      <span class="setup-guide-icon" aria-hidden="true">📖</span>
+                      <span class="setup-guide-summary-text">View setup guide — <strong>ClickUp</strong></span>
+                      <span class="setup-guide-chev" aria-hidden="true">▾</span>
+                    </summary>
+                    <div class="setup-guide-body">
+                      <ol class="setup-guide-ol">
+                        <li>Open ClickUp → click your <strong>avatar</strong> (bottom-left) → <strong>Settings</strong> → <strong>Apps</strong> → <strong>API Token</strong> → Generate. Copy the value — starts with <code class="setup-guide-code">pk_</code>.</li>
+                        <li>Find your Workspace ID from any ClickUp URL: <code class="setup-guide-code">app.clickup.com/{ID}/...</code></li>
+                        <li>Paste both values below and click <strong>Update</strong>. The badge turns green when accepted.</li>
+                      </ol>
+                    </div>
+                  </details>
+
+                  <label class="connector-field-label">Personal API token
+                    <div class="pw-wrap">
+                      <input name="token" type="password" placeholder="leave blank to keep current" value="" />
+                      <button type="button" class="pw-toggle" data-action="pw-toggle" title="Show/hide">👁</button>
+                    </div>
+                    <span class="form-help">Found at app.clickup.com → Your Avatar → Settings → Apps → API Token.</span>
+                  </label>
+
+                  <label class="connector-field-label">Workspace ID
+                    <input name="teamId" type="text" placeholder="12345678" value="9012345678" />
+                    <span class="form-help">Numeric Workspace ID. Found in any ClickUp URL: app.clickup.com/{ID}/... Paste the URL and it'll extract the ID.</span>
+                  </label>
+
+                  <label class="connector-field-label">Space IDs <span class="muted">(optional)</span>
+                    <input name="spaceIds" type="text" placeholder="87654321, 11223344" value="" />
+                    <span class="form-help">Comma-separated Space IDs to narrow scope. Leave blank to include all spaces.</span>
+                  </label>
+
+                  <div class="connector-form-actions">
+                    <button type="submit" class="header-btn primary">Update</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </details>
+
+          <!-- ── Jira — not connected, collapsed ───────────────────────── -->
+          <details class="connector-block">
+            <summary class="connector-block-head">
+              <span class="connector-dot" style="background:#0052cc"></span>
+              <span class="connector-block-title">Jira</span>
+              <span class="connector-summary-status muted">Not connected</span>
+              <span class="connector-chevron">▸</span>
+            </summary>
+            <div class="connector-block-body">
+              <div class="connector-instance owned">
+                <div class="connector-instance-head">
+                  <span class="muted">Not connected</span>
+                </div>
+                <form class="connector-apikey-form" data-form="apikey-connect" data-type="jira">
+                  <details class="setup-guide">
+                    <summary class="setup-guide-summary">
+                      <span class="setup-guide-icon" aria-hidden="true">📖</span>
+                      <span class="setup-guide-summary-text">View setup guide — <strong>Jira</strong></span>
+                      <span class="setup-guide-chev" aria-hidden="true">▾</span>
+                    </summary>
+                    <div class="setup-guide-body">
+                      <ol class="setup-guide-ol">
+                        <li>Go to <code class="setup-guide-code">id.atlassian.com</code> → Security → API tokens → Create API token.</li>
+                        <li>Enter your Jira email and the <code class="setup-guide-code">yourcompany.atlassian.net</code> hostname below.</li>
+                        <li>Click <strong>Connect</strong> — the badge turns green when accepted.</li>
+                      </ol>
+                    </div>
+                  </details>
+                  <label class="connector-field-label">API token
+                    <div class="pw-wrap">
+                      <input name="token" type="password" placeholder="ATATT3xFfGF0..." value="" />
+                      <button type="button" class="pw-toggle" data-action="pw-toggle" title="Show/hide">👁</button>
+                    </div>
+                    <span class="form-help">Generate at id.atlassian.com → Security → API tokens. This is not your account password.</span>
+                  </label>
+                  <label class="connector-field-label">Email
+                    <input name="account" type="text" placeholder="you@company.com" value="" />
+                    <span class="form-help">The email address you use to log in to Jira.</span>
+                  </label>
+                  <label class="connector-field-label">Base URL
+                    <input name="baseUrl" type="text" placeholder="yourcompany.atlassian.net" value="" data-strip-url />
+                    <span class="form-help">Hostname only — no https:// and no trailing slash (e.g. acme.atlassian.net). Paste the full URL and it'll be stripped.</span>
+                  </label>
+                  <div class="connector-form-actions">
+                    <button type="submit" class="header-btn primary">Connect</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </details>
+
+          <!-- ── GitHub — not connected, collapsed ─────────────────────── -->
+          <details class="connector-block">
+            <summary class="connector-block-head">
+              <span class="connector-dot" style="background:#24292e"></span>
+              <span class="connector-block-title">GitHub</span>
+              <span class="connector-summary-status muted">Not connected</span>
+              <span class="connector-chevron">▸</span>
+            </summary>
+            <div class="connector-block-body">
+              <div class="connector-instance owned">
+                <div class="connector-instance-head">
+                  <span class="muted">Not connected</span>
+                </div>
+                <form class="connector-apikey-form" data-form="apikey-connect" data-type="github">
+                  <label class="connector-field-label">Personal access token
+                    <div class="pw-wrap">
+                      <input name="token" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" value="" />
+                      <button type="button" class="pw-toggle" data-action="pw-toggle" title="Show/hide">👁</button>
+                    </div>
+                    <span class="form-help">Generate at github.com → Settings → Developer Settings → Personal access tokens. Needs repo and read:user scopes.</span>
+                  </label>
+                  <div class="connector-form-actions">
+                    <button type="submit" class="header-btn primary">Connect</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </details>
+
+        </div>
+      </details>
+
+      <!-- ── Workspace 2 — Side Projects (collapsed) ──────────────────────── -->
+      <details class="ws-section">
+        <summary class="ws-section-head">
+          <span class="ws-chevron">▸</span>
+          <span class="ws-section-icon">
+            <span class="ws-logo" style="--ws-size:26px;--ws-color:rgba(123,104,238,.25)">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'%3E%3Crect width='96' height='96' fill='%237B68EE' rx='20'/%3E%3Ctext x='48' y='64' font-family='system-ui' font-size='42' font-weight='700' fill='white' text-anchor='middle'%3ESP%3C/text%3E%3C/svg%3E" alt="Side Projects logo" loading="lazy" />
+            </span>
+          </span>
+          <span class="ws-section-name">Side Projects</span>
+          <span class="ws-section-summary muted">No connectors yet</span>
+          <span class="ws-section-actions">
+            <button class="btn-ghost btn-sm" type="button">
+              <span class="btn-icon">✎</span>Edit
+            </button>
+            <button class="btn-ghost btn-sm" type="button">Set default</button>
+            <button class="btn-danger btn-sm" type="button">
+              <span class="btn-icon">🗑</span>Delete
+            </button>
+          </span>
+        </summary>
+        <div class="ws-section-connectors"></div>
+      </details>
+
+    </div>
+
+    <div class="settings-footer muted">
+      All tokens are stored locally in SQLite — nothing leaves your machine.
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

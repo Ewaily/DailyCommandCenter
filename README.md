@@ -20,11 +20,7 @@
 
 </div>
 
-> 📸 **Screenshot Needed — Hero Image (Dark Mode)**
-> Take a full-screen shot of the dashboard in **dark mode** showing the gradient header bar, the 4-tile KPI strip with live numbers, and at least 3 widget cards visible (e.g. Pull Requests, Tasks, Mentions & DMs). The shot should feel cinematic — scroll position at top, sidebar closed. Save as `docs/assets/hero-dark.png` and replace this blockquote with:
-> ```md
-> ![Daily Command Center — Dark Mode](./docs/assets/hero-dark.png)
-> ```
+![Daily Command Center — Dark Mode](./docs/assets/hero-dark.png)
 
 ---
 
@@ -61,8 +57,7 @@ Most knowledge workers start the day with twelve open tabs: a calendar, Slack pe
 
 > **Quiet Operator.** The design language of this dashboard is deliberately restrained and information-dense — like a high-end trading terminal or a cockpit instrument cluster. Color is earned, not decorative. Numbers are large. Labels are small. Everything that can be automated, is.
 
-> 📸 **Screenshot Needed — Quiet Operator Light Mode**
-> Capture the dashboard in **light mode**, scrolled to show the KPI strip and two or three cards side-by-side. This communicates the "clean instrument cluster" feel. Save as `docs/assets/light-mode-overview.png`.
+![Daily Command Center — Light Mode](./docs/assets/light-mode-overview.png)
 
 ---
 
@@ -84,11 +79,9 @@ Most knowledge workers start the day with twelve open tabs: a calendar, Slack pe
 | ⌨️ | **Keyboard-First** | Command palette (`⌘K`), Quick Rail (`]`), and shortcuts for every action |
 | 🏷️ | **White-Label Ready** | Rename the app, set a subtitle, and configure secondary clocks — all from Settings |
 
-> 📸 **Screenshot Needed — KPI Strip (Scrolled)**
-> Scroll the page ~200px down so the context strip (date/greeting/clock) has disappeared. Capture the **sticky header + sticky KPI strip** floating above the widget grid with the subtle scroll-shadow visible. This demonstrates the sticky chrome behaviour. Save as `docs/assets/sticky-kpi.png`.
+![Sticky KPI Strip](./docs/assets/sticky-kpi.png)
 
-> 📸 **Screenshot Needed — 1-Click Clone Flow**
-> Hover over a ClickUp or Jira row so the clone icon is visible. Capture the row with the clone button revealed. Then, if you can, capture the success modal with the created Jira issue key and link. Save as `docs/assets/clone-flow.png`.
+![1-Click Clone Flow](./docs/assets/clone-flow.png)
 
 ---
 
@@ -162,8 +155,7 @@ Open **[http://localhost:3000](http://localhost:3000)**.
 
 No `.env` file required. Connect tools from **Settings** (press `,`) after the app is running. That's it.
 
-> 📸 **Screenshot Needed — Empty State / First Launch**
-> Capture the dashboard on first launch before any connectors are added — showing the workspace empty-state card with the "No tools connected yet" message and the "Open settings" CTA. This is an important onboarding moment. Save as `docs/assets/empty-state.png`.
+![Empty State — First Launch](./docs/assets/empty-state.png)
 
 ---
 
@@ -313,8 +305,7 @@ curl -H "Authorization: pk_xxx_your_token" \
 
 Save. The connector turns green when the token and Team ID are accepted.
 
-> 📸 **Screenshot Needed — Settings → Workspaces Panel**
-> Open Settings (`,`) and navigate to the Workspaces tab. Expand a workspace card so the ClickUp (or Jira) connector config is fully visible, including the helper text and the "📖 View setup guide" accordion open. Save as `docs/assets/settings-workspace.png`.
+![Settings — Workspaces Panel](./docs/assets/settings-workspace.png)
 
 ---
 
@@ -403,8 +394,7 @@ CLICKUP_SPACE_IDS=         # optional, comma-separated
 | `G` then `C` | Jump to Channel Digest |
 | `G` then `M` | Jump to Mentions |
 
-> 📸 **Screenshot Needed — Command Palette**
-> Press `⌘K` and type something (e.g. "dark") so fuzzy results are showing. Capture the glassmorphic palette overlay against the blurred dashboard background. Save as `docs/assets/command-palette.png`.
+![Command Palette](./docs/assets/command-palette.png)
 
 ---
 
@@ -428,8 +418,7 @@ This project is built around one rule: **your data belongs to you.**
 
 ## Overview Mode
 
-> 📸 **Screenshot Needed — Overview Mode**
-> Switch the workspace pill to **✦ Overview** (requires 2+ workspaces). Capture the dashboard showing multiple connector cards side-by-side, each with its workspace source label (`Workspace · account`). If you have GitHub cards from two different workspaces visible simultaneously, that's the ideal shot. Save as `docs/assets/overview-mode.png`.
+![Overview Mode — Multi-workspace](./docs/assets/overview-mode.png)
 
 Overview mode is activated by the `✦` entry in the workspace switcher when two or more workspaces exist. Each connector that has **Show in Overview ✦** enabled gets its own isolated card — N connectors of the same type render N independent cards, each scoped to its own `connectorId`. Source labels (`Workspace · account`) keep them distinguishable. Full feature parity: tabs, filters, day navigation, and clone buttons all work per-instance.
 
