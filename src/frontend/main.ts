@@ -23,6 +23,7 @@ import { loadConnectors, applyConnectorVisibility, hasCapability } from "./conne
 import { applyTitles, initInlineEditing } from "./components/widget-titles.js";
 import { initOverviewWidgets, clearOverviewWidgets } from "./components/overview-widgets.js";
 import { initKpiSignals, initKpiLabels } from "./components/kpi-strip.js";
+import { checkForUpdates } from "./update-checker.js";
 
 function syncStickyTop() {
   const topBar = document.querySelector<HTMLElement>(".top-bar");
@@ -253,6 +254,9 @@ async function init() {
 
   const interval = (getSetting<number>("autoRefreshMs")) || 5 * 60 * 1000;
   setInterval(() => { if (!document.hidden) refreshAll(true); }, interval);
+
+  // Non-blocking: check GitHub for a newer release and toast if one exists.
+  void checkForUpdates();
 
   // OAuth popup closes → connector now live → reload store + UI immediately.
   window.addEventListener("message", async (ev) => {

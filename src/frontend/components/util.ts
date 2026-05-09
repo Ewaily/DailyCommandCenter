@@ -132,12 +132,12 @@ export const skeletonCompact = (rows = 3): string => {
 };
 
 type ToastOpts = {
-  type?: "info" | "success" | "error";
+  type?: "info" | "success" | "error" | "update";
   duration?: number;
   action?: { label: string; onClick: () => void };
 };
 
-export function toast(msg: string, typeOrOpts: "info" | "success" | "error" | ToastOpts = "info") {
+export function toast(msg: string, typeOrOpts: "info" | "success" | "error" | "update" | ToastOpts = "info") {
   const stack = document.getElementById("toast-stack");
   if (!stack) return;
   const opts: ToastOpts = typeof typeOrOpts === "string" ? { type: typeOrOpts } : typeOrOpts;
