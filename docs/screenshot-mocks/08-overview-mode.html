@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ewaily's Daily Command Center — Mock · Overview Mode</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap">
+<link rel="stylesheet" href="./_styles.css">
+<style>
+  /* Mock-only: add body.is-overview class styles without JS */
+  body { margin: 0; }
+</style>
+</head>
+<body class="is-overview">
+
+<!-- TOP BAR -->
+<header class="top-bar">
+  <div class="top-bar-inner">
+    <a class="brand-block" href="/" aria-label="Home">
+      <span class="brand-name">Ewaily's Daily Command Center</span>
+      <span class="brand-status-dot" style="background:var(--sig-go)" aria-hidden="true"></span>
+    </a>
+    <span class="brand-subtitle-sep">·</span>
+    <span class="brand-subtitle">Ewaily</span>
+
+    <!-- workspace switcher — Overview active -->
+    <div class="workspace-switcher">
+      <button class="ws-switcher-btn is-overview" aria-haspopup="listbox" aria-expanded="false">
+        <span class="ws-overview-glyph" aria-hidden="true">✦</span>
+        <span class="ws-switcher-label">Overview</span>
+        <span class="ws-switcher-caret" aria-hidden="true">▾</span>
+      </button>
+    </div>
+
+    <div class="top-bar-actions" role="toolbar" aria-label="Dashboard actions">
+      <button class="header-btn header-kbd" aria-label="Open command palette (Cmd K)">
+        <kbd>⌘</kbd><kbd>K</kbd><span class="header-btn-label">Search</span>
+      </button>
+      <button class="header-btn icon-only" aria-label="Refresh all data">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16"/><path d="M3 21v-5h5"/></svg>
+      </button>
+      <span class="last-refresh">↻ 9:14 AM</span>
+      <span class="header-divider" aria-hidden="true"></span>
+      <button class="header-btn" aria-label="Customize layout"><span class="header-btn-label">Customize</span></button>
+      <button class="header-btn icon-only" aria-label="Toggle theme">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      </button>
+      <button class="header-btn icon-only" aria-label="Settings">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- CONTEXT STRIP -->
+<div class="context-strip">
+  <div class="cs-left">
+    <span class="cs-greeting"><span class="pulse"></span>Good morning, Ewaily.</span>
+    <div class="cs-sub-row">
+      <span class="cs-eyebrow-date">FRIDAY · 09 MAY 2025</span>
+      <span class="context-banner">
+        <div class="context-banner-overview">
+          <span class="cb-tag">OVERVIEW</span>
+          <span class="cb-msg">A unified view of every connector you've explicitly shared with Overview.</span>
+        </div>
+      </span>
+    </div>
+  </div>
+  <div class="cs-clock-block">
+    <div class="cs-clock-main"><span class="cs-clock">09:14</span><span class="cs-ampm">AM</span></div>
+    <div class="world-clocks">
+      <div class="wc-col"><span class="wc-city">RIY</span><span class="wc-time">10:14 AM</span></div>
+      <div class="wc-col"><span class="wc-city">WIN</span><span class="wc-time">2:14 AM</span></div>
+      <div class="wc-col"><span class="wc-city">LON</span><span class="wc-time">7:14 AM</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- KPI STRIP — aggregated across all workspaces -->
+<div class="kpi-strip">
+  <div class="kpi">
+    <div class="kpi-eyebrow"><span class="kpi-source-label">TODAY · ALL CAL</span></div>
+    <div class="kpi-value">5</div>
+    <div class="kpi-detail">across 2 calendars</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-eyebrow"><span class="kpi-source-label">MENTIONS · ALL SLK</span></div>
+    <div class="kpi-value kpi-value--signal">9</div>
+    <div class="kpi-detail">past 7 days</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-eyebrow"><span class="kpi-source-label">TICKETS · ALL</span></div>
+    <div class="kpi-value">18</div>
+    <div class="kpi-detail">open across workspaces</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-eyebrow"><span class="kpi-source-label">PRs · ALL GIT</span></div>
+    <div class="kpi-value kpi-value--signal">6</div>
+    <div class="kpi-detail">needs review</div>
+  </div>
+</div>
+
+<!-- DASHBOARD GRID — overview instance cards -->
+<div class="page-content">
+  <div class="dashboard-grid" id="dashboard-grid"
+       style="display:grid;grid-template-columns:repeat(12,1fr);gap:12px;align-items:start">
+
+    <!-- ── PULL REQUESTS — Workspace 1: Acme Corp ─────────────────── -->
+    <div class="card dashboard-item overview-instance-card" style="grid-column:span 6">
+      <div class="card-header">
+        <div class="title-row">
+          <span class="title-source">Acme Corp · alex@acme.com</span>
+          <span class="title-text">
+            <span class="title-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="18" r="3"/><path d="M6 9v9"/><path d="M11 6h4a3 3 0 0 1 3 3v6"/></svg></span>
+            <span class="title-label">Pull Requests</span>
+          </span>
+          <span class="header-meta">8 open</span>
+        </div>
+        <div class="tabs">
+          <button class="tab active">Needs Review <span class="tab-count">4</span></button>
+          <button class="tab">My PRs <span class="tab-count">3</span></button>
+          <button class="tab">All Open <span class="tab-count">8</span></button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="schedule-item">
+          <span class="schedule-time item-key">#245</span>
+          <div class="schedule-content">
+            <div class="schedule-title-row"><a href="#" class="schedule-title">feat: add streaming response support for API endpoints</a><span class="badge badge-info">REVIEW</span></div>
+            <div class="schedule-meta">acme-corp/platform-api · Alex Rivera · 2h ago</div>
+          </div>
+        </div>
+        <div class="schedule-item">
+          <span class="schedule-time item-key">#244</span>
+          <div class="schedule-content">
+            <div class="schedule-title-row"><a href="#" class="schedule-title">fix: resolve memory leak in worker process connection pool</a><span class="badge badge-info">REVIEW</span></div>
+            <div class="schedule-meta">acme-corp/platform-api · Jordan Lee · 5h ago</div>
+          </div>
+        </div>
+        <div class="schedule-item">
+          <span class="schedule-time item-key">#241</span>
+          <div class="schedule-content">
+            <div class="schedule-title-row"><a href="#" class="schedule-title">feat: dark mode improvements for mobile viewport breakpoints</a><span class="badge badge-info">REVIEW</span></div>
+            <div class="schedule-meta">acme-corp/web-client · Sam Chen · 1d ago</div>
+          </div>
+        </div>
+        <div class="schedule-item">
+          <span class="schedule-time item-key">#239</span>
+          <div class="schedule-content">
+            <div class="schedule-title-row"><a href="#" class="schedule-title">chore: upgrade all dependencies to latest stable</a><span class="badge badge-warning">DRAFT</span></div>
+            <div class="schedule-meta">acme-corp/infra · Morgan Park · 1d ago</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PULL REQUESTS — Workspace 2: Side Projects ─────────────── -->
+    <div class="card dashboard-item overview-instance-card" style="grid-column:span 6">
+      <div class="card-header">
+        <div class="title-row">
+          <span class="title-source">Side Projects · personal@gmail.com</span>
+          <span class="title-text">
+            <span class="title-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="18" r="3"/><path d="M6 9v9"/><path d="M11 6h4a3 3 0 0 1 3 3v6"/></svg></span>
+            <span class="title-label">Pull Requests</span>
+          </span>
+          <span class="header-meta">2 open</span>
+        </div>
+        <div class="tabs">
+          <button class="tab active">Needs Review <span class="tab-count">2</span></button>
+          <button class="tab">My PRs <span class="tab-count">1</span></button>
+          <button class="tab">All Open <span class="tab-count">2</span></button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="schedule-item">
+          <span class="schedule-time item-key">#31</span>
+          <div class="schedule-content">
+            <div class="schedule-title-row"><a href="#" class="schedule-title">feat: add RSS feed support to blog engine</a><span class="badge badge-info">REVIEW</span></div>
+            <div class="schedule-meta">ewaily/personal-site · 3h ago</div>
+          </div>
+        </div>
+        <div class="schedule-item">
+          <span class="schedule-time item-key">#29</span>
+          <div class="schedule-content">
+            <div class="schedule-title-row"><a href="#" class="schedule-title">fix: broken image paths in markdown renderer</a><span class="badge badge-success">OPEN</span></div>
+            <div class="schedule-meta">ewaily/personal-site · 2d ago</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TICKETS — Workspace 1: Acme Corp ───────────────────────── -->
+    <div class="card dashboard-item overview-instance-card" style="grid-column:span 6">
+      <div class="card-header">
+        <div class="title-row">
+          <span class="title-source">Acme Corp · alex@acme.com</span>
+          <span class="title-text">
+            <span class="title-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4z"/><path d="M13 5v14"/></svg></span>
+            <span class="title-label">Tickets</span>
+          </span>
+          <span class="header-meta">12 open</span>
+        </div>
+        <div class="tabs">
+          <button class="tab active">In Progress <span class="tab-count">5</span></button>
+          <button class="tab">Review <span class="tab-count">3</span></button>
+          <button class="tab">To Do <span class="tab-count">4</span></button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="schedule-item">
+          <span class="schedule-time item-key">ACM-892</span>
+          <div class="schedule-content">
+            <div class="schedule-title-row"><a href="#" class="schedule-title">Implement rate limiting middleware for public API</a><span class="badge badge-urgent">High</span></div>
+            <div class="schedule-meta">In Progress · Alex Rivera · acme.atlassian.net</div>
+          </div>
+        </div>
+        <div class="schedule-item">
+          <span class="schedule-time item-key">ACM-889</span>
+          <div class="schedule-content">
+            <div class="schedule-title-row"><a href="#" class="schedule-title">Add cursor-based pagination to users endpoint</a><span class="badge badge-warning">Medium</span></div>
+            <div class="schedule-meta">In Progress · Jordan Lee · acme.atlassian.net</div>
+          </div>
+        </div>
+        <div class="schedule-item">
+          <span class="schedule-time item-key">ACM-901</span>
+          <div class="schedule-content">
+            <div class="schedule-title-row"><a href="#" class="schedule-title">Redesign onboarding flow for new workspace setup</a><span class="badge badge-warning">Medium</span></div>
+            <div class="schedule-meta">In Progress · Sam Chen · acme.atlassian.net</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SLACK MENTIONS — Workspace 1: Acme Corp ────────────────── -->
+    <div class="card dashboard-item overview-instance-card" style="grid-column:span 6">
+      <div class="card-header">
+        <div class="title-row">
+          <span class="title-source">Acme Corp · alex@acme.com</span>
+          <span class="title-text">
+            <span class="title-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg></span>
+            <span class="title-label">Mentions &amp; DMs</span>
+          </span>
+          <span class="header-meta kpi-value--signal">7</span>
+        </div>
+        <div class="tabs">
+          <button class="tab active">All <span class="tab-count">7</span></button>
+          <button class="tab">@mentions <span class="tab-count">5</span></button>
+          <button class="tab">DMs <span class="tab-count">2</span></button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="schedule-item">
+          <span class="schedule-time item-key">DM</span>
+          <div class="schedule-content">
+            <div class="schedule-title-row"><span class="schedule-title">Sam Chen</span><span class="badge badge-urgent">DM</span></div>
+            <div class="schedule-meta">Hey, quick question about the auth flow… · 14m ago</div>
+          </div>
+        </div>
+        <div class="schedule-item">
+          <span class="schedule-time item-key">@</span>
+          <div class="schedule-content">
+            <div class="schedule-title-row"><span class="schedule-title">Jordan Lee in #product</span></div>
+            <div class="schedule-meta">Could you review the new API spec? @Alex — 1h ago</div>
+          </div>
+        </div>
+        <div class="schedule-item">
+          <span class="schedule-time item-key">@</span>
+          <div class="schedule-content">
+            <div class="schedule-title-row"><span class="schedule-title">Morgan Park in #design</span></div>
+            <div class="schedule-meta">Thoughts on the new component library? @Alex — 3h ago</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

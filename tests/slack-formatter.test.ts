@@ -85,6 +85,16 @@ describe("formatSlackText", () => {
     expect(formatSlackText("<!channel>", ctx)).toContain("@channel");
   });
 
+  it("handles <!everyone> broadcast", () => {
+    const out = formatSlackText("<!everyone> please read", ctx);
+    expect(out).toContain("@everyone");
+  });
+
+  it("handles <!date^...> by using fallback text", () => {
+    const out = formatSlackText("<!date^1609459200^{date}|January 1, 2021>", ctx);
+    expect(out).toContain("January 1, 2021");
+  });
+
   it("falls back to user ID when not in users map", () => {
     const out = formatSlackText("hi <@UNKNOWN>", ctx);
     expect(out).toContain("@UNKNOWN");

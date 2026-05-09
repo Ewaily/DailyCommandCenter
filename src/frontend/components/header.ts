@@ -5,6 +5,20 @@ export { getPrimaryTz };
 
 let secondaryTzs: SecondaryTz[] = [];
 
+// Optional first-name shown in the greeting. Sourced from brand.subtitle
+// (set via brand.ts → applyBrand) so users configure it from Settings →
+// Preferences without a new pref.
+let displayName = "";
+
+/**
+ * Set the personalised name shown in the greeting.
+ * Empty / whitespace-only values fall back to a generic greeting.
+ */
+export function setDisplayName(name: string): void {
+  displayName = (name || "").trim();
+  tick();
+}
+
 export function setTimezones(primary: string, secondaries: SecondaryTz[]): void {
   setPrimaryTz(primary || "Africa/Cairo");
   secondaryTzs = (secondaries || []).slice(0, 3);
@@ -17,10 +31,10 @@ export function setTimezones(primary: string, secondaries: SecondaryTz[]): void 
     wc.innerHTML = secondaryTzs.map((s, i) => {
       const city = s.label || s.tz.split("/").pop()!.slice(0, 3).toUpperCase();
       return `
-      <span class="wc-item" title="${escape(s.tz)}">
+      <div class="wc-col" title="${escape(s.tz)}">
         <span class="wc-city">${escape(city)}</span>
         <span class="wc-time" data-wc-idx="${i}">--:--</span>
-      </span>`;
+      </div>`;
     }).join("");
   }
 
@@ -78,18 +92,25 @@ export function tick() {
   const ampmEl = $("#clock-ampm");
   if (ampmEl) ampmEl.textContent = ct.ampm;
 
+  // Eyebrow date — uppercase mono, e.g. "FRIDAY · 09 MAY 2025"
   const dateEl = $("#header-date");
-  if (dateEl) dateEl.textContent =
-    now.toLocaleDateString("en-US", {
+  if (dateEl) {
+    const parts = new Intl.DateTimeFormat("en-US", {
       timeZone: getPrimaryTz(),
-      weekday: "long", month: "long", day: "numeric",
-    });
+      weekday: "long", day: "2-digit", month: "short", year: "numeric",
+    }).formatToParts(now);
+    const get = (t: string) => parts.find(p => p.type === t)?.value ?? "";
+    dateEl.textContent = `${get("weekday")} · ${get("day")} ${get("month")} ${get("year")}`.toUpperCase();
+  }
 
   const greet = $("#greeting");
   if (greet) {
-    const text = greetingFor(ct.hour24);
-    if (greet.lastChild?.textContent?.trim() !== text)
-      greet.innerHTML = `<span class="pulse"></span>${text}`;
+    const base = greetingFor(ct.hour24);
+    const full = displayName ? `${base}, ${displayName}.` : base;
+    if (greet.dataset.greetText !== full) {
+      greet.dataset.greetText = full;
+      greet.innerHTML = `<span class="pulse"></span>${escape(full)}`;
+    }
   }
 
 for (let i = 0; i < secondaryTzs.length; i++) {

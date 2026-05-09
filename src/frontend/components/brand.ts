@@ -1,4 +1,5 @@
 import type { AppCreds } from "../api.js";
+import { setDisplayName } from "./header.js";
 
 export const DEFAULT_BRAND_NAME = "Daily Command Center";
 
@@ -9,7 +10,10 @@ export function applyBrand(brand: AppCreds["brand"]): void {
   document.title = name;
 
   const h1 = document.getElementById("brand-name");
-  if (h1) h1.textContent = name.toUpperCase();
+  if (h1) h1.textContent = name;
+
+  const footerName = document.getElementById("footer-brand-name");
+  if (footerName) footerName.textContent = name;
 
   const subEl = document.getElementById("brand-subtitle");
   const sepEl = document.getElementById("brand-subtitle-sep");
@@ -24,4 +28,7 @@ export function applyBrand(brand: AppCreds["brand"]): void {
       sepEl.hidden = true;
     }
   }
+
+  // Subtitle doubles as the greeting name — "Good morning, {subtitle}."
+  setDisplayName(subtitle);
 }

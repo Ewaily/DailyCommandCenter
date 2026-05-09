@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ewaily's Daily Command Center — Mock · 1-Click Clone Flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap">
+<link rel="stylesheet" href="./_styles.css">
+<style>
+  /* Mock-only layout — focused single-card with success modal */
+  body { padding: 60px 40px; min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; gap: 32px; flex-wrap: wrap; }
+  .card.demo { width: 640px; }
+
+  /* Force-reveal the hovered row's clone button */
+  .schedule-item.hovered { background: var(--paper-2); border-radius: var(--r-1); }
+  .schedule-item.hovered .clone-to-jira-btn {
+    opacity: 1;
+    transform: translateX(0);
+    background: color-mix(in srgb, var(--sig-go) 10%, transparent);
+    color: var(--sig-go);
+    border-color: color-mix(in srgb, var(--sig-go) 28%, transparent);
+  }
+  /* The row that was just cloned — show the button in its fully active/filled state */
+  .schedule-item.just-cloned { background: var(--paper-2); border-radius: var(--r-1); }
+  .schedule-item.just-cloned .clone-to-jira-btn {
+    opacity: 1;
+    transform: translateX(0);
+    background: var(--sig-go);
+    color: var(--ink-inverse);
+    border-color: var(--sig-go);
+  }
+
+  /* clone-success modal (mock inline version) */
+  .clone-success-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.55); backdrop-filter: blur(3px);
+    display: flex; align-items: center; justify-content: center; z-index: 500;
+  }
+  .clone-success-box {
+    background: var(--paper-1); border: 1px solid color-mix(in srgb, var(--sig-go) 35%, var(--line-1));
+    border-radius: var(--r-2); padding: 24px 28px; min-width: 340px; max-width: 440px;
+    box-shadow: var(--shadow-3); position: relative;
+  }
+  .clone-success-icon {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: color-mix(in srgb, var(--sig-go) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--sig-go) 35%, transparent);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--sig-go); font-size: 20px; margin-bottom: 12px;
+  }
+  .clone-success-key {
+    display: inline-flex; align-items: center;
+    font-family: var(--font-mono); font-size: 13px; font-weight: 700;
+    color: var(--sig-go); background: color-mix(in srgb, var(--sig-go) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--sig-go) 30%, transparent);
+    border-radius: var(--r-pill); padding: 2px 10px; margin: 6px 0 10px;
+  }
+  .clone-success-url {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--font-mono); font-size: 11px; color: var(--ink-3);
+    border: 1px solid var(--line-1); border-radius: var(--r-1);
+    padding: 4px 10px; text-decoration: none;
+    transition: color .15s, border-color .15s;
+  }
+  .clone-success-close {
+    position: absolute; top: 12px; right: 14px;
+    background: none; border: none; color: var(--ink-4);
+    font-size: 18px; cursor: pointer; line-height: 1;
+  }
+</style>
+</head>
+<body>
+
+<div class="card demo">
+  <div class="card-header">
+    <div class="title-row">
+      <span class="title-source">ClickUp</span>
+      <span class="title-text">
+        <span class="title-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+        Tasks
+      </span>
+      <span class="header-meta">9 open</span>
+    </div>
+    <div class="tabs">
+      <button class="tab active">In Progress <span class="tab-count">4</span></button>
+      <button class="tab">Review <span class="tab-count">3</span></button>
+      <button class="tab">To Do <span class="tab-count">2</span></button>
+    </div>
+  </div>
+  <div class="card-body">
+
+    <!-- Row at rest — clone button invisible (opacity:0) -->
+    <div class="schedule-item schedule-item--cloneable">
+      <span class="schedule-time item-key">TASK-101</span>
+      <div class="schedule-content">
+        <div class="schedule-title-row">
+          <a href="#" class="schedule-title">Implement rate limiting middleware for public API</a>
+          <span class="badge badge-urgent">High</span>
+        </div>
+        <div class="schedule-meta">Alex Rivera · Backend</div>
+      </div>
+      <button class="clone-to-jira-btn" aria-label="Clone to Jira" title="Clone to Jira">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span class="clone-btn-label">Clone</span>
+      </button>
+    </div>
+
+    <!-- HOVERED row — clone button revealed as ghost green pill -->
+    <div class="schedule-item schedule-item--cloneable hovered">
+      <span class="schedule-time item-key">TASK-102</span>
+      <div class="schedule-content">
+        <div class="schedule-title-row">
+          <a href="#" class="schedule-title">Add cursor-based pagination to the users endpoint</a>
+          <span class="badge badge-warning">Medium</span>
+        </div>
+        <div class="schedule-meta">Jordan Lee · Backend</div>
+      </div>
+      <button class="clone-to-jira-btn" aria-label="Clone to Jira" title="Clone to Jira">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span class="clone-btn-label">Clone</span>
+      </button>
+    </div>
+
+    <!-- Row at rest -->
+    <div class="schedule-item schedule-item--cloneable">
+      <span class="schedule-time item-key">TASK-103</span>
+      <div class="schedule-content">
+        <div class="schedule-title-row">
+          <a href="#" class="schedule-title">Redesign onboarding flow for new workspace setup</a>
+          <span class="badge badge-warning">Medium</span>
+        </div>
+        <div class="schedule-meta">Sam Chen · Design</div>
+      </div>
+      <button class="clone-to-jira-btn" aria-label="Clone to Jira" title="Clone to Jira">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span class="clone-btn-label">Clone</span>
+      </button>
+    </div>
+
+    <!-- Row at rest -->
+    <div class="schedule-item schedule-item--cloneable">
+      <span class="schedule-time item-key">TASK-104</span>
+      <div class="schedule-content">
+        <div class="schedule-title-row">
+          <a href="#" class="schedule-title">Optimize analytics query — reduce p95 latency</a>
+          <span class="badge badge-urgent">High</span>
+        </div>
+        <div class="schedule-meta">Morgan Park · Data</div>
+      </div>
+      <button class="clone-to-jira-btn" aria-label="Clone to Jira" title="Clone to Jira">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span class="clone-btn-label">Clone</span>
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Clone success modal — appears after clicking Clone -->
+<div class="clone-success-overlay">
+  <div class="clone-success-box clone-success-modal">
+    <button class="clone-success-close" aria-label="Close">✕</button>
+    <div class="clone-success-icon">✓</div>
+    <div style="font-weight:600;font-size:14px;color:var(--ink-1);margin-bottom:4px">Cloned to Jira</div>
+    <div style="font-size:13px;color:var(--ink-3);margin-bottom:6px">Ticket created from <code style="font-family:var(--font-mono);font-size:12px;background:rgba(0,0,0,.08);padding:1px 5px;border-radius:4px">TASK-102</code></div>
+    <div class="clone-success-key">ACM-925</div>
+    <div>
+      <a class="clone-success-url" href="#">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Open ACM-925 in Jira
+      </a>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

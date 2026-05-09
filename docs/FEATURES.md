@@ -279,7 +279,7 @@ The form refuses to save an "enabled" config without all four fields filled in. 
 Rename the project for this install:
 
 - **Project name** — drives the browser tab title and the dashboard header `<h1>`. Default: "Daily Command Center".
-- **Header subtitle** — optional secondary line under the greeting. Hidden when blank.
+- **Header subtitle** — optional secondary line beside the project name in the top bar. **Also doubles as the greeting name** in the cinematic context strip — set it to your first name and the greeting becomes "Good morning, *Name*." Hidden in the top bar when blank.
 
 Stored as `brand.name` / `brand.subtitle` in the `settings` table. Applied on page load and immediately after Save.
 

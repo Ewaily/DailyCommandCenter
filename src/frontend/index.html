@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Daily Command Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap">
 <link rel="stylesheet" href="./styles.css">
 <script>
   // Apply persisted theme before paint to avoid flash.
@@ -18,19 +21,26 @@
 </script>
 </head>
 <body>
-<div class="container">
 
-  <div class="header">
-    <div class="header-title">
-      <h1 id="brand-name">DAILY COMMAND CENTER</h1>
-      <div class="subtitle">
-        <span class="greeting" id="greeting"><span class="pulse"></span>Good morning</span>
-        <span class="subtitle-sep" id="brand-subtitle-sep" hidden>·</span>
-        <span id="brand-subtitle" hidden></span>
-      </div>
-    </div>
-    <div class="header-actions" role="toolbar" aria-label="Dashboard actions">
-      <div class="workspace-switcher" id="workspace-switcher"></div>
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     TOP BAR — 52px, edge-to-edge, navigation only, no gradient
+     ══════════════════════════════════════════════════════════════════════════ -->
+<header class="top-bar">
+  <div class="top-bar-inner">
+
+    <!-- Brand block -->
+    <a class="brand-block" href="/" aria-label="Home">
+      <span class="brand-name" id="brand-name">Daily Command Center</span>
+      <span class="brand-status-dot" id="brand-status-dot" aria-hidden="true"></span>
+    </a>
+    <span class="brand-subtitle-sep" id="brand-subtitle-sep" hidden>·</span>
+    <span class="brand-subtitle" id="brand-subtitle" hidden></span>
+
+    <!-- Workspace switcher -->
+    <div class="workspace-switcher" id="workspace-switcher"></div>
+
+    <!-- Action cluster -->
+    <div class="top-bar-actions" role="toolbar" aria-label="Dashboard actions">
       <button class="header-btn header-kbd" data-action="palette" data-tooltip="Command palette · ⌘K" aria-label="Open command palette (Cmd K)">
         <kbd>⌘</kbd><kbd>K</kbd><span class="header-btn-label">Search</span>
       </button>
@@ -40,26 +50,84 @@
       <button class="header-btn" data-action="toggle-edit-mode" id="customize-btn" data-tooltip="Customize layout · E" aria-label="Customize dashboard layout (E)">
         <span class="header-btn-label" id="customize-btn-label">Customize</span>
       </button>
-      <button class="header-btn icon-only" data-action="toggle-theme" id="theme-btn"  data-tooltip="Toggle theme · T"   aria-label="Toggle light or dark theme (T)"></button>
-      <button class="header-btn icon-only" data-action="toggle-settings" id="settings-btn" data-tooltip="Settings · ,"     aria-label="Open settings (,)"></button>
-      <button class="header-btn icon-only" data-action="toggle-help" id="help-btn"        data-tooltip="Keyboard shortcuts · ?" aria-label="Show keyboard shortcuts (?)"></button>
+      <button class="header-btn icon-only" data-action="toggle-theme" id="theme-btn" data-tooltip="Toggle theme · T" aria-label="Toggle light or dark theme (T)"></button>
+      <button class="header-btn icon-only" data-action="toggle-settings" id="settings-btn" data-tooltip="Settings · ," aria-label="Open settings (,)"></button>
+      <button class="header-btn icon-only" data-action="toggle-help" id="help-btn" data-tooltip="Keyboard shortcuts · ?" aria-label="Show keyboard shortcuts (?)"></button>
     </div>
-    <div class="header-clock" aria-label="Current time and date">
-      <div class="clock-text">
-        <div class="clock-line">
-          <span class="clock" id="clock">--:--</span>
-          <span class="clock-ampm" id="clock-ampm">--</span>
-        </div>
-        <div class="clock-meta">
-          <span class="date" id="header-date">—</span>
-          <span class="clock-tz-pill"><span class="clock-tz-dot" aria-hidden="true"></span><span id="primary-tz-label">—</span></span>
-        </div>
-        <div class="world-clocks" id="world-clocks" aria-label="Other time zones"></div>
-      </div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     CONTEXT STRIP — cinematic 80px: large display-serif greeting + date
+     eyebrow on the left; large mono clock + world clock columns on the right.
+     The greeting name is pulled from brand.subtitle ("Good morning, {subtitle}.")
+     so it's configurable from Settings → Preferences with no new preference.
+     ══════════════════════════════════════════════════════════════════════════ -->
+<div class="context-strip" id="context-strip">
+  <!-- LEFT: greeting (display serif) + eyebrow row (date + workspace context) -->
+  <div class="cs-left">
+    <span class="cs-greeting" id="greeting" aria-live="polite">—</span>
+    <div class="cs-sub-row">
+      <span id="header-date" class="cs-eyebrow-date">—</span>
+      <span id="context-banner" class="context-banner"></span>
     </div>
   </div>
 
-  <div id="context-banner" class="context-banner"></div>
+  <!-- RIGHT: large clock + world clocks rendered as columns -->
+  <div class="cs-clock-block" aria-label="Current time and date">
+    <div class="cs-clock-main">
+      <span id="clock" class="cs-clock">--:--</span>
+      <span id="clock-ampm" class="cs-ampm">--</span>
+    </div>
+    <div class="world-clocks" id="world-clocks" aria-label="Other time zones"></div>
+  </div>
+
+  <!-- Hidden — preserved so legacy code paths that read this still work. -->
+  <span id="primary-tz-label" hidden></span>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     KPI STRIP — 4 hairline instrument cells, 88px, no cards/borders/left-bars
+     ══════════════════════════════════════════════════════════════════════════ -->
+<div class="kpi-strip">
+  <div class="kpi" data-kpi-jump="schedule" data-requires-connector="calendar" tabindex="0" role="button" aria-label="Jump to schedule">
+    <div class="kpi-eyebrow">
+      <span class="kpi-source-label">TODAY · CAL</span>
+      <span class="kpi-icon" data-icon="calendar"></span>
+    </div>
+    <div class="kpi-value" id="kpi-meetings" data-target="0">—</div>
+    <div class="kpi-detail" id="kpi-meetings-detail">Loading…</div>
+  </div>
+  <div class="kpi" data-kpi-jump="mentions" data-requires-connector="slack" data-kpi-actionable="true" tabindex="0" role="button" aria-label="Jump to mentions">
+    <div class="kpi-eyebrow">
+      <span class="kpi-source-label">MENTIONS · SLK</span>
+      <span class="kpi-icon" data-icon="bell"></span>
+    </div>
+    <div class="kpi-value" id="kpi-mentions" data-target="0">—</div>
+    <div class="kpi-detail" id="kpi-mentions-detail">Past 7 days</div>
+  </div>
+  <div class="kpi" data-kpi-jump="tickets" data-requires-connector="jira clickup" tabindex="0" role="button" aria-label="Jump to tickets">
+    <div class="kpi-eyebrow">
+      <span class="kpi-source-label" id="kpi-tickets-label">TASKS</span>
+      <span class="kpi-icon" data-icon="ticket"></span>
+    </div>
+    <div class="kpi-value" id="kpi-tickets" data-target="0">—</div>
+    <div class="kpi-detail" id="kpi-tickets-detail">Loading…</div>
+  </div>
+  <div class="kpi" data-kpi-jump="prs" data-requires-connector="github" data-kpi-actionable="true" tabindex="0" role="button" aria-label="Jump to PRs">
+    <div class="kpi-eyebrow">
+      <span class="kpi-source-label">PRs · GIT</span>
+      <span class="kpi-icon" data-icon="gitPr"></span>
+    </div>
+    <div class="kpi-value" id="kpi-prs" data-target="0">—</div>
+    <div class="kpi-detail" id="kpi-prs-detail">GitHub</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     PAGE CONTENT — max-width centered, dashboard and widget area
+     ══════════════════════════════════════════════════════════════════════════ -->
+<div class="page-content">
 
   <div id="workspace-empty" class="workspace-empty" hidden>
     <div class="workspace-empty-card">
@@ -69,31 +137,48 @@
         This workspace is a clean slate — connect a calendar, Slack, GitHub, Jira, or ClickUp
         to start populating your dashboard. Each card only appears once its tool is connected.
       </p>
-      <button class="btn-primary" data-action="toggle-settings">Open Settings → Workspaces</button>
+      <button class="btn-primary" data-action="toggle-settings">Open settings · ,</button>
       <p class="workspace-empty-hint muted">Press <kbd>,</kbd> to open settings any time.</p>
-    </div>
-  </div>
-
-  <div class="kpi-strip">
-    <div class="kpi info" data-kpi-jump="schedule" data-requires-connector="calendar" tabindex="0" role="button" aria-label="Jump to schedule">
-      <div class="kpi-label"><span class="kpi-source">Calendar</span><span class="kpi-text">Today's meetings</span><span class="kpi-icon" data-icon="calendar"></span></div>
-      <div class="kpi-value" id="kpi-meetings" data-target="0">—</div>
-      <div class="kpi-detail" id="kpi-meetings-detail">Loading…</div>
-    </div>
-    <div class="kpi urgent" data-kpi-jump="mentions" data-requires-connector="slack" tabindex="0" role="button" aria-label="Jump to mentions">
-      <div class="kpi-label"><span class="kpi-source">Slack</span><span class="kpi-text">Mentions &amp; DMs</span><span class="kpi-icon" data-icon="bell"></span></div>
-      <div class="kpi-value" id="kpi-mentions" data-target="0">—</div>
-      <div class="kpi-detail" id="kpi-mentions-detail">Past 7 days</div>
-    </div>
-    <div class="kpi muted" data-kpi-jump="tickets" data-requires-connector="jira" tabindex="0" role="button" aria-label="Jump to tickets">
-      <div class="kpi-label"><span class="kpi-source">Jira</span><span class="kpi-text">My tickets</span><span class="kpi-icon" data-icon="ticket"></span></div>
-      <div class="kpi-value" id="kpi-tickets" data-target="0">—</div>
-      <div class="kpi-detail" id="kpi-tickets-detail">Jira</div>
-    </div>
-    <div class="kpi muted" data-kpi-jump="prs" data-requires-connector="github" tabindex="0" role="button" aria-label="Jump to PRs">
-      <div class="kpi-label"><span class="kpi-source">GitHub</span><span class="kpi-text">PRs to review</span><span class="kpi-icon" data-icon="gitPr"></span></div>
-      <div class="kpi-value" id="kpi-prs" data-target="0">—</div>
-      <div class="kpi-detail" id="kpi-prs-detail">GitHub</div>
+      <div class="workspace-empty-connect-list">
+        <p class="workspace-empty-connect-eyebrow">What you can connect</p>
+        <ul>
+          <li>
+            <span class="wec-dot" style="--c:#4285F4"></span>
+            <span class="wec-name">Google Calendar</span>
+            <span class="wec-desc">Events, focus blocks, attendees</span>
+          </li>
+          <li>
+            <span class="wec-dot" style="--c:#0078D4"></span>
+            <span class="wec-name">Outlook</span>
+            <span class="wec-desc">Calendar + Teams events</span>
+          </li>
+          <li>
+            <span class="wec-dot" style="--c:#4A154B"></span>
+            <span class="wec-name">Slack</span>
+            <span class="wec-desc">Mentions, DMs, channel digest</span>
+          </li>
+          <li>
+            <span class="wec-dot" style="--c:#1A1A1B"></span>
+            <span class="wec-name">GitHub</span>
+            <span class="wec-desc">Pull requests, reviews</span>
+          </li>
+          <li>
+            <span class="wec-dot" style="--c:#0052CC"></span>
+            <span class="wec-name">Jira</span>
+            <span class="wec-desc">Tickets, sprints, team boards</span>
+          </li>
+          <li>
+            <span class="wec-dot" style="--c:#000000"></span>
+            <span class="wec-name">Notion</span>
+            <span class="wec-desc">Pages, databases</span>
+          </li>
+          <li>
+            <span class="wec-dot" style="--c:#7B68EE"></span>
+            <span class="wec-name">ClickUp</span>
+            <span class="wec-desc">Tasks, lists, spaces</span>
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
 
@@ -200,7 +285,36 @@
       <div class="card-body short" id="channels-body"></div>
     </div>
   </div>
-</div>
+
+</div><!-- /page-content -->
+
+<!-- APP FOOTER -->
+<footer class="app-footer" role="contentinfo">
+  <div class="app-footer-brand">
+    <span class="app-footer-name" id="footer-brand-name"></span>
+    <span class="app-footer-version">v0.1.0</span>
+  </div>
+  <div class="app-footer-tagline">
+    <span class="app-footer-tagline-dot"></span>
+    All data lives on your machine
+    <span class="app-footer-sep">·</span>
+    SQLite
+    <span class="app-footer-sep">·</span>
+    No cloud
+    <span class="app-footer-sep">·</span>
+    No tracking
+  </div>
+  <div class="app-footer-actions">
+    <a class="app-footer-gh" href="https://github.com/Ewaily/DailyCommandCenter" target="_blank" rel="noopener noreferrer" aria-label="Star on GitHub">
+      <svg class="app-footer-gh-icon" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor" width="14" height="14"><path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+      Star on GitHub
+    </a>
+    <span class="app-footer-license">MIT License</span>
+    <button class="app-footer-shortcuts" data-action="toggle-help" aria-label="Keyboard shortcuts (?)">
+      <kbd>?</kbd> Shortcuts
+    </button>
+  </div>
+</footer>
 
 <!-- UNIVERSAL SIDEBAR (right rail) -->
 <aside id="universal-sidebar" class="universal-sidebar" aria-label="Quick reference rail">

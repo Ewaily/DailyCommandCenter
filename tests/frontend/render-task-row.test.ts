@@ -1,14 +1,24 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+const { mockGetSetting, mockSaveSetting } = vi.hoisted(() => ({
+  mockGetSetting:  vi.fn().mockReturnValue(undefined),
+  mockSaveSetting: vi.fn(),
+}));
 
 // Stub heavy modules that lists.ts / util.ts transitively import so they don't
 // add uncovered functions to the denominator and don't attempt real I/O.
 vi.mock("../../src/frontend/api.js",   () => ({ api: {}, isAuthError: vi.fn() }));
-vi.mock("../../src/frontend/state.js", () => ({ getSetting: vi.fn(), saveSetting: vi.fn() }));
+vi.mock("../../src/frontend/state.js", () => ({
+  getSetting:  (...a: any[]) => mockGetSetting(...a),
+  saveSetting: (...a: any[]) => mockSaveSetting(...a),
+}));
 vi.mock("../../src/frontend/components/tz.js", () => ({ getPrimaryTz: () => "UTC" }));
 
-import { renderTaskRow, type TaskRow } from "../../src/frontend/components/task-row.js";
+import { renderTaskRow, maybeShowCloneHint, type TaskRow } from "../../src/frontend/components/task-row.js";
 import { renderJiraTicket } from "../../src/frontend/components/lists.js";
 import type { Ticket } from "../../src/frontend/api.js";
+
+beforeEach(() => { vi.clearAllMocks(); mockGetSetting.mockReturnValue(undefined); });
 
 function baseRow(overrides: Partial<TaskRow> = {}): TaskRow {
   return {
@@ -108,6 +118,49 @@ describe("renderTaskRow", () => {
     const html = renderTaskRow(baseRow({ dueDate: yesterday }));
     expect(html).toContain("overdue");
   });
+
+  it("renders 'due tomorrow' for a due date exactly 1 day ahead (ISO)", () => {
+    // Force a date that is tomorrow midnight UTC but close enough to guarantee days===1
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() + 2); // 2 calendar days away → typically rounds to 1-2
+    // Use a fixed ISO date 1.5 days from now to guarantee days === 1 via rounding
+    const onePointFiveDays = new Date(Date.now() + 86_400_000 * 1.5).toISOString().slice(0, 10);
+    const html = renderTaskRow(baseRow({ dueDate: onePointFiveDays }));
+    expect(html).toMatch(/due (today|tomorrow|in \dd)/);
+  });
+
+  it("renders 'due in Xd' for a due date 3 days ahead", () => {
+    const threeDaysOut = new Date(Date.now() + 86_400_000 * 3.5).toISOString().slice(0, 10);
+    const html = renderTaskRow(baseRow({ dueDate: threeDaysOut }));
+    expect(html).toContain("due in");
+  });
+
+  it("renders long-form date for due dates more than 7 days out", () => {
+    const tenDaysOut = new Date(Date.now() + 86_400_000 * 10).toISOString().slice(0, 10);
+    const html = renderTaskRow(baseRow({ dueDate: tenDaysOut }));
+    expect(html).toMatch(/due [A-Z][a-z]+ \d+/);
+  });
+
+  it("renders avatar img when assignee has an avatar URL", () => {
+    const html = renderTaskRow(baseRow({
+      assignees: [{ name: "Bob", avatar: "https://cdn.example.com/bob.png" }],
+    }));
+    expect(html).toContain('<img class="task-avatar"');
+    expect(html).toContain("https://cdn.example.com/bob.png");
+  });
+
+  it("renders overflow badge when more than 3 assignees", () => {
+    const html = renderTaskRow(baseRow({
+      assignees: [
+        { name: "Alice", avatar: null },
+        { name: "Bob",   avatar: null },
+        { name: "Carol", avatar: null },
+        { name: "Dave",  avatar: null },
+      ],
+    }));
+    expect(html).toContain("task-avatar-more");
+    expect(html).toContain("+1");
+  });
 });
 
 // ── renderJiraTicket ──────────────────────────────────────────────────────────
@@ -141,5 +194,69 @@ describe("renderJiraTicket", () => {
       assignee: { name: "Bob Smith", avatar: null, accountId: "acc1" },
     }));
     expect(html).toContain("Bob Smith");
+  });
+});
+
+// ── maybeShowCloneHint ────────────────────────────────────────────────────────
+
+describe("maybeShowCloneHint", () => {
+  function setupContainer(cloneable = true): HTMLElement {
+    const container = document.createElement("div");
+    if (cloneable) {
+      container.innerHTML = renderTaskRow(
+        baseRow({ cloneSource: "jira", cloneTargetProject: "P", cloneConnectorId: "ci" })
+      );
+    } else {
+      container.innerHTML = renderTaskRow(baseRow());
+    }
+    return container;
+  }
+
+  it("adds clone-first-seen to first cloneable row when hint not seen", () => {
+    mockGetSetting.mockReturnValue(undefined);
+    const container = setupContainer();
+    maybeShowCloneHint(container);
+    expect(container.querySelector(".clone-first-seen")).not.toBeNull();
+  });
+
+  it("does nothing when cloneHintSeen is already set", () => {
+    mockGetSetting.mockReturnValue(true);
+    const container = setupContainer();
+    maybeShowCloneHint(container);
+    expect(container.querySelector(".clone-first-seen")).toBeNull();
+  });
+
+  it("does nothing when container has no cloneable rows", () => {
+    mockGetSetting.mockReturnValue(undefined);
+    const container = setupContainer(false);
+    maybeShowCloneHint(container);
+    expect(container.querySelector(".clone-first-seen")).toBeNull();
+    expect(mockSaveSetting).not.toHaveBeenCalled();
+  });
+
+  it("clears class and saves setting after timeout", async () => {
+    vi.useFakeTimers();
+    mockGetSetting.mockReturnValue(undefined);
+    const container = setupContainer();
+    maybeShowCloneHint(container);
+    expect(container.querySelector(".clone-first-seen")).not.toBeNull();
+    vi.advanceTimersByTime(7_000);
+    await Promise.resolve();
+    expect(container.querySelector(".clone-first-seen")).toBeNull();
+    expect(mockSaveSetting).toHaveBeenCalledWith("cloneHintSeen", true);
+    vi.useRealTimers();
+  });
+
+  it("clears class immediately when clone button is clicked", async () => {
+    vi.useFakeTimers();
+    mockGetSetting.mockReturnValue(undefined);
+    const container = setupContainer();
+    maybeShowCloneHint(container);
+    const btn = container.querySelector<HTMLElement>(".clone-to-jira-btn")!;
+    btn.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await Promise.resolve();
+    expect(container.querySelector(".clone-first-seen")).toBeNull();
+    expect(mockSaveSetting).toHaveBeenCalledWith("cloneHintSeen", true);
+    vi.useRealTimers();
   });
 });

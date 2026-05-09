@@ -4,6 +4,7 @@
 // stack, list/project pill, due date) so both providers stay in sync.
 
 import { escapeHtml } from "./util.js";
+import { getSetting, saveSetting } from "../state.js";
 
 export type RowAssignee = { name: string; avatar: string | null; color?: string | null };
 
@@ -36,8 +37,9 @@ const statusBucketPalette = (b: TaskRow["statusBucket"]) =>
 
 function statusChip(row: TaskRow): string {
   if (row.statusColor) {
+    // Custom API color: solid fill + ink-inverse text (80% opacity)
     const c = escapeHtml(row.statusColor);
-    return `<span class="badge badge-task-status" style="background:${c}1f;color:${c};border:1px solid ${c}55;">${escapeHtml(row.status)}</span>`;
+    return `<span class="badge badge-task-status" style="background:${c};color:color-mix(in srgb, var(--ink-inverse) 80%, transparent);">${escapeHtml(row.status)}</span>`;
   }
   return `<span class="badge badge-${statusBucketPalette(row.statusBucket)}">${escapeHtml(row.status)}</span>`;
 }
@@ -100,7 +102,8 @@ export function renderTaskRow(row: TaskRow): string {
          data-clone-source="${escapeHtml(row.cloneSource)}"
          data-target-project="${escapeHtml(row.cloneTargetProject || "")}"
          data-connector-id="${escapeHtml(row.cloneConnectorId || "")}"
-         aria-label="Clone to Jira"></button>`
+         aria-label="Clone to Jira"
+         title="Clone to Jira"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="clone-btn-label">Clone</span></button>`
     : "";
   return `
     <div class="schedule-item${row.cloneSource ? " schedule-item--cloneable" : ""}">
@@ -114,4 +117,23 @@ export function renderTaskRow(row: TaskRow): string {
       </div>
       ${cloneBtn}
     </div>`;
+}
+
+/**
+ * On first render after setup, pulses the clone button on the first cloneable
+ * row for 6 seconds so new users discover the feature. Fires once ever —
+ * after dismissal or expiry the key is written to settings and never shown again.
+ */
+export function maybeShowCloneHint(container: Element): void {
+  if (getSetting("cloneHintSeen")) return;
+  const firstRow = container.querySelector<HTMLElement>(".schedule-item--cloneable");
+  if (!firstRow) return;
+  firstRow.classList.add("clone-first-seen");
+  const clear = () => {
+    firstRow.classList.remove("clone-first-seen");
+    saveSetting("cloneHintSeen", true);
+  };
+  const timer = setTimeout(clear, 6_000);
+  firstRow.querySelector<HTMLElement>(".clone-to-jira-btn")
+    ?.addEventListener("click", () => { clearTimeout(timer); clear(); }, { once: true });
 }

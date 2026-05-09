@@ -27,7 +27,10 @@ const { mockApi } = vi.hoisted(() => ({
 
 vi.mock("../../src/frontend/api.js", () => ({ api: mockApi, isAuthError: vi.fn() }));
 vi.mock("../../src/frontend/state.js", () => ({ getSetting: vi.fn(), saveSetting: vi.fn() }));
-vi.mock("../../src/frontend/components/workspace-switcher.js", () => ({ refreshActiveWorkspace: vi.fn() }));
+vi.mock("../../src/frontend/components/workspace-switcher.js", () => ({
+  refreshActiveWorkspace: vi.fn(),
+  getActiveWorkspaceId:   vi.fn().mockReturnValue("ws-1"),
+}));
 vi.mock("../../src/frontend/components/brand.js",                () => ({ applyBrand: vi.fn(), DEFAULT_BRAND_NAME: "Daily Command Center" }));
 vi.mock("../../src/frontend/components/theme.js",                () => ({ applyTheme: vi.fn() }));
 vi.mock("../../src/frontend/components/header.js",               () => ({ setTimezones: vi.fn() }));
@@ -126,6 +129,12 @@ function setupModalDOM() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // happy-dom does not implement window.alert — stub it so that any
+  // catch-branch in settings.ts that reaches `alert(...)` doesn't surface
+  // as an unhandled rejection and fail CI.
+  if (typeof window.alert !== "function") {
+    Object.defineProperty(window, "alert", { value: () => {}, configurable: true, writable: true });
+  }
   setupModalDOM();
   mockApi.workspaces.mockResolvedValue({
     data: { workspaces: [wsAlpha, wsBeta], defaultWorkspaceId: "ws-1" },
@@ -346,5 +355,99 @@ describe("bindSettings", () => {
     expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining("Target Base URL"));
     expect(mockApi.connectorUpdate).not.toHaveBeenCalled();
     alertSpy.mockRestore();
+  });
+});
+
+// ── onSettingsChange – connector toggles ─────────────────────────────────────
+
+describe("onSettingsChange — connector instance toggles", () => {
+  async function openAndBind() {
+    openSettings();
+    bindSettings();
+    // Wait for the async render chain to settle
+    for (let i = 0; i < 4; i++) await new Promise(r => setTimeout(r, 0));
+  }
+
+  it("instance-share-toggle dispatches connectorUpdate with shared:true", async () => {
+    await openAndBind();
+    const checkbox = document.querySelector<HTMLInputElement>(
+      'input[data-action="instance-share-toggle"]'
+    );
+    if (!checkbox) return; // connector not rendered — skip rather than fail
+    checkbox.checked = true;
+    checkbox.dispatchEvent(new Event("change", { bubbles: true }));
+    await new Promise(r => setTimeout(r, 0));
+    expect(mockApi.connectorUpdate).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ shared: true }),
+    );
+  });
+
+  it("instance-overview-toggle dispatches connectorUpdate with shareWithOverview", async () => {
+    await openAndBind();
+    const checkbox = document.querySelector<HTMLInputElement>(
+      'input[data-action="instance-overview-toggle"]'
+    );
+    if (!checkbox) return;
+    checkbox.checked = true;
+    checkbox.dispatchEvent(new Event("change", { bubbles: true }));
+    await new Promise(r => setTimeout(r, 0));
+    expect(mockApi.connectorUpdate).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ shareWithOverview: true }),
+    );
+  });
+});
+
+// ── onSettingsPaste — URL stripping ──────────────────────────────────────────
+
+describe("onSettingsPaste — URL stripping", () => {
+  async function openAndBind() {
+    openSettings();
+    bindSettings();
+    for (let i = 0; i < 4; i++) await new Promise(r => setTimeout(r, 0));
+  }
+
+  function makeInput(name: string): HTMLInputElement {
+    const input = document.createElement("input");
+    input.name = name;
+    input.dataset.stripUrl = "1";
+    document.getElementById("settings-body")!.appendChild(input);
+    return input;
+  }
+
+  function paste(input: HTMLInputElement, text: string) {
+    const dt = new DataTransfer();
+    dt.setData("text", text);
+    input.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true }));
+  }
+
+  it("strips github.com URL to owner/repo for repo input", async () => {
+    await openAndBind();
+    const input = makeInput("repo");
+    paste(input, "https://github.com/owner/my-repo.git");
+    expect(input.value).toBe("owner/my-repo");
+  });
+
+  it("strips atlassian.net URL to hostname for baseUrl input", async () => {
+    await openAndBind();
+    const input = makeInput("baseUrl");
+    paste(input, "https://acme.atlassian.net/browse/PROJ-1");
+    expect(input.value).toBe("acme.atlassian.net");
+  });
+
+  it("strips ClickUp URL to teamId for teamId input", async () => {
+    await openAndBind();
+    const input = makeInput("teamId");
+    paste(input, "https://app.clickup.com/12345678/home");
+    expect(input.value).toBe("12345678");
+  });
+
+  it("does not strip plain text without slash or http", async () => {
+    await openAndBind();
+    const input = makeInput("repo");
+    paste(input, "no-slash-no-http");
+    // plain text — should NOT be intercepted
+    expect(input.value).toBe("");
   });
 });

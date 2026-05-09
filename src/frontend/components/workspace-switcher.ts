@@ -32,45 +32,11 @@ export function listWorkspaces(): Workspace[] { return workspaces; }
 
 function host() { return document.getElementById("workspace-switcher"); }
 
-// Apply the workspace's accent color as the live --accent CSS variable so
-// every tinted element (buttons, focus rings, links, calendar stripe) reflects
-// the active workspace's brand color. Reverts to the stylesheet default when
-// Overview is active or no workspace has a custom color.
-// Relative luminance per WCAG. Returns 0–1.
-function luminance(hex: string): number {
-  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
-  if (!m) return 0;
-  const n = parseInt(m[1], 16);
-  const ch = [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff].map(v => {
-    const s = v / 255;
-    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
-  });
-  return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
-}
-
-function applyAccent(ws: Workspace | undefined) {
-  const root = document.documentElement;
-  const color = ws?.color ?? null;
-  if (!color) {
-    root.style.removeProperty("--accent");
-    root.style.removeProperty("--accent-hover");
-    root.style.removeProperty("--accent-soft");
-    root.style.removeProperty("--accent-on");
-    return;
-  }
-  root.style.setProperty("--accent", color);
-  root.style.setProperty("--accent-hover", `color-mix(in srgb, ${color} 82%, black)`);
-  root.style.setProperty("--accent-soft", `color-mix(in srgb, ${color} 14%, transparent)`);
-  // Pick black for light accents, white for dark — keeps button text readable.
-  root.style.setProperty("--accent-on", luminance(color) > 0.55 ? "#0b0d10" : "#ffffff");
-}
-
 function render() {
   const el = host();
   if (!el) return;
 
   const activeWs = workspaces.find(w => w.id === active);
-  applyAccent(activeWs);
 
   // With only one workspace there is nothing to switch to.
   // Render a plain (non-interactive) pill so the header stays informative
@@ -119,8 +85,10 @@ function render() {
     ${workspaces.map(w => `
       <button class="ws-menu-item ${active === w.id ? "active" : ""}" data-ws-id="${escapeHtml(w.id)}">
         ${renderWorkspaceBadge(w, 22, { title: false })}
-        <span class="ws-menu-item-name">${escapeHtml(w.name)}</span>
-        ${w.website ? `<span class="ws-menu-item-domain muted">${escapeHtml(w.website)}</span>` : ""}
+        <span class="ws-menu-item-label">
+          <span class="ws-menu-item-name">${escapeHtml(w.name)}</span>
+          ${w.website ? `<span class="ws-menu-item-domain" title="${escapeHtml(w.website)}">${escapeHtml(w.website)}</span>` : ""}
+        </span>
       </button>
     `).join("")}
   `;
