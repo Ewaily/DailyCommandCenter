@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [v1.0.1] — 2026-05-09
+
+### 🐛 Bug Fixes
+
+- **Footer version hardcoded** — Footer was displaying `v0.1.0` regardless of the actual release. Version is now read from `APP_VERSION` in `update-checker.ts` and written to the DOM at startup, so it always reflects the true running version.
+
+---
+
 ## [v1.0.0] — 2026-05-09
 
 ### 🚀 Features

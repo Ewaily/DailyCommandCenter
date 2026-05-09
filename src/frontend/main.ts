@@ -23,7 +23,7 @@ import { loadConnectors, applyConnectorVisibility, hasCapability } from "./conne
 import { applyTitles, initInlineEditing } from "./components/widget-titles.js";
 import { initOverviewWidgets, clearOverviewWidgets } from "./components/overview-widgets.js";
 import { initKpiSignals, initKpiLabels } from "./components/kpi-strip.js";
-import { checkForUpdates } from "./update-checker.js";
+import { APP_VERSION, checkForUpdates } from "./update-checker.js";
 
 function syncStickyTop() {
   const topBar = document.querySelector<HTMLElement>(".top-bar");
@@ -207,6 +207,8 @@ function paintHeaderIcons() {
 async function init() {
   paintHeaderIcons();
   startIconAutoPaint();
+  const footerVersion = document.getElementById("footer-version");
+  if (footerVersion) footerVersion.textContent = APP_VERSION;
   bindScrollShadow();
   initKpiSignals();
   initTheme();
