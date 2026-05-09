@@ -1,14 +1,24 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+const { mockGetSetting, mockSaveSetting } = vi.hoisted(() => ({
+  mockGetSetting:  vi.fn().mockReturnValue(undefined),
+  mockSaveSetting: vi.fn(),
+}));
 
 // Stub heavy modules that lists.ts / util.ts transitively import so they don't
 // add uncovered functions to the denominator and don't attempt real I/O.
 vi.mock("../../src/frontend/api.js",   () => ({ api: {}, isAuthError: vi.fn() }));
-vi.mock("../../src/frontend/state.js", () => ({ getSetting: vi.fn(), saveSetting: vi.fn() }));
+vi.mock("../../src/frontend/state.js", () => ({
+  getSetting:  (...a: any[]) => mockGetSetting(...a),
+  saveSetting: (...a: any[]) => mockSaveSetting(...a),
+}));
 vi.mock("../../src/frontend/components/tz.js", () => ({ getPrimaryTz: () => "UTC" }));
 
-import { renderTaskRow, type TaskRow } from "../../src/frontend/components/task-row.js";
+import { renderTaskRow, maybeShowCloneHint, type TaskRow } from "../../src/frontend/components/task-row.js";
 import { renderJiraTicket } from "../../src/frontend/components/lists.js";
 import type { Ticket } from "../../src/frontend/api.js";
+
+beforeEach(() => { vi.clearAllMocks(); mockGetSetting.mockReturnValue(undefined); });
 
 function baseRow(overrides: Partial<TaskRow> = {}): TaskRow {
   return {
@@ -184,5 +194,69 @@ describe("renderJiraTicket", () => {
       assignee: { name: "Bob Smith", avatar: null, accountId: "acc1" },
     }));
     expect(html).toContain("Bob Smith");
+  });
+});
+
+// ── maybeShowCloneHint ────────────────────────────────────────────────────────
+
+describe("maybeShowCloneHint", () => {
+  function setupContainer(cloneable = true): HTMLElement {
+    const container = document.createElement("div");
+    if (cloneable) {
+      container.innerHTML = renderTaskRow(
+        baseRow({ cloneSource: "jira", cloneTargetProject: "P", cloneConnectorId: "ci" })
+      );
+    } else {
+      container.innerHTML = renderTaskRow(baseRow());
+    }
+    return container;
+  }
+
+  it("adds clone-first-seen to first cloneable row when hint not seen", () => {
+    mockGetSetting.mockReturnValue(undefined);
+    const container = setupContainer();
+    maybeShowCloneHint(container);
+    expect(container.querySelector(".clone-first-seen")).not.toBeNull();
+  });
+
+  it("does nothing when cloneHintSeen is already set", () => {
+    mockGetSetting.mockReturnValue(true);
+    const container = setupContainer();
+    maybeShowCloneHint(container);
+    expect(container.querySelector(".clone-first-seen")).toBeNull();
+  });
+
+  it("does nothing when container has no cloneable rows", () => {
+    mockGetSetting.mockReturnValue(undefined);
+    const container = setupContainer(false);
+    maybeShowCloneHint(container);
+    expect(container.querySelector(".clone-first-seen")).toBeNull();
+    expect(mockSaveSetting).not.toHaveBeenCalled();
+  });
+
+  it("clears class and saves setting after timeout", async () => {
+    vi.useFakeTimers();
+    mockGetSetting.mockReturnValue(undefined);
+    const container = setupContainer();
+    maybeShowCloneHint(container);
+    expect(container.querySelector(".clone-first-seen")).not.toBeNull();
+    vi.advanceTimersByTime(7_000);
+    await Promise.resolve();
+    expect(container.querySelector(".clone-first-seen")).toBeNull();
+    expect(mockSaveSetting).toHaveBeenCalledWith("cloneHintSeen", true);
+    vi.useRealTimers();
+  });
+
+  it("clears class immediately when clone button is clicked", async () => {
+    vi.useFakeTimers();
+    mockGetSetting.mockReturnValue(undefined);
+    const container = setupContainer();
+    maybeShowCloneHint(container);
+    const btn = container.querySelector<HTMLElement>(".clone-to-jira-btn")!;
+    btn.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await Promise.resolve();
+    expect(container.querySelector(".clone-first-seen")).toBeNull();
+    expect(mockSaveSetting).toHaveBeenCalledWith("cloneHintSeen", true);
+    vi.useRealTimers();
   });
 });

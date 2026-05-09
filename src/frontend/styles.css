@@ -747,11 +747,13 @@ button { font-family: inherit; }
   transition-delay: 250ms;
 }
 
-/* ── Greeting pulse (subtle, now lives in context strip) ── */
+/* ── Greeting pulse — sized for the cinematic display-serif greeting ── */
 .cs-greeting .pulse {
-  display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
   background: var(--sig-go);
-  animation: pulse 2s var(--ease) infinite; margin-right: 5px;
+  animation: pulse 2s var(--ease) infinite; margin-right: 8px;
+  vertical-align: middle;
+  position: relative; top: -2px;
 }
 @keyframes pulse {
   0%, 100% { opacity: 1; }
@@ -759,102 +761,167 @@ button { font-family: inherit; }
 }
 
 /* ==========================================================================
-   CONTEXT STRIP — 36px, --paper-1, eyebrow + desc (today.ts) + clock/TZ
+   CONTEXT STRIP — cinematic 80px:
+   - LEFT  : Instrument-Serif greeting + uppercase mono date eyebrow
+   - RIGHT : oversized mono clock + world-clock columns
+   The greeting name comes from brand.subtitle (Settings → Preferences).
    ========================================================================== */
 .context-strip {
-  height: 36px; flex-shrink: 0;
+  height: 80px; flex-shrink: 0;
   background: var(--paper-1);
   border-bottom: 1px solid var(--line-1);
-  display: flex; align-items: center; gap: 12px;
+  display: flex; align-items: center; gap: 24px;
   padding: 0 var(--s-page-x);
   overflow: hidden;
 }
 
-/* Context banner inner — today.ts renders into #context-banner */
+/* LEFT block — greeting + sub-row (date eyebrow + workspace context) */
+.cs-left {
+  display: flex; flex-direction: column; gap: 6px;
+  flex: 1; min-width: 0;
+}
+
+/* Greeting — display serif, large, ink-1 */
+.cs-greeting {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 400;
+  color: var(--ink-1);
+  line-height: 1.1;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Sub-row — mono uppercase eyebrow holding date and workspace context */
+.cs-sub-row {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  min-width: 0; overflow: hidden;
+}
+.cs-eyebrow-date {
+  color: var(--ink-3);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Context banner — today.ts renders into #context-banner.
+   Inlined into the eyebrow row, separated by a centre dot. */
 .context-banner {
-  display: flex; align-items: center; gap: 8px;
-  flex: 1; min-width: 0; overflow: hidden;
+  display: inline-flex; align-items: center; gap: 8px;
+  min-width: 0; overflow: hidden;
 }
 .context-banner:empty { display: none; }
+.context-banner::before {
+  content: "·";
+  color: var(--ink-4);
+  margin-right: 2px;
+  font-weight: 400;
+}
 .context-banner > div {
-  display: flex; align-items: center; gap: 8px;
-  flex: 1; min-width: 0; overflow: hidden;
+  display: inline-flex; align-items: center; gap: 6px;
+  min-width: 0; overflow: hidden;
 }
 .context-banner .cb-tag {
-  font-size: var(--fs-xs); font-weight: 600;
+  font-size: 11px; font-weight: 600;
   letter-spacing: 0.10em; text-transform: uppercase;
   color: var(--ink-3); flex-shrink: 0;
 }
 .context-banner .cb-msg {
-  font-size: var(--fs-md); color: var(--ink-2);
+  font-size: 11px; font-weight: 500;
+  color: var(--ink-3);
+  letter-spacing: 0.06em; text-transform: none;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.context-banner .cb-scope { color: var(--ink-3); font-size: var(--fs-sm); }
+.context-banner .cb-msg strong { color: var(--ink-2); font-weight: 600; }
+.context-banner .cb-scope { color: var(--ink-4); font-size: 10px; }
 .context-banner-overview .cb-tag { color: var(--sig-info); }
 .context-banner-ws .cb-tag { color: var(--ink-3); }
 .context-banner .ws-dot {
-  width: 8px; height: 8px; border-radius: 50%;
+  width: 6px; height: 6px; border-radius: 50%;
   background: var(--c, var(--ink-3)); flex-shrink: 0;
 }
 
-/* Greeting — subtle text in context strip centre */
-.cs-greeting {
-  font-size: var(--fs-sm); color: var(--ink-3);
-  flex-shrink: 0; white-space: nowrap;
-}
-
-/* Clock block — trailing edge of context strip */
+/* RIGHT block — clock + world clocks */
 .cs-clock-block {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: 24px;
   margin-left: auto; flex-shrink: 0;
-  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
 }
-.cs-time-line {
-  display: flex; align-items: center; gap: 5px;
-  font-size: var(--fs-sm); color: var(--ink-3);
-}
-.cs-clock { font-weight: 500; color: var(--ink-2); }
-.cs-ampm  { font-weight: 500; color: var(--ink-3); font-size: var(--fs-xs); }
-.cs-sep   { color: var(--ink-4); }
-.cs-date  { color: var(--ink-3); }
-.cs-tz-pill {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 1px 6px; border-radius: var(--r-pill);
-  border: 1px solid var(--line-1);
-  font-size: 10px; font-weight: 600;
-  letter-spacing: .06em; text-transform: uppercase;
-  color: var(--ink-3);
-}
-.clock-tz-dot {
-  width: 4px; height: 4px; border-radius: 50%;
-  background: var(--sig-go); flex-shrink: 0;
-}
-
-/* World clocks — hairline-separated micro-pills in context strip */
-.world-clocks {
-  display: flex; gap: 4px; align-items: center;
+.cs-clock-main {
+  display: inline-flex; align-items: baseline; gap: 6px;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
+.cs-clock {
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--ink-1);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.cs-ampm {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* World clocks — column layout: city eyebrow above mono time */
+.world-clocks {
+  display: flex; gap: 18px; align-items: center;
+}
+.wc-col {
+  display: inline-flex; flex-direction: column; align-items: center; gap: 2px;
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+}
+.wc-col .wc-city {
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--ink-4); text-transform: uppercase;
+  line-height: 1;
+}
+.wc-col .wc-time {
+  font-size: 13px; font-weight: 500;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+/* Legacy world-clock pill — kept so any persisted markup still renders */
 .wc-item {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 1px 6px; border-radius: var(--r-pill);
   border: 1px solid var(--line-1);
 }
-.wc-city {
+.wc-item .wc-city {
   font-size: 10px; font-weight: 600;
   letter-spacing: .06em; color: var(--ink-4); text-transform: uppercase;
 }
-.wc-time {
+.wc-item .wc-time {
   font-size: var(--fs-xs); font-weight: 500;
   color: var(--ink-3); font-variant-numeric: tabular-nums;
 }
 
+@media (max-width: 1100px) {
+  .world-clocks { display: none; }
+}
 @media (max-width: 800px) {
   .top-bar-inner { flex-wrap: wrap; height: auto; }
   .top-bar { height: auto; padding: 8px var(--s-page-x); }
-  .context-strip { height: auto; flex-wrap: wrap; padding: 6px var(--s-page-x); gap: 6px; }
-  .cs-clock-block { margin-left: 0; }
-  .world-clocks { display: none; }
+  .context-strip {
+    height: auto; min-height: 64px;
+    flex-wrap: wrap; padding: 10px var(--s-page-x); gap: 8px;
+  }
+  .cs-greeting { font-size: 20px; }
+  .cs-clock { font-size: 26px; }
+  .cs-clock-block { margin-left: 0; gap: 12px; }
 }
 
 /* ==========================================================================
@@ -1155,8 +1222,8 @@ body.dashboard-editing .card-header .tab:active { cursor: grabbing; }
   border-radius: var(--r-1);
   margin: 0 -6px; padding-left: 6px; padding-right: 6px;
 }
-/* cloneable: still 2 columns — clone affordance is left-edge positioned */
-.schedule-item--cloneable { grid-template-columns: 74px 1fr; position: relative; }
+/* cloneable: three-column grid — key · content · clone button */
+.schedule-item--cloneable { grid-template-columns: 74px 1fr auto; }
 .schedule-item:last-child { border-bottom: none; }
 .schedule-item:hover { background: var(--paper-2); }
 
@@ -3737,28 +3804,58 @@ body.has-dynamic-overview [data-ov-hidden="1"] {
 .schedule-item.is-cloned:hover { opacity: 1; }
 
 /* ── 1-Click Clone to Jira — 2px leading affordance, expands to show + on hover ── */
+/* ── Clone-to-Jira inline action button ──────────────────────────────────── */
 .clone-to-jira-btn {
-  position: absolute;
-  left: -6px; top: 0; bottom: 0;
-  width: 2px;
-  background: var(--line-1);
-  border: none; padding: 0;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: width var(--t-1) var(--ease), background var(--t-1) var(--ease);
-  overflow: hidden;
-  border-radius: 0;
-  color: transparent;
-  font-size: 0;
-  z-index: 1;
-}
-.clone-to-jira-btn::after { content: "+"; }
-.schedule-item--cloneable:hover .clone-to-jira-btn {
-  width: 16px;
-  background: var(--sig-go);
-  color: var(--ink-inverse);
-  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px 6px;
+  border-radius: var(--r-1);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink-4);
+  font-size: 11px;
   font-weight: 500;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  align-self: center;
+  opacity: 0;
+  transform: translateX(6px);
+  transition: opacity var(--t-1) var(--ease),
+              background var(--t-1) var(--ease),
+              color var(--t-1) var(--ease),
+              border-color var(--t-1) var(--ease),
+              transform var(--t-1) var(--ease);
+}
+.clone-to-jira-btn::after { content: none; }
+.schedule-item:hover .clone-to-jira-btn {
+  opacity: 1;
+  transform: translateX(0);
+  background: color-mix(in srgb, var(--sig-go) 10%, transparent);
+  color: var(--sig-go);
+  border-color: color-mix(in srgb, var(--sig-go) 28%, transparent);
+}
+.clone-to-jira-btn:hover {
+  background: var(--sig-go) !important;
+  color: var(--ink-inverse) !important;
+  border-color: var(--sig-go) !important;
+  transform: translateX(0) !important;
+}
+
+/* ── First-use discovery pulse ────────────────────────────────────────────── */
+.clone-first-seen .clone-to-jira-btn {
+  opacity: 1;
+  transform: translateX(0);
+  background: color-mix(in srgb, var(--sig-go) 10%, transparent);
+  color: var(--sig-go);
+  border-color: color-mix(in srgb, var(--sig-go) 28%, transparent);
+  animation: clone-pulse 1.8s ease-in-out 3;
+}
+@keyframes clone-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--sig-go) 0%, transparent); }
+  50%       { box-shadow: 0 0 0 4px color-mix(in srgb, var(--sig-go) 30%, transparent); }
 }
 
 /* Cloning settings banner */
@@ -3778,7 +3875,7 @@ body.has-dynamic-overview [data-ov-hidden="1"] {
 .clone-project-row { display: flex; align-items: center; gap: 8px; }
 .clone-project-row .pref-input,
 .clone-project-row .pref-select { flex: 1; min-width: 0; }
-.clone-to-jira-btn:focus-visible { outline: 1px solid var(--line-focus); outline-offset: 1px; }
+.clone-to-jira-btn:focus-visible { outline: 2px solid var(--sig-go); outline-offset: 2px; }
 
 /* Ticket Workflows settings toggle */
 .settings-toggle-label {
@@ -3801,7 +3898,11 @@ body.has-dynamic-overview [data-ov-hidden="1"] {
     radial-gradient(ellipse 80% 60% at 50% -20%, rgba(55,216,176,.07) 0%, transparent 70%),
     linear-gradient(to bottom, var(--paper-2), var(--paper-1));
   border-bottom-color: var(--line-1);
-  position: relative;
+  /* No position override here — the sticky-chrome block sets position:sticky.
+     Setting position:relative here used to clobber sticky in dark mode (higher
+     specificity than the bare .top-bar selector), which broke scroll pinning
+     for everyone using dark mode. The ::after pseudo-element is anchored fine
+     by position:sticky on its own. */
 }
 [data-theme="dark"] .top-bar::after {
   content: "";
@@ -4340,7 +4441,9 @@ body.has-dynamic-overview [data-ov-hidden="1"] {
 .top-bar {
   background: linear-gradient(135deg, var(--hdr-from) 0%, var(--hdr-mid) 50%, var(--hdr-to) 100%);
   border-bottom: 1px solid rgba(0,0,0,.25);
-  position: relative;
+  /* position:sticky is set by the sticky-chrome block below. Don't override
+     here — `position:relative` would tie at specificity but lose the sticky
+     declaration on cascade order. */
 }
 .top-bar::after {
   content: "";
@@ -5270,32 +5373,6 @@ kbd {
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 8%, transparent);
   box-shadow: 0 0 20px -4px rgba(55,216,176,.15);
-}
-
-/* ==========================================================================
-   1-CLICK CLONE BUTTON — Premium affordance
-   ========================================================================== */
-.clone-to-jira-btn {
-  left: -8px;
-  width: 3px;
-  background: color-mix(in srgb, var(--sig-go) 40%, transparent);
-  border-radius: 0 2px 2px 0;
-  transition: width var(--t-1) var(--ease),
-              background var(--t-1) var(--ease),
-              box-shadow var(--t-1) var(--ease);
-}
-.clone-to-jira-btn::after {
-  content: "⊕";
-  font-size: 12px;
-  font-weight: 700;
-}
-.schedule-item--cloneable:hover .clone-to-jira-btn {
-  width: 20px;
-  background: var(--sig-go);
-  color: var(--ink-inverse);
-  font-size: 14px;
-  border-radius: 0 6px 6px 0;
-  box-shadow: 2px 0 8px rgba(30,122,82,.25);
 }
 
 /* Cloned badge — premium pill */
@@ -6477,7 +6554,7 @@ body.dashboard-editing .dashboard-item:hover {
 
 /* ==========================================================================
    STICKY CHROME — top-bar + kpi-strip pin to the top while content scrolls.
-   context-strip scrolls away between them, collapsing the chrome naturally.
+   context-strip scrolls away between them (original design intent).
    --top-bar-h is set by JS (syncStickyTop) and defaults to 52px.
    ========================================================================== */
 
@@ -6496,7 +6573,8 @@ body.dashboard-editing .dashboard-item:hover {
   transition: box-shadow 220ms var(--smooth, cubic-bezier(0.25,0.46,0.45,0.94));
 }
 
-/* Scrolled-shadow state — added to <body> by bindScrollShadow() */
+/* Scrolled-shadow state — added to <body> by bindScrollShadow().
+   Shadow lives on the kpi-strip (the bottom edge of the sticky chrome). */
 body.is-scrolled .top-bar {
   box-shadow:
     0 1px 0 rgba(0,0,0,.06),

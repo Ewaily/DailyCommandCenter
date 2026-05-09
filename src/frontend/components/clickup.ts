@@ -1,7 +1,7 @@
 import { api, isAuthError, type ClickUpTask, type WatchedUser } from "../api.js";
 import { $, escapeHtml, renderWorkspaceNotConfigured, skeletonCompact, toast, confirmModal, errorModal, cloneSuccessModal, animateNumber } from "./util.js";
 import { saveSetting, getSetting } from "../state.js";
-import { renderTaskRow } from "./task-row.js";
+import { renderTaskRow, maybeShowCloneHint } from "./task-row.js";
 import { hasCapability } from "../connectors.js";
 
 export interface ClickUpInstance {
@@ -179,6 +179,7 @@ export async function loadClickUp(silent = false) {
     const cc = resp.connectorCloningConfig ?? { cloningEnabled: false, cloneTargetProject: "", connectorId: undefined };
     body.innerHTML = data.map(t => renderTask(t, cc.cloningEnabled, cc.cloneTargetProject, cc.connectorId)).join("");
     applyCloneHistory(body);
+    maybeShowCloneHint(body);
   } catch (err) {
     if (isAuthError(err)) {
       body.innerHTML = renderWorkspaceNotConfigured("ClickUp");
@@ -300,6 +301,7 @@ export function instantiateClickUp(
       const cc = resp.connectorCloningConfig ?? { cloningEnabled: false, cloneTargetProject: "", connectorId: undefined };
       body.innerHTML = data.map(t => renderTask(t, cc.cloningEnabled, cc.cloneTargetProject, cc.connectorId)).join("");
       applyCloneHistory(body);
+      maybeShowCloneHint(body);
     } catch (err) {
       if (isAuthError(err)) {
         body.innerHTML = renderWorkspaceNotConfigured("ClickUp");

@@ -15,7 +15,7 @@ const { mockApi, mockIsAuthError, mockGetSetting, mockSaveSetting, mockRenderTas
 
 vi.mock("../../src/frontend/api.js", () => ({ api: mockApi, isAuthError: mockIsAuthError }));
 vi.mock("../../src/frontend/state.js", () => ({ getSetting: mockGetSetting, saveSetting: mockSaveSetting }));
-vi.mock("../../src/frontend/components/task-row.js", () => ({ renderTaskRow: mockRenderTaskRow }));
+vi.mock("../../src/frontend/components/task-row.js", () => ({ renderTaskRow: mockRenderTaskRow, maybeShowCloneHint: vi.fn() }));
 vi.mock("../../src/frontend/components/util.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../src/frontend/components/util.js")>();
   return { ...actual, animateNumber: vi.fn() };

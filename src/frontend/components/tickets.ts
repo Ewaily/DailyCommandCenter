@@ -2,6 +2,7 @@ import { api, isAuthError, type Ticket, type WatchedUser } from "../api.js";
 import { $, escapeHtml, renderNotConnected, skeletonCompact, animateNumber, toast, confirmModal, errorModal, cloneSuccessModal } from "./util.js";
 import { saveSetting, getSetting } from "../state.js";
 import { renderJiraTicket } from "./lists.js";
+import { maybeShowCloneHint } from "./task-row.js";
 
 const MINE = "mine";
 
@@ -178,6 +179,7 @@ export async function loadTickets(silent = false) {
     const cc = resp.connectorCloningConfig ?? { cloningEnabled: false, cloneTargetProject: "", connectorId: undefined };
     body.innerHTML = data.map(t => renderJiraTicket(t, cc.cloningEnabled, cc.cloneTargetProject, cc.connectorId)).join("");
     applyCloneHistory(body);
+    maybeShowCloneHint(body);
   } catch (err) {
     if (isAuthError(err)) { body.innerHTML = renderNotConnected("Jira", "jira"); resetCounts(); }
     else body.innerHTML = `<div class="error">${escapeHtml((err as Error).message)}</div>`;
@@ -335,6 +337,7 @@ export function instantiateTickets(
       const cc = resp.connectorCloningConfig ?? { cloningEnabled: false, cloneTargetProject: "", connectorId: undefined };
       body.innerHTML = data.map(t => renderJiraTicket(t, cc.cloningEnabled, cc.cloneTargetProject, cc.connectorId)).join("");
       applyCloneHistory(body);
+      maybeShowCloneHint(body);
     } catch (err) {
       if (isAuthError(err)) body.innerHTML = renderNotConnected("Jira", "jira");
       else body.innerHTML = `<div class="error">${escapeHtml((err as Error).message)}</div>`;

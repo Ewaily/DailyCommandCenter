@@ -84,7 +84,7 @@ describe("isAuthError", () => {
 
 describe("req() success path", () => {
   it("api.health() resolves with parsed JSON", async () => {
-    mockFetch.mockReturnValue(okJson({ ok: true, providers: {} }));
+    mockFetch.mockReturnValue(okJson({ data: { ok: true, providers: {} } }));
     const result = await api.health();
     expect(result.data.ok).toBe(true);
     expect(mockFetch).toHaveBeenCalledWith(
