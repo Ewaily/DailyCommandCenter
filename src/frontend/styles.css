@@ -5413,6 +5413,895 @@ kbd {
 }
 
 /* ==========================================================================
+   TRIPLE-A DEEP AUDIT — Infinite Creativity Overhaul
+   Every component, every pixel. Light + Dark. Motion + Depth + Polish.
+   ========================================================================== */
+
+/* ── 1. Spring physics timing library ──────────────────────────────────── */
+:root {
+  --spring:    cubic-bezier(0.34, 1.56, 0.64, 1);   /* bounce-settle */
+  --smooth:    cubic-bezier(0.25, 0.46, 0.45, 0.94); /* buttery drag */
+  --sharp:     cubic-bezier(0.4, 0, 0.2, 1);          /* material crisp */
+  --t-hover:   160ms;
+  --t-spring:  260ms;
+  --t-lift:    220ms;
+}
+
+/* ── 2. Global scrollbar — thin, themed ──────────────────────────────── */
+* { scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--line-2); border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--ink-4); }
+
+/* ── 3. TOP BAR — premium navy gradient stays; glass buttons on dark ── */
+.top-bar {
+  background: linear-gradient(135deg,
+    #0D1B2E 0%,
+    #162D52 48%,
+    #0B1824 100%);
+  border-bottom: 1px solid rgba(0,0,0,.28);
+}
+.top-bar::after {
+  content: "";
+  position: absolute; inset-x: 0; bottom: 0; height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(79,140,240,.45) 50%,
+    transparent 100%);
+  pointer-events: none;
+}
+
+/* Brand name — crisp white on dark header */
+.brand-name { color: rgba(255,255,255,.92); font-weight: 700; }
+.brand-status-dot {
+  width: 7px; height: 7px;
+  box-shadow: 0 0 0 2px rgba(55,216,176,.35), 0 0 8px rgba(55,216,176,.5);
+  animation: pulse-brand 3s ease infinite;
+}
+@keyframes pulse-brand {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(55,216,176,.35), 0 0 8px rgba(55,216,176,.5); }
+  50%       { box-shadow: 0 0 0 4px rgba(55,216,176,.15), 0 0 16px rgba(55,216,176,.7); }
+}
+.brand-subtitle-sep,
+.brand-subtitle { color: rgba(255,255,255,.40); }
+
+/* Header buttons — glass treatment on dark header */
+.header-btn {
+  background: rgba(255,255,255,.10);
+  border-color: rgba(255,255,255,.18);
+  color: rgba(255,255,255,.80);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: background var(--t-hover) var(--smooth),
+              border-color var(--t-hover) var(--smooth),
+              color var(--t-hover) var(--smooth),
+              transform var(--t-hover) var(--spring);
+}
+.header-btn:hover {
+  background: rgba(255,255,255,.18);
+  border-color: rgba(255,255,255,.30);
+  color: rgba(255,255,255,.96);
+  transform: translateY(-1px);
+}
+.header-btn:active { transform: translateY(0); }
+.header-btn kbd {
+  background: rgba(255,255,255,.08);
+  border-color: rgba(255,255,255,.16);
+  color: rgba(255,255,255,.55);
+}
+.header-btn.header-kbd .header-btn-label { color: rgba(255,255,255,.55); }
+
+/* Workspace switcher pill */
+.ws-switcher-btn {
+  background: rgba(255,255,255,.13);
+  border: 1px solid rgba(255,255,255,.24);
+  color: rgba(255,255,255,.90);
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  letter-spacing: -0.01em;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: background var(--t-hover) var(--smooth),
+              border-color var(--t-hover) var(--smooth),
+              transform var(--t-hover) var(--spring),
+              box-shadow var(--t-hover) var(--smooth);
+}
+.ws-switcher-btn:hover {
+  background: rgba(255,255,255,.20);
+  border-color: rgba(255,255,255,.35);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px -4px rgba(0,0,0,.30);
+}
+.ws-switcher-btn[aria-expanded="true"] {
+  background: rgba(255,255,255,.20);
+  border-color: rgba(255,255,255,.35);
+}
+.ws-switcher-label { color: rgba(255,255,255,.92); }
+.ws-switcher-caret {
+  color: rgba(255,255,255,.50);
+  transition: transform 200ms var(--smooth);
+}
+.ws-switcher-btn[aria-expanded="true"] .ws-switcher-caret {
+  transform: rotate(180deg);
+}
+
+/* Single-workspace pill (non-interactive) */
+.ws-switcher-pill {
+  background: rgba(255,255,255,.10);
+  border: 1px solid rgba(255,255,255,.18);
+  color: rgba(255,255,255,.85);
+  padding: 5px 12px;
+  border-radius: var(--r-pill);
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: var(--fs-sm); font-weight: 600;
+}
+
+/* ── 4. CONTEXT STRIP — tighter premium pill treatment ───────────────── */
+.context-strip {
+  background: var(--paper-1);
+  border-bottom: 1px solid var(--line-1);
+  font-size: var(--fs-xs);
+}
+.cs-tz-pill {
+  background: var(--paper-2);
+  transition: background var(--t-hover) var(--smooth),
+              border-color var(--t-hover) var(--smooth);
+}
+.cs-tz-pill:hover { background: var(--paper-3); border-color: var(--line-2); }
+.wc-item {
+  background: var(--paper-2);
+  transition: background var(--t-hover) var(--smooth),
+              border-color var(--t-hover) var(--smooth);
+}
+.wc-item:hover { background: var(--paper-3); border-color: var(--line-2); }
+.cs-clock { font-weight: 600; color: var(--ink-1); }
+
+/* ── 5. KPI STRIP — Instrument Serif display, per-source accent bars ── */
+.kpi-strip {
+  background: var(--paper-1);
+}
+.kpi {
+  transition:
+    background var(--t-hover) var(--smooth),
+    transform var(--t-lift) var(--spring),
+    box-shadow var(--t-lift) var(--smooth);
+  overflow: hidden;
+}
+.kpi:hover {
+  background: var(--paper-2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px -8px rgba(15,15,16,.12);
+  z-index: 1;
+}
+
+/* Accent bars per integration type */
+.kpi::before {
+  content: "";
+  position: absolute; left: 0; top: 14px; bottom: 14px;
+  width: 3px; border-radius: 0 2px 2px 0;
+  background: var(--line-2);
+  transition: background var(--t-hover) var(--smooth);
+}
+.kpi[data-kpi-jump="schedule"]::before { background: #2B5BD7; }
+.kpi[data-kpi-jump="mentions"]::before { background: #D14B3D; }
+.kpi[data-kpi-jump="tickets"]::before  { background: #7B68EE; }
+.kpi[data-kpi-jump="prs"]::before      { background: #1A1A1B; }
+
+[data-theme="dark"] .kpi[data-kpi-jump="schedule"]::before { background: #74B6FF; }
+[data-theme="dark"] .kpi[data-kpi-jump="mentions"]::before { background: #FF6E6E; }
+[data-theme="dark"] .kpi[data-kpi-jump="tickets"]::before  { background: #B197FF; }
+[data-theme="dark"] .kpi[data-kpi-jump="prs"]::before      { background: #94A3AE; }
+
+/* Instrument Serif display numbers */
+.kpi-value {
+  font-family: "Instrument Serif", Georgia, serif;
+  font-size: 36px;
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+/* Eyebrow — IBM Plex Mono label */
+.kpi-source-label {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  font-weight: 500;
+  color: var(--ink-4);
+}
+.kpi-detail {
+  font-size: 11px;
+  color: var(--ink-4);
+  letter-spacing: 0.01em;
+  margin-top: 3px;
+}
+
+/* ── 6. CARDS — Layered depth, spring hover, 14px radius ────────────── */
+.card {
+  border-radius: 14px;
+  border: none;
+  box-shadow:
+    0 1px 2px rgba(15,15,16,.04),
+    0 3px 12px -4px rgba(15,15,16,.08),
+    0 0 0 1px var(--line-1);
+  transition:
+    transform var(--t-lift) var(--spring),
+    box-shadow var(--t-lift) var(--smooth);
+}
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 2px 4px rgba(15,15,16,.06),
+    0 12px 40px -8px rgba(15,15,16,.18),
+    0 0 0 1px var(--line-2);
+}
+
+/* Card header — richer gradient */
+.card-header {
+  background: linear-gradient(180deg, var(--paper-3) 0%, var(--paper-2) 100%);
+  border-bottom: 1px solid var(--line-1);
+  border-radius: 14px 14px 0 0;
+  min-height: 46px;
+}
+
+/* Leading stripe — stronger */
+.card-header::before {
+  background: linear-gradient(180deg, var(--sig-info) 0%, color-mix(in srgb, var(--sig-info) 60%, transparent) 100%);
+  width: 3px;
+  border-radius: 0;
+}
+
+/* Tab counts — premium filled chips */
+.card-header .tab-count {
+  background: var(--paper-1);
+  border-color: var(--line-1);
+  color: var(--ink-3);
+  border-radius: 20px;
+  min-width: 18px;
+}
+.card-header .tab.active .tab-count {
+  background: var(--ink-1);
+  color: var(--ink-inverse);
+  border-color: var(--ink-1);
+}
+
+/* Active tab — underline + weight */
+.card-header .tab {
+  font-size: var(--fs-xs);
+  letter-spacing: 0.01em;
+  padding: 5px 10px;
+  transition:
+    color var(--t-hover) var(--smooth),
+    border-color var(--t-hover) var(--smooth);
+}
+.card-header .tab.active {
+  color: var(--ink-1);
+  font-weight: 700;
+  border-bottom-color: var(--ink-1);
+}
+
+/* Title row inside card headers */
+.title-source {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  flex-shrink: 0;
+}
+.title-text {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink-1);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Source chips (EXPENSEPOINT · EWAILYTZ) — premium pill treatment */
+.title-source-chip,
+.card-header .source-chip {
+  background: var(--paper-1);
+  border: 1px solid var(--line-1);
+  border-radius: var(--r-pill);
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+/* Icon buttons in card header */
+.card-header .icon-btn {
+  transition:
+    background var(--t-hover) var(--smooth),
+    border-color var(--t-hover) var(--smooth),
+    transform var(--t-hover) var(--spring);
+}
+.card-header .icon-btn:hover {
+  background: var(--paper-1);
+  border-color: var(--line-2);
+  color: var(--ink-1);
+  transform: translateY(-1px);
+}
+
+/* ── 7. SCHEDULE ROWS — Tactile left-border hover ────────────────────── */
+.schedule-item {
+  transition:
+    background var(--t-hover) var(--smooth),
+    padding-left var(--t-hover) var(--smooth);
+  border-radius: 8px;
+  margin: 0 -8px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+.schedule-item:hover {
+  background: var(--paper-2);
+}
+.schedule-title {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: -0.005em;
+}
+.schedule-time.item-key {
+  font-size: 11px;
+  font-weight: 600;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  color: var(--ink-4);
+  letter-spacing: 0;
+}
+.schedule-meta {
+  font-size: 11px;
+  margin-top: 3px;
+  gap: 5px;
+}
+
+/* ── 8. BADGES — Filled, not outline-only ────────────────────────────── */
+.badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border-radius: 20px;
+  padding: 2px 7px;
+  border: none;
+  transition: transform var(--t-hover) var(--spring),
+              box-shadow var(--t-hover) var(--smooth);
+}
+.badge:hover { transform: translateY(-1px); }
+
+.badge-urgent  { background: var(--badge-urgent-bg);  color: var(--badge-urgent-fg); }
+.badge-success { background: var(--badge-success-bg); color: var(--badge-success-fg); }
+.badge-info    { background: var(--badge-info-bg);    color: var(--badge-info-fg); }
+.badge-warning { background: var(--badge-warn-bg);    color: var(--badge-warn-fg); }
+.badge-new     { background: var(--badge-new-bg);     color: var(--badge-new-fg); }
+.badge-focus   { background: var(--badge-focus-bg);   color: var(--badge-focus-fg); }
+
+/* OPEN / CLOSED / ACCEPTED badge — status from API statusBucket */
+.badge[class*="status-"] {
+  border-radius: 20px;
+  font-size: 10px;
+}
+
+/* ── 9. TABS in chip row (schedule navigation) ───────────────────────── */
+.chips {
+  padding: 0 16px 10px;
+  gap: 5px;
+}
+.chip {
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  transition:
+    background var(--t-hover) var(--smooth),
+    color var(--t-hover) var(--smooth),
+    border-color var(--t-hover) var(--smooth),
+    transform var(--t-hover) var(--spring);
+}
+.chip:hover { transform: translateY(-1px); }
+.chip.active {
+  background: var(--ink-1);
+  color: var(--ink-inverse);
+  border-color: var(--ink-1);
+  box-shadow: 0 2px 8px -2px rgba(15,15,16,.25);
+}
+
+/* ── 10. WORKSPACE SWITCHER MENU — Elevated, active indicator ────────── */
+.ws-switcher-menu {
+  border-radius: 14px;
+  width: 340px;
+  padding: 6px;
+  box-shadow:
+    0 4px 8px rgba(0,0,0,.08),
+    0 20px 56px -8px rgba(0,0,0,.26),
+    0 0 0 1px var(--line-1),
+    inset 0 1px 0 rgba(255,255,255,.60);
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+}
+.ws-menu-item {
+  border-radius: 9px;
+  min-height: 46px;
+  padding: 0 12px;
+  gap: 10px;
+  position: relative;
+  transition: background var(--t-hover) var(--smooth);
+}
+.ws-menu-item:hover { background: var(--paper-2); }
+.ws-menu-item.active {
+  background: color-mix(in srgb, var(--sig-info) 9%, var(--paper-2));
+}
+.ws-menu-item.active::before {
+  content: "";
+  position: absolute; left: 4px; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 20px;
+  background: var(--sig-info);
+  border-radius: 2px;
+}
+.ws-menu-item-name { font-weight: 700; }
+.ws-menu-item-domain {
+  font-size: 11px;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  color: var(--ink-4);
+}
+.ws-menu-overview { border-radius: 9px; }
+.ws-menu-overview .ws-overview-glyph {
+  width: 26px; height: 26px; border-radius: 8px;
+  font-size: 14px;
+}
+.ws-menu-divider { margin: 4px 4px; }
+
+/* Dark mode switcher */
+[data-theme="dark"] .ws-switcher-menu {
+  background: var(--paper-2);
+  box-shadow:
+    0 4px 8px rgba(0,0,0,.35),
+    0 20px 56px -8px rgba(0,0,0,.70),
+    0 0 0 1px var(--line-2),
+    0 0 48px -16px rgba(55,216,176,.08),
+    inset 0 1px 0 rgba(255,255,255,.04);
+}
+[data-theme="dark"] .ws-menu-item:hover { background: var(--paper-3); }
+[data-theme="dark"] .ws-menu-item.active {
+  background: color-mix(in srgb, var(--accent) 10%, var(--paper-3));
+}
+[data-theme="dark"] .ws-menu-item.active::before { background: var(--accent); }
+
+/* ── 11. COMMAND PALETTE — perfect glassmorphism ─────────────────────── */
+.palette {
+  border-radius: 18px;
+  box-shadow:
+    0 0 0 1px var(--line-1),
+    0 8px 32px -8px rgba(15,15,16,.28),
+    0 40px 96px -16px rgba(15,15,16,.36),
+    inset 0 1px 0 rgba(255,255,255,.70);
+  backdrop-filter: blur(32px) saturate(2);
+  -webkit-backdrop-filter: blur(32px) saturate(2);
+}
+.palette-item {
+  transition: background var(--t-hover) var(--smooth);
+}
+.palette-item.active {
+  background: var(--paper-2);
+  box-shadow: inset 3px 0 0 var(--sig-info);
+}
+[data-theme="dark"] .palette {
+  box-shadow:
+    0 0 0 1px var(--line-2),
+    0 8px 32px -8px rgba(0,0,0,.65),
+    0 40px 96px -16px rgba(0,0,0,.85),
+    0 0 60px -20px rgba(55,216,176,.12),
+    inset 0 1px 0 rgba(255,255,255,.04);
+}
+[data-theme="dark"] .palette-item.active {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+/* ── 12. DARK MODE CARD DEPTH — obsidian elevation + teal glow ────────── */
+[data-theme="dark"] .card {
+  box-shadow:
+    0 1px 2px rgba(0,0,0,.45),
+    0 4px 16px -4px rgba(0,0,0,.60),
+    0 0 0 1px var(--line-1);
+}
+[data-theme="dark"] .card:hover {
+  box-shadow:
+    0 2px 4px rgba(0,0,0,.55),
+    0 12px 40px -8px rgba(0,0,0,.75),
+    0 0 0 1px var(--line-2),
+    0 0 32px -12px rgba(55,216,176,.10);
+  transform: translateY(-2px);
+}
+[data-theme="dark"] .card-header {
+  background: linear-gradient(180deg,
+    rgba(255,255,255,.04) 0%,
+    rgba(255,255,255,.01) 100%);
+  border-bottom-color: var(--line-1);
+}
+[data-theme="dark"] .card-header::before {
+  background: linear-gradient(180deg,
+    var(--accent) 0%,
+    color-mix(in srgb, var(--accent) 40%, transparent) 100%);
+}
+[data-theme="dark"] .card-header .tab.active { border-bottom-color: var(--accent); color: var(--accent); }
+[data-theme="dark"] .card-header .tab.active .tab-count {
+  background: var(--accent);
+  color: var(--ink-inverse);
+  border-color: var(--accent);
+}
+
+/* ── 13. EMPTY STATES — Premium centred content ──────────────────────── */
+.empty {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; text-align: center;
+  padding: 48px 24px; gap: 10px;
+  min-height: 160px;
+}
+.empty .emoji {
+  font-size: 32px; line-height: 1;
+  display: block; margin-bottom: 4px;
+  filter: drop-shadow(0 4px 12px rgba(15,15,16,.12));
+}
+.empty-title {
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: var(--ink-1);
+  letter-spacing: -0.01em;
+}
+.empty > div:not(.empty-title) {
+  font-size: var(--fs-sm);
+  color: var(--ink-4);
+  max-width: 260px;
+  line-height: 1.55;
+}
+.empty-hint {
+  font-size: var(--fs-sm);
+  color: var(--ink-4);
+  max-width: 260px;
+  line-height: 1.55;
+}
+
+/* ── 14. SETTINGS MODAL — Premium depth + cohesion ──────────────────── */
+.modal {
+  border-radius: 18px;
+  box-shadow:
+    0 8px 32px -8px rgba(15,15,16,.24),
+    0 40px 96px -16px rgba(15,15,16,.32),
+    0 0 0 1px var(--line-1);
+}
+.modal.modal-lg { border-radius: 18px; }
+
+[data-theme="dark"] .modal {
+  box-shadow:
+    0 8px 32px -8px rgba(0,0,0,.65),
+    0 40px 96px -16px rgba(0,0,0,.85),
+    0 0 0 1px var(--line-2),
+    0 0 60px -24px rgba(55,216,176,.10);
+}
+
+/* Settings tabs */
+.settings-tabs { border-bottom: 1px solid var(--line-1); }
+.settings-tab {
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  transition: color var(--t-hover) var(--smooth),
+              border-color var(--t-hover) var(--smooth);
+}
+.settings-tab.active { border-bottom-color: var(--ink-1); }
+
+/* Workspace sections */
+.ws-section {
+  border-radius: 12px;
+  transition: border-color var(--t-hover) var(--smooth),
+              box-shadow var(--t-hover) var(--smooth);
+}
+.ws-section[open] {
+  box-shadow: 0 2px 12px -4px rgba(15,15,16,.08);
+}
+.ws-section-head {
+  border-radius: 10px;
+  padding: 10px 14px;
+  transition: background var(--t-hover) var(--smooth);
+}
+.ws-section-head:hover { background: var(--paper-2); }
+
+/* Connector blocks */
+.connector-block {
+  border-radius: 10px;
+  transition: border-color var(--t-hover) var(--smooth);
+}
+.connector-block-summary:hover { background: var(--paper-2); }
+
+/* Preference groups */
+.pref-group {
+  border-radius: 12px;
+  transition: border-color var(--t-hover) var(--smooth),
+              box-shadow var(--t-hover) var(--smooth);
+}
+.pref-group[open] { box-shadow: 0 2px 12px -4px rgba(15,15,16,.08); }
+
+/* ── 15. FORM INPUTS — Premium focus states ──────────────────────────── */
+input[type="text"]:focus,
+input[type="url"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--sig-info);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sig-info) 18%, transparent);
+  transition: border-color var(--t-hover) var(--smooth),
+              box-shadow var(--t-hover) var(--smooth);
+}
+[data-theme="dark"] input[type="text"]:focus,
+[data-theme="dark"] input:focus,
+[data-theme="dark"] textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+/* ── 16. BUTTONS — Spring scale interactions ────────────────────────── */
+.btn-primary,
+.btn-ghost,
+.btn-danger {
+  transition:
+    background var(--t-hover) var(--smooth),
+    border-color var(--t-hover) var(--smooth),
+    color var(--t-hover) var(--smooth),
+    transform var(--t-hover) var(--spring),
+    box-shadow var(--t-hover) var(--smooth);
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px -4px rgba(15,15,16,.25);
+}
+.btn-primary:active { transform: translateY(0); box-shadow: none; }
+.btn-ghost:hover { transform: translateY(-1px); }
+.btn-ghost:active { transform: translateY(0); }
+.btn-danger:hover { transform: translateY(-1px); }
+
+/* ── 17. CHANNEL DIGEST — premium accordion tiles ────────────────────── */
+.dg-channel {
+  border-radius: 12px;
+  transition:
+    border-color var(--t-hover) var(--smooth),
+    box-shadow var(--t-hover) var(--smooth),
+    background var(--t-hover) var(--smooth);
+}
+.dg-channel:hover {
+  box-shadow: 0 2px 12px -4px rgba(15,15,16,.10);
+}
+.dg-channel.is-open {
+  box-shadow: 0 4px 20px -6px rgba(15,15,16,.12);
+}
+.dg-channel-head {
+  border-radius: 12px;
+  transition: background var(--t-hover) var(--smooth);
+}
+.dg-channel-count {
+  border-radius: 20px;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+}
+
+/* ── 18. SIDEBAR — premium spacing and depth ─────────────────────────── */
+.sidebar-section {
+  transition: box-shadow var(--t-hover) var(--smooth);
+}
+.sidebar-item {
+  border-radius: 8px;
+  transition:
+    background var(--t-hover) var(--smooth),
+    transform var(--t-hover) var(--spring);
+}
+.sidebar-item:hover {
+  background: var(--paper-2);
+  transform: translateX(2px);
+}
+
+/* ── 19. NOW LINE — more dramatic pulse ──────────────────────────────── */
+.now-line::before {
+  width: 7px; height: 7px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sig-now) 22%, transparent),
+              0 0 12px rgba(209,75,61,.35);
+}
+[data-theme="dark"] .now-line::before {
+  box-shadow: 0 0 0 3px rgba(255,110,110,.25),
+              0 0 16px rgba(255,110,110,.40);
+}
+
+/* ── 20. CLONED BADGE — micro-detail ────────────────────────────────── */
+.cloned-badge {
+  border-radius: 20px;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  transition:
+    background var(--t-hover) var(--smooth),
+    transform var(--t-hover) var(--spring);
+}
+.cloned-badge:hover { transform: translateY(-1px); }
+
+/* ── 21. OVERVIEW WIDGET SOURCE LABEL chips ───────────────────────────── */
+.ws-badge-cluster { gap: 3px; }
+
+/* ── 22. TASK ROWS — premium assignee avatars ────────────────────────── */
+.task-avatar {
+  border: 2px solid var(--paper-1);
+  transition: transform var(--t-hover) var(--spring);
+}
+.task-avatar:hover { transform: scale(1.15) translateY(-1px); z-index: 1; }
+
+/* ── 23. SETTINGS STATUS CHIPS ───────────────────────────────────────── */
+.settings-status {
+  transition: transform var(--t-hover) var(--spring);
+}
+.settings-status.ok {
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  border-color: color-mix(in srgb, var(--success) 28%, transparent);
+}
+
+/* ── 24. CARD BODY SCROLLBAR — matches theme ─────────────────────────── */
+.card-body::-webkit-scrollbar { width: 4px; }
+.card-body::-webkit-scrollbar-thumb { border-radius: 99px; }
+
+/* ── 25. DARK MODE — context strip + KPI strip tighter depth ─────────── */
+[data-theme="dark"] .context-strip { border-bottom-color: var(--line-1); }
+[data-theme="dark"] .kpi-strip { background: var(--paper-1); }
+[data-theme="dark"] .kpi:hover {
+  background: var(--paper-2);
+  box-shadow: 0 4px 20px -8px rgba(0,0,0,.50),
+              0 0 16px -8px rgba(55,216,176,.06);
+}
+[data-theme="dark"] .kpi-source-label { color: var(--ink-4); }
+[data-theme="dark"] .kpi-detail { color: var(--ink-4); }
+
+/* ── 26. KEYBOARD SHORTCUT KEYS — mono pill treatment ───────────────── */
+kbd {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-radius: 5px;
+}
+
+/* ── 27. SKELETON LOADERS — subtle shimmer ───────────────────────────── */
+.skeleton-line {
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+.skeleton-line::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,.35) 50%,
+    transparent 100%
+  );
+  animation: shimmer 1.6s var(--smooth) infinite;
+}
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+[data-theme="dark"] .skeleton-line::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,.06) 50%,
+    transparent 100%
+  );
+}
+
+/* ── 28. FADE-IN ANIMATION for loaded content ────────────────────────── */
+@keyframes fade-slide-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.card-body > * { animation: fade-slide-in 220ms var(--smooth) both; }
+.card-body > *:nth-child(2) { animation-delay: 30ms; }
+.card-body > *:nth-child(3) { animation-delay: 60ms; }
+.card-body > *:nth-child(4) { animation-delay: 90ms; }
+.card-body > *:nth-child(5) { animation-delay: 120ms; }
+
+/* ── 29. PR/TICKET LINK hover ────────────────────────────────────────── */
+a.schedule-title {
+  transition: color var(--t-hover) var(--smooth),
+              text-decoration-color var(--t-hover) var(--smooth);
+}
+a.schedule-title:hover {
+  color: var(--sig-info);
+  text-decoration-color: var(--sig-info);
+}
+[data-theme="dark"] a.schedule-title:hover { color: var(--accent); }
+
+/* ── 30. CONNECTOR SHARE TOGGLE ──────────────────────────────────────── */
+.connector-share-toggle {
+  transition: background var(--t-hover) var(--smooth),
+              transform var(--t-hover) var(--spring);
+}
+.connector-share-toggle:hover { transform: translateX(1px); }
+
+/* ── 31. TOAST — premium glass notification ──────────────────────────── */
+.toast {
+  border-radius: 12px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow:
+    0 4px 16px -4px rgba(15,15,16,.20),
+    0 0 0 1px var(--line-1);
+}
+
+/* ── 32. HELP MODAL — keyboard shortcut table ────────────────────────── */
+.help-modal {
+  border-radius: 18px;
+  box-shadow:
+    0 8px 32px -8px rgba(15,15,16,.22),
+    0 0 0 1px var(--line-1);
+}
+
+/* ── 33. GLOBAL LINK TREATMENT ───────────────────────────────────────── */
+a {
+  transition: color var(--t-hover) var(--smooth),
+              opacity var(--t-hover) var(--smooth);
+}
+
+/* ── 34. MINI BUTTON in card-body (date nav arrows) ─────────────────── */
+.icon-btn {
+  transition:
+    background var(--t-hover) var(--smooth),
+    color var(--t-hover) var(--smooth),
+    transform var(--t-hover) var(--spring);
+}
+.icon-btn:hover { transform: scale(1.08); }
+
+/* ── 35. "Today" pill in schedule header ─────────────────────────────── */
+.today-pill {
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  transition: transform var(--t-hover) var(--spring),
+              box-shadow var(--t-hover) var(--smooth);
+}
+.today-pill:hover { transform: translateY(-1px); box-shadow: 0 4px 12px -4px rgba(15,15,16,.18); }
+
+/* ── 36. "Last refresh" stamp ────────────────────────────────────────── */
+.last-refresh {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  color: rgba(255,255,255,.35);
+}
+
+/* ── 37. DASHBOARD ITEM (resize handles) ─────────────────────────────── */
+.dashboard-item {
+  transition: box-shadow var(--t-lift) var(--smooth);
+}
+body.dashboard-editing .dashboard-item:hover {
+  box-shadow:
+    0 0 0 2px var(--sig-info),
+    0 8px 24px -8px rgba(43,91,215,.25);
+}
+
+/* ── 38. OVERVIEW WIDGET — no double-lift (already elevated inside grid) */
+.overview-widget-instance .card { transition: none; }
+.overview-widget-instance .card:hover { transform: none; }
+
+/* ==========================================================================
    REDUCED MOTION — always last
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
