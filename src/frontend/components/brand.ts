@@ -11,6 +11,9 @@ export function applyBrand(brand: AppCreds["brand"]): void {
   const h1 = document.getElementById("brand-name");
   if (h1) h1.textContent = name;
 
+  const footerName = document.getElementById("footer-brand-name");
+  if (footerName) footerName.textContent = name;
+
   const subEl = document.getElementById("brand-subtitle");
   const sepEl = document.getElementById("brand-subtitle-sep");
   if (subEl && sepEl) {
