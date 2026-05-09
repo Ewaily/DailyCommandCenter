@@ -6476,6 +6476,62 @@ body.dashboard-editing .dashboard-item:hover {
 }
 
 /* ==========================================================================
+   STICKY CHROME — top-bar + kpi-strip pin to the top while content scrolls.
+   context-strip scrolls away between them, collapsing the chrome naturally.
+   --top-bar-h is set by JS (syncStickyTop) and defaults to 52px.
+   ========================================================================== */
+
+.top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 150;
+  /* smooth shadow transition when scroll state changes */
+  transition: box-shadow 220ms var(--smooth, cubic-bezier(0.25,0.46,0.45,0.94));
+}
+
+.kpi-strip {
+  position: sticky;
+  top: var(--top-bar-h, 52px);
+  z-index: 149;
+  transition: box-shadow 220ms var(--smooth, cubic-bezier(0.25,0.46,0.45,0.94));
+}
+
+/* Scrolled-shadow state — added to <body> by bindScrollShadow() */
+body.is-scrolled .top-bar {
+  box-shadow:
+    0 1px 0 rgba(0,0,0,.06),
+    0 4px 16px -4px rgba(0,0,0,.12),
+    0 8px 32px -8px rgba(0,0,0,.08);
+}
+body.is-scrolled .kpi-strip {
+  box-shadow:
+    0 2px 12px -4px rgba(0,0,0,.10),
+    0 6px 24px -8px rgba(0,0,0,.06);
+}
+
+[data-theme="dark"] body.is-scrolled .top-bar {
+  box-shadow:
+    0 1px 0 rgba(0,0,0,.25),
+    0 4px 20px -4px rgba(0,0,0,.45),
+    0 8px 40px -8px rgba(0,0,0,.30);
+}
+[data-theme="dark"] body.is-scrolled .kpi-strip {
+  box-shadow:
+    0 2px 16px -4px rgba(0,0,0,.40),
+    0 6px 32px -8px rgba(0,0,0,.25);
+}
+
+/* On narrow mobile the top-bar wraps to auto height.
+   JS keeps --top-bar-h in sync; we just guard against the default 52px
+   being wrong by letting JS drive it. */
+@media (max-width: 580px) {
+  .kpi-strip {
+    /* fallback if JS hasn't fired yet: let it stack naturally */
+    top: var(--top-bar-h, 0px);
+  }
+}
+
+/* ==========================================================================
    REDUCED MOTION — always last
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {

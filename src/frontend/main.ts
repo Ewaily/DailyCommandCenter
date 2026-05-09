@@ -24,6 +24,21 @@ import { applyTitles, initInlineEditing } from "./components/widget-titles.js";
 import { initOverviewWidgets, clearOverviewWidgets } from "./components/overview-widgets.js";
 import { initKpiSignals, initKpiLabels } from "./components/kpi-strip.js";
 
+function syncStickyTop() {
+  const topBar = document.querySelector<HTMLElement>(".top-bar");
+  if (!topBar) return;
+  const h = topBar.getBoundingClientRect().height;
+  document.documentElement.style.setProperty("--top-bar-h", `${h}px`);
+}
+
+function bindScrollShadow() {
+  const update = () => document.body.classList.toggle("is-scrolled", window.scrollY > 4);
+  window.addEventListener("scroll", update, { passive: true });
+  update();
+  syncStickyTop();
+  window.addEventListener("resize", syncStickyTop, { passive: true });
+}
+
 function markLastRefresh() {
   const el = document.getElementById("last-refresh");
   if (!el) return;
@@ -191,6 +206,7 @@ function paintHeaderIcons() {
 async function init() {
   paintHeaderIcons();
   startIconAutoPaint();
+  bindScrollShadow();
   initKpiSignals();
   initTheme();
   try {
