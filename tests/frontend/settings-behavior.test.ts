@@ -27,7 +27,10 @@ const { mockApi } = vi.hoisted(() => ({
 
 vi.mock("../../src/frontend/api.js", () => ({ api: mockApi, isAuthError: vi.fn() }));
 vi.mock("../../src/frontend/state.js", () => ({ getSetting: vi.fn(), saveSetting: vi.fn() }));
-vi.mock("../../src/frontend/components/workspace-switcher.js", () => ({ refreshActiveWorkspace: vi.fn() }));
+vi.mock("../../src/frontend/components/workspace-switcher.js", () => ({
+  refreshActiveWorkspace: vi.fn(),
+  getActiveWorkspaceId:   vi.fn().mockReturnValue("ws-1"),
+}));
 vi.mock("../../src/frontend/components/brand.js",                () => ({ applyBrand: vi.fn(), DEFAULT_BRAND_NAME: "Daily Command Center" }));
 vi.mock("../../src/frontend/components/theme.js",                () => ({ applyTheme: vi.fn() }));
 vi.mock("../../src/frontend/components/header.js",               () => ({ setTimezones: vi.fn() }));
@@ -126,6 +129,12 @@ function setupModalDOM() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // happy-dom does not implement window.alert — stub it so that any
+  // catch-branch in settings.ts that reaches `alert(...)` doesn't surface
+  // as an unhandled rejection and fail CI.
+  if (typeof window.alert !== "function") {
+    Object.defineProperty(window, "alert", { value: () => {}, configurable: true, writable: true });
+  }
   setupModalDOM();
   mockApi.workspaces.mockResolvedValue({
     data: { workspaces: [wsAlpha, wsBeta], defaultWorkspaceId: "ws-1" },
