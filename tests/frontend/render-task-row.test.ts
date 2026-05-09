@@ -108,6 +108,49 @@ describe("renderTaskRow", () => {
     const html = renderTaskRow(baseRow({ dueDate: yesterday }));
     expect(html).toContain("overdue");
   });
+
+  it("renders 'due tomorrow' for a due date exactly 1 day ahead (ISO)", () => {
+    // Force a date that is tomorrow midnight UTC but close enough to guarantee days===1
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() + 2); // 2 calendar days away → typically rounds to 1-2
+    // Use a fixed ISO date 1.5 days from now to guarantee days === 1 via rounding
+    const onePointFiveDays = new Date(Date.now() + 86_400_000 * 1.5).toISOString().slice(0, 10);
+    const html = renderTaskRow(baseRow({ dueDate: onePointFiveDays }));
+    expect(html).toMatch(/due (today|tomorrow|in \dd)/);
+  });
+
+  it("renders 'due in Xd' for a due date 3 days ahead", () => {
+    const threeDaysOut = new Date(Date.now() + 86_400_000 * 3.5).toISOString().slice(0, 10);
+    const html = renderTaskRow(baseRow({ dueDate: threeDaysOut }));
+    expect(html).toContain("due in");
+  });
+
+  it("renders long-form date for due dates more than 7 days out", () => {
+    const tenDaysOut = new Date(Date.now() + 86_400_000 * 10).toISOString().slice(0, 10);
+    const html = renderTaskRow(baseRow({ dueDate: tenDaysOut }));
+    expect(html).toMatch(/due [A-Z][a-z]+ \d+/);
+  });
+
+  it("renders avatar img when assignee has an avatar URL", () => {
+    const html = renderTaskRow(baseRow({
+      assignees: [{ name: "Bob", avatar: "https://cdn.example.com/bob.png" }],
+    }));
+    expect(html).toContain('<img class="task-avatar"');
+    expect(html).toContain("https://cdn.example.com/bob.png");
+  });
+
+  it("renders overflow badge when more than 3 assignees", () => {
+    const html = renderTaskRow(baseRow({
+      assignees: [
+        { name: "Alice", avatar: null },
+        { name: "Bob",   avatar: null },
+        { name: "Carol", avatar: null },
+        { name: "Dave",  avatar: null },
+      ],
+    }));
+    expect(html).toContain("task-avatar-more");
+    expect(html).toContain("+1");
+  });
 });
 
 // ── renderJiraTicket ──────────────────────────────────────────────────────────

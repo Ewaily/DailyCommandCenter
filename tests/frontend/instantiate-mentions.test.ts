@@ -145,6 +145,15 @@ describe("instantiateMentions — load()", () => {
     expect(c.querySelector("[data-ov-body]")?.textContent).toContain("slack unreachable");
   });
 
+  it("renders not-connected on auth error", async () => {
+    mockIsAuthError.mockReturnValue(true);
+    mockApi.mentions.mockRejectedValue(new Error("401"));
+    const c = makeContainer();
+    const inst = instantiateMentions(c, "conn-1", { wsName: "WS", title: "Mentions" });
+    await inst.load();
+    expect(c.querySelector("[data-ov-body]")?.innerHTML).toContain("not-connected");
+  });
+
   it("includes a permalink link when mention has one", async () => {
     mockApi.mentions.mockResolvedValue(okResp([makeMention({ permalink: "https://slack.com/p/123" })]));
     const c = makeContainer();
@@ -215,6 +224,17 @@ describe("instantiateMentions — day navigation", () => {
     c.querySelector<HTMLElement>("[data-ov-nav='prev']")!.click();
     const nextBtn = c.querySelector<HTMLElement>("[data-ov-nav='next']")!;
     expect(nextBtn.style.pointerEvents).not.toBe("none");
+  });
+
+  it("next nav from day -1 moves back to today", async () => {
+    mockApi.mentions.mockResolvedValue(okResp([makeMention()]));
+    const c = makeContainer();
+    const inst = instantiateMentions(c, "conn-1", { wsName: "WS", title: "Mentions" });
+    await inst.load();
+
+    c.querySelector<HTMLElement>("[data-ov-nav='prev']")!.click(); // offset -1
+    c.querySelector<HTMLElement>("[data-ov-nav='next']")!.click(); // offset 0
+    expect(c.querySelector("[data-ov-day-label]")?.textContent).toBe("Today");
   });
 });
 

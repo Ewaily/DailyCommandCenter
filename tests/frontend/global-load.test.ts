@@ -295,6 +295,22 @@ describe("loadTeamBoard (global DOM)", () => {
     const body = document.getElementById("team-board-body")!;
     expect(body.innerHTML).toContain("empty");
   });
+
+  it("renders not-connected on auth error", async () => {
+    mockIsAuthError.mockReturnValue(true);
+    mockApi.ticketsTeam.mockRejectedValue(new Error("401"));
+    await loadTeamBoard();
+    const body = document.getElementById("team-board-body")!;
+    expect(body.innerHTML).toContain("not connected");
+    mockIsAuthError.mockReturnValue(false);
+  });
+
+  it("renders error message on non-auth error", async () => {
+    mockApi.ticketsTeam.mockRejectedValue(new Error("Jira unreachable"));
+    await loadTeamBoard();
+    const body = document.getElementById("team-board-body")!;
+    expect(body.innerHTML).toContain("Jira unreachable");
+  });
 });
 
 // ── loadMentions + navMentions + bindMentionsTabs (module-level) ──────────────
